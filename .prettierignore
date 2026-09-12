@@ -1,0 +1,5 @@
+frontend/dist
+frontend/node_modules
+mockup/
+package-lock.json
+uv.lock

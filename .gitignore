@@ -1,0 +1,37 @@
+# --- Secrets et environnement : rien de tout cela ne doit entrer dans le dépôt
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.passphrase
+
+# --- Artefacts générés par ./setup
+/docker-compose.yml
+/.setup-state
+/deploy/config/traefik-dev.yml
+
+# --- Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+dist/
+*.egg-info/
+
+# --- Node
+node_modules/
+frontend/dist/
+*.local
+
+# --- Divers
+.DS_Store
+*.swp
+/tmp/

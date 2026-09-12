@@ -1,0 +1,1258 @@
+<meta charset="utf-8">
+<title>Atelier de nuit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap">
+
+<style>
+/* ============================================================
+   Atelier de nuit — maquette
+   Palette et échelle typographique : tout se règle ici.
+   ============================================================ */
+:root{
+  --ink:        #0E1216;   /* fond de page */
+  --surface:    #161B21;   /* surfaces posées */
+  --raised:     #1E252D;   /* surfaces relevées */
+  --line:       rgba(255,255,255,.075);
+  --line-soft:  rgba(255,255,255,.04);
+  --text:       #E6E9ED;
+  --muted:      #8B95A1;
+  --faint:      #5F6873;
+  --brass:      #D9A353;
+  --brass-lo:   rgba(217,163,83,.13);
+
+  --display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --body:    "Newsreader", Georgia, "Times New Roman", serif;
+
+  --wrap: 1120px;
+  --read: 65ch;
+  --r: 3px;
+
+  color-scheme: dark;
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+
+body{
+  margin:0;
+  background:var(--ink);
+  color:var(--text);
+  font-family:var(--body);
+  font-size:17px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+
+/* gutter unique, jamais de padding raccourci */
+.wrap{
+  width:100%;
+  max-width:var(--wrap);
+  margin-inline:auto;
+  padding-inline:24px;
+}
+
+a{ color:inherit; }
+img,svg{ max-width:100%; display:block; }
+button{ font:inherit; color:inherit; background:none; border:none; cursor:pointer; }
+
+:focus-visible{
+  outline:2px solid var(--brass);
+  outline-offset:3px;
+  border-radius:2px;
+}
+
+/* ---------- masthead ---------- */
+.mast{
+  position:sticky; top:0; z-index:20;
+  background:rgba(14,18,22,.86);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line-soft);
+}
+.mast-in{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:20px; min-height:62px;
+}
+.brand{
+  font-family:var(--display);
+  font-weight:600; font-size:1.02rem;
+  letter-spacing:-.015em;
+  display:flex; align-items:baseline; gap:9px;
+  text-decoration:none;
+}
+.brand .lamp{
+  width:7px; height:7px; border-radius:50%;
+  background:var(--brass);
+  box-shadow:0 0 12px 2px rgba(217,163,83,.55);
+  flex:none; align-self:center;
+}
+.brand .sub{ color:var(--faint); font-weight:400; font-size:.85rem; }
+
+.nav{ display:flex; gap:4px; align-items:center; }
+.nav a{
+  font-family:var(--display); font-size:.9rem; font-weight:500;
+  color:var(--muted); text-decoration:none;
+  padding:7px 11px; border-radius:var(--r);
+  transition:color .15s, background-color .15s;
+}
+.nav a:hover{ color:var(--text); background:var(--line-soft); }
+.nav a.on{ color:var(--text); }
+.nav a.on::after{
+  content:""; display:block; height:1.5px; background:var(--brass);
+  margin-top:4px;
+}
+.nav a.admin{ color:var(--faint); }
+
+/* ---------- hero ---------- */
+.hero{ padding-block:76px 58px; border-bottom:1px solid var(--line); }
+.hero h1{
+  font-family:var(--display);
+  font-weight:700;
+  font-size:clamp(2.9rem, 8.2vw, 5.6rem);
+  line-height:.94;
+  letter-spacing:-.035em;
+  margin:0;
+  text-wrap:balance;
+  font-variation-settings:"wdth" 100;
+}
+.hero p{
+  font-size:clamp(1.12rem,2.2vw,1.35rem);
+  color:var(--muted);
+  max-width:34ch;
+  margin:20px 0 0;
+  line-height:1.5;
+}
+.bench{
+  margin-top:34px; padding-top:16px;
+  border-top:1px solid var(--line-soft);
+  display:flex; flex-wrap:wrap; gap:8px 28px;
+  font-family:var(--display); font-size:.86rem; color:var(--faint);
+}
+.bench b{ color:var(--muted); font-weight:500; font-variant-numeric:tabular-nums; }
+
+/* animation d'ouverture, une seule fois */
+.rise{ animation:rise .7s cubic-bezier(.2,.7,.3,1) backwards; }
+.rise:nth-child(2){ animation-delay:.07s; }
+.rise:nth-child(3){ animation-delay:.13s; }
+@keyframes rise{ from{ opacity:0; transform:translateY(10px); } }
+@media (prefers-reduced-motion:reduce){
+  .rise{ animation:none; }
+  *{ transition-duration:.01ms !important; }
+}
+
+/* ---------- une : article mis en avant + rail de notes ---------- */
+.front{
+  display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);
+  gap:44px; padding-block:48px;
+  border-bottom:1px solid var(--line);
+}
+.feature{ display:block; text-decoration:none; }
+.feature .plate{ border-radius:var(--r); overflow:hidden; }
+.feature .kicker{
+  font-family:var(--display); font-size:.8rem; font-weight:600;
+  color:var(--brass); margin:20px 0 10px;
+  display:flex; align-items:center; gap:9px;
+}
+.feature .kicker::after{
+  content:""; height:1px; flex:1; background:var(--brass-lo);
+}
+.feature h2{
+  font-family:var(--display); font-weight:600;
+  font-size:clamp(1.7rem,3.4vw,2.5rem);
+  line-height:1.05; letter-spacing:-.028em;
+  margin:0; text-wrap:balance;
+  transition:color .15s;
+}
+.feature:hover h2{ color:var(--brass); }
+.feature .dek{ color:var(--muted); margin:14px 0 0; max-width:46ch; }
+
+.rail h3, .section-head{
+  font-family:var(--display); font-weight:600; font-size:.95rem;
+  color:var(--muted); margin:0 0 18px;
+  display:flex; align-items:center; gap:12px;
+}
+.rail h3::after, .section-head::after{
+  content:""; height:1px; flex:1; background:var(--line);
+}
+.rail ol{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; }
+.rail li + li{ border-top:1px solid var(--line-soft); }
+.rail a{
+  display:grid; grid-template-columns:64px 1fr; gap:14px;
+  padding-block:14px; text-decoration:none;
+}
+.rail .plate{ border-radius:2px; overflow:hidden; }
+.rail .cap{
+  font-size:.97rem; line-height:1.45; margin:0;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden;
+  transition:color .15s;
+}
+.rail a:hover .cap{ color:var(--brass); }
+
+/* ---------- méta ---------- */
+.meta{
+  font-family:var(--display); font-size:.82rem; color:var(--faint);
+  display:flex; flex-wrap:wrap; align-items:center; gap:14px;
+  font-variant-numeric:tabular-nums;
+}
+.meta time{ color:var(--muted); }
+
+/* ---------- carrousel Instagram ---------- */
+.ig{ padding-block:46px; border-bottom:1px solid var(--line); }
+.ig-head{ display:flex; align-items:center; gap:14px; margin-bottom:18px; }
+.ig-head h2{
+  font-family:var(--display); font-weight:600; font-size:.95rem;
+  color:var(--muted); margin:0; white-space:nowrap;
+}
+.ig-head .handle{
+  font-family:var(--display); font-size:.84rem; color:var(--faint);
+  text-decoration:none; white-space:nowrap;
+}
+.ig-head .handle:hover{ color:var(--brass); }
+.ig-head .rule{ flex:1; height:1px; background:var(--line); min-width:16px; }
+.cnav{ display:flex; gap:6px; flex:none; }
+.cbtn{
+  width:32px; height:32px; flex:none;
+  border:1px solid var(--line); border-radius:50%;
+  display:grid; place-items:center; color:var(--muted);
+  transition:color .15s, border-color .15s, opacity .15s;
+}
+.cbtn svg{ width:15px; height:15px; }
+.cbtn:hover:not(:disabled){ color:var(--text); border-color:rgba(255,255,255,.2); }
+.cbtn:disabled{ opacity:.28; cursor:default; }
+
+.track{
+  display:flex; gap:16px; margin:0; padding:0 0 4px;
+  overflow-x:auto; overscroll-behavior-x:contain;
+  scroll-snap-type:x mandatory;
+  scrollbar-width:none;
+}
+.track::-webkit-scrollbar{ display:none; }
+.track > li{ flex:0 0 clamp(196px,54vw,268px); scroll-snap-align:start; list-style:none; }
+.track a{ display:block; text-decoration:none; }
+.track .frame{ position:relative; border-radius:var(--r); overflow:hidden; }
+.track .stack{
+  position:absolute; top:9px; right:9px; width:17px; height:17px;
+  color:#fff; filter:drop-shadow(0 1px 3px rgba(0,0,0,.65));
+}
+.track p{
+  margin:11px 0 6px; font-size:.97rem; line-height:1.45;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  transition:color .15s;
+}
+.track a:hover p{ color:var(--brass); }
+
+/* ---------- galerie d'une note (carrousel multi-images) ---------- */
+.gal{ max-width:720px; }
+.gal-win{ position:relative; border-radius:var(--r); overflow:hidden; }
+.gal-track{ display:flex; transition:transform .4s cubic-bezier(.3,.8,.35,1); }
+.gal-track > div{ flex:0 0 100%; }
+.gal-win .cbtn{
+  position:absolute; top:50%; transform:translateY(-50%);
+  background:rgba(14,18,22,.72); backdrop-filter:blur(6px);
+  border-color:rgba(255,255,255,.14); color:#fff;
+  width:36px; height:36px;
+}
+.gal-win .cbtn[data-dir="-1"]{ left:12px; }
+.gal-win .cbtn[data-dir="1"]{ right:12px; }
+.gal-count{
+  position:absolute; top:12px; right:12px;
+  font-family:var(--display); font-size:.76rem; font-variant-numeric:tabular-nums;
+  background:rgba(14,18,22,.72); backdrop-filter:blur(6px);
+  color:#fff; padding:3px 9px; border-radius:99px;
+}
+.dots{ display:flex; gap:6px; justify-content:center; margin-top:14px; }
+.dot{
+  width:6px; height:6px; border-radius:50%; padding:0;
+  background:var(--raised); transition:background-color .2s, transform .2s;
+}
+.dot[aria-current="true"]{ background:var(--brass); transform:scale(1.25); }
+@media (prefers-reduced-motion:reduce){ .gal-track{ transition:none; } }
+
+/* ---------- filtres ---------- */
+.filters{
+  display:flex; flex-wrap:wrap; gap:14px; align-items:center;
+  padding-block:26px; border-bottom:1px solid var(--line);
+}
+.search{
+  flex:1 1 240px; min-width:0; position:relative;
+  display:flex; align-items:center;
+}
+.search svg{ position:absolute; left:12px; width:15px; height:15px; color:var(--faint); }
+.search input{
+  width:100%; font-family:var(--display); font-size:.92rem;
+  background:var(--surface); color:var(--text);
+  border:1px solid var(--line); border-radius:var(--r);
+  padding:10px 12px 10px 34px;
+}
+.search input::placeholder{ color:var(--faint); }
+.search input:focus{ outline:none; border-color:rgba(217,163,83,.5); }
+
+.tags{ display:flex; flex-wrap:wrap; gap:7px; }
+.tag{
+  font-family:var(--display); font-size:.83rem; font-weight:500;
+  color:var(--muted);
+  padding:7px 12px; border-radius:99px;
+  border:1px solid var(--line);
+  transition:color .15s, border-color .15s, background-color .15s;
+}
+.tag:hover{ color:var(--text); border-color:rgba(255,255,255,.18); }
+.tag[aria-pressed="true"]{
+  color:var(--brass); border-color:rgba(217,163,83,.45); background:var(--brass-lo);
+}
+
+/* ---------- articles : une liste réglée, pas des cartes ---------- */
+.section{ padding-block:46px; border-bottom:1px solid var(--line); }
+.list{ list-style:none; margin:0; padding:0; }
+.list li{ border-top:1px solid var(--line-soft); }
+.list li:first-child{ border-top:none; }
+.entry{
+  display:grid; grid-template-columns:1fr 132px; gap:32px;
+  padding-block:26px; text-decoration:none; align-items:start;
+}
+.entry h3{
+  font-family:var(--display); font-weight:600; font-size:1.42rem;
+  line-height:1.15; letter-spacing:-.02em; margin:0 0 9px;
+  text-wrap:balance; transition:color .15s;
+}
+.entry:hover h3{ color:var(--brass); }
+.entry .dek{ color:var(--muted); margin:0 0 12px; max-width:58ch; font-size:1.02rem; }
+.entry .plate{ border-radius:2px; overflow:hidden; }
+
+/* ---------- notes : grille de tuiles ---------- */
+.grid{
+  list-style:none; margin:0; padding:0;
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:22px;
+}
+.note{ display:block; text-decoration:none; }
+.note .plate{ border-radius:var(--r); overflow:hidden; }
+.note p{
+  margin:12px 0 8px; font-size:1rem; line-height:1.5;
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+  transition:color .15s;
+}
+.note:hover p{ color:var(--brass); }
+
+.empty{
+  padding-block:34px; color:var(--muted);
+  font-family:var(--display); font-size:.95rem;
+}
+
+/* ---------- page article ---------- */
+.article{ padding-block:52px 72px; }
+.back{
+  font-family:var(--display); font-size:.87rem; color:var(--muted);
+  text-decoration:none; display:inline-flex; gap:8px; align-items:center;
+  margin-bottom:36px;
+}
+.back:hover{ color:var(--brass); }
+.article header{ max-width:var(--read); }
+.article h1{
+  font-family:var(--display); font-weight:600;
+  font-size:clamp(2.1rem,5vw,3.25rem);
+  line-height:1.03; letter-spacing:-.032em; margin:0 0 18px;
+  text-wrap:balance;
+}
+.article .dek{
+  font-size:1.28rem; line-height:1.5; color:var(--muted);
+  margin:0 0 22px; font-weight:300;
+}
+.article .hero-plate{
+  margin-block:38px; border-radius:var(--r); overflow:hidden;
+  max-width:var(--wrap);
+}
+.prose{ max-width:var(--read); font-size:1.19rem; line-height:1.78; }
+.prose p{ margin:0 0 1.35em; }
+.prose h2{
+  font-family:var(--display); font-weight:600; font-size:1.55rem;
+  line-height:1.2; letter-spacing:-.02em;
+  margin:2.4em 0 .7em; text-wrap:balance;
+}
+.prose h3{
+  font-family:var(--display); font-weight:600; font-size:1.18rem;
+  margin:2em 0 .5em;
+}
+.prose ul,.prose ol{ margin:0 0 1.35em; padding-left:1.2em; }
+.prose li{ margin-bottom:.5em; }
+.prose li::marker{ color:var(--brass); }
+.prose a{ color:var(--brass); text-decoration:underline; text-underline-offset:3px; text-decoration-thickness:1px; }
+.prose strong{ font-weight:600; color:#fff; }
+.prose blockquote{
+  margin:1.9em 0; padding:2px 0 2px 22px;
+  border-left:2px solid var(--brass);
+  font-size:1.26rem; line-height:1.55; color:var(--text);
+  font-style:italic;
+}
+.prose blockquote p:last-child{ margin-bottom:0; }
+.prose code{
+  font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  font-size:.86em; background:var(--raised); padding:.15em .4em; border-radius:2px;
+  color:#EBD4AC;
+}
+.prose pre{
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r); padding:16px 18px;
+  overflow-x:auto; margin:0 0 1.5em;
+}
+.prose pre code{ background:none; padding:0; font-size:.88rem; line-height:1.6; color:#CFD6DE; }
+.prose hr{ border:none; border-top:1px solid var(--line); margin:2.6em 0; }
+
+.endnote{
+  max-width:var(--read); margin-top:54px; padding-top:22px;
+  border-top:1px solid var(--line);
+  color:var(--faint); font-family:var(--display); font-size:.9rem;
+}
+
+/* ---------- page note ---------- */
+.notepage{ padding-block:44px 72px; }
+.notepage .plate{ border-radius:var(--r); overflow:hidden; max-width:720px; }
+.notepage .cap{ max-width:58ch; font-size:1.16rem; line-height:1.65; margin:26px 0 18px; }
+
+/* ---------- à propos ---------- */
+.about{ padding-block:56px 76px; }
+.about-grid{ display:grid; grid-template-columns:minmax(0,1.45fr) minmax(0,1fr); gap:56px; align-items:start; }
+.about h1{
+  font-family:var(--display); font-weight:700;
+  font-size:clamp(2.2rem,5vw,3.2rem); line-height:1.02;
+  letter-spacing:-.032em; margin:0 0 24px;
+}
+.about .lede{ font-size:1.22rem; line-height:1.65; color:var(--text); margin:0 0 1.2em; }
+.about p{ color:var(--muted); font-size:1.08rem; line-height:1.7; max-width:60ch; }
+.skills{ display:flex; flex-direction:column; gap:24px; }
+.skillset h4{
+  font-family:var(--display); font-size:.88rem; font-weight:600;
+  color:var(--muted); margin:0 0 10px;
+}
+.chips{ display:flex; flex-wrap:wrap; gap:6px; }
+.chip{
+  font-family:var(--display); font-size:.84rem; color:var(--text);
+  background:var(--surface); border:1px solid var(--line);
+  padding:5px 10px; border-radius:var(--r);
+}
+.links{ display:flex; flex-direction:column; gap:2px; margin-top:8px; }
+.links a{
+  font-family:var(--display); font-size:.95rem;
+  text-decoration:none; color:var(--muted);
+  padding:9px 0; border-bottom:1px solid var(--line-soft);
+  display:flex; justify-content:space-between; gap:16px;
+  transition:color .15s;
+}
+.links a:hover{ color:var(--brass); }
+.links a span{ color:var(--faint); }
+
+/* ---------- admin ---------- */
+.admin-page{ padding-block:32px 60px; }
+.admin-bar{
+  display:flex; flex-wrap:wrap; gap:14px; align-items:center; justify-content:space-between;
+  padding-bottom:18px; border-bottom:1px solid var(--line); margin-bottom:24px;
+}
+.admin-bar h1{
+  font-family:var(--display); font-weight:600; font-size:1.35rem;
+  letter-spacing:-.02em; margin:0;
+}
+.pill{
+  font-family:var(--display); font-size:.78rem; color:var(--brass);
+  background:var(--brass-lo); border:1px solid rgba(217,163,83,.3);
+  padding:4px 10px; border-radius:99px;
+}
+.btn{
+  font-family:var(--display); font-size:.9rem; font-weight:500;
+  padding:9px 16px; border-radius:var(--r);
+  border:1px solid var(--line); color:var(--text);
+  transition:border-color .15s, background-color .15s;
+}
+.btn:hover{ border-color:rgba(255,255,255,.2); background:var(--line-soft); }
+.btn-primary{
+  background:var(--brass); color:#171207; border-color:var(--brass); font-weight:600;
+}
+.btn-primary:hover{ background:#E6B263; border-color:#E6B263; }
+
+.editor{ display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+.field{ display:flex; flex-direction:column; gap:7px; margin-bottom:16px; }
+.field label{ font-family:var(--display); font-size:.83rem; color:var(--muted); }
+.field input, .field textarea{
+  font-family:var(--display); font-size:.95rem;
+  background:var(--surface); color:var(--text);
+  border:1px solid var(--line); border-radius:var(--r);
+  padding:10px 12px; width:100%;
+}
+.field textarea{
+  font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  font-size:.87rem; line-height:1.65; min-height:420px; resize:vertical;
+}
+.field input:focus, .field textarea:focus{ outline:none; border-color:rgba(217,163,83,.5); }
+.preview{
+  background:var(--surface); border:1px solid var(--line);
+  border-radius:var(--r); padding:24px 26px;
+  max-height:640px; overflow-y:auto;
+}
+.preview .prose{ font-size:1.02rem; max-width:none; }
+.preview .prose h2{ font-size:1.3rem; margin-top:1.6em; }
+.count{
+  font-family:var(--display); font-size:.8rem; color:var(--faint);
+  font-variant-numeric:tabular-nums;
+}
+
+/* ---------- pied ---------- */
+.foot{
+  border-top:1px solid var(--line);
+  padding-block:34px 46px;
+  font-family:var(--display); font-size:.85rem; color:var(--faint);
+}
+.foot-in{ display:flex; flex-wrap:wrap; gap:12px 28px; justify-content:space-between; }
+.foot a{ color:var(--muted); text-decoration:none; }
+.foot a:hover{ color:var(--brass); }
+
+/* ---------- responsive ---------- */
+@media (max-width:900px){
+  .front{ grid-template-columns:1fr; gap:40px; }
+  .about-grid{ grid-template-columns:1fr; gap:38px; }
+  .editor{ grid-template-columns:1fr; }
+  .grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .preview{ max-height:none; }
+}
+@media (max-width:620px){
+  body{ font-size:16px; }
+  .wrap{ padding-inline:18px; }
+  .hero{ padding-block:52px 42px; }
+  .nav a{ padding:7px 8px; font-size:.86rem; }
+  .nav a.admin{ display:none; }
+  .brand .sub{ display:none; }
+  .entry{ grid-template-columns:1fr; gap:16px; }
+  .entry .plate{ order:-1; width:100%; }
+  .grid{ grid-template-columns:1fr; gap:28px; }
+  .ig-head{ flex-wrap:wrap; }
+  .prose{ font-size:1.1rem; }
+  .field textarea{ min-height:260px; }
+}
+</style>
+
+<!-- ==========================================================
+     Contenu d'exemple. En production ces blocs viennent
+     de l'API ; ici ils sont écrits en Markdown, exactement
+     comme dans le futur back-office.
+     ========================================================== -->
+
+<script type="text/plain" id="md-co2">
+J'ai commencé ce truc un dimanche de novembre parce que ma chambre sentait le renfermé au réveil et que je voulais un chiffre, pas une impression. Six mois plus tard le capteur tourne toujours, il a changé trois fois de boîtier, et il m'a appris plus de choses sur la mesure que n'importe quel tutoriel.
+
+Voici ce que je referais, et surtout ce que je ne referais pas.
+
+## Pourquoi le CO₂ et pas autre chose
+
+Le CO₂ intérieur est un bon proxy de la ventilation. On expire environ 40 000 ppm ; l'air extérieur tourne autour de 420 ppm. Dans une pièce fermée où quelqu'un dort, la concentration monte vite et redescend lentement. C'est donc une grandeur qui **bouge à l'échelle de la soirée**, ce qui est idéal quand on débute : on voit l'effet de ses actions en quelques minutes, on n'attend pas trois semaines pour savoir si le montage fonctionne.
+
+Les seuils communément admis : en dessous de 800 ppm l'air est bon, autour de 1 000 ppm on commence à somnoler, au-delà de 1 500 ppm les études sur la performance cognitive deviennent franchement désagréables à lire.
+
+## Le choix du capteur
+
+J'ai hésité entre trois familles.
+
+- Les capteurs **MQ-135** à trois euros. Ils ne mesurent pas le CO₂. Ils mesurent une résistance qui varie avec à peu près tous les gaz réducteurs de la pièce, et on applique dessus une courbe empirique fournie par personne. Résultat : un chiffre qui bouge joliment et qui ne veut rien dire. Je les ai achetés quand même, pour comprendre ça de mes propres mains.
+- Les capteurs **eCO₂** type CCS811 ou SGP30. Ils mesurent les composés organiques volatils et *estiment* le CO₂ par corrélation. Mieux que rien, faux dès que vous ouvrez un pot de vernis.
+- Les capteurs **NDIR**, qui mesurent réellement l'absorption infrarouge du CO₂ à 4,26 µm. Le SCD40 et le SCD41 de Sensirion sont autour de 25 à 40 €.
+
+Le NDIR est la seule option honnête. Le reste est de la décoration.
+
+> La question à se poser n'est jamais « est-ce que ça affiche un chiffre » mais « qu'est-ce que ce chiffre mesure physiquement ». Sur les deux tiers des modules vendus en ligne, la réponse est : rien de précis.
+
+J'ai pris un SCD41. Il communique en I²C, consomme peu entre deux mesures, et surtout il expose sa procédure de calibration au lieu de la cacher.
+
+## Le montage
+
+Un ESP32-C3 en carte de développement, le SCD41 sur le bus I²C, et c'est tout. Pas d'écran au début — l'écran est une récompense, pas une fonctionnalité, et il m'aurait fait perdre trois soirées avant d'avoir une seule mesure fiable.
+
+~~~
+SCD41          ESP32-C3
+-----          --------
+VDD    ──────  3V3
+GND    ──────  GND
+SCL    ──────  GPIO 9
+SDA    ──────  GPIO 8
+~~~
+
+Deux résistances de tirage de 4,7 kΩ sur SDA et SCL. Sur beaucoup de cartes de dev elles sont déjà présentes ; en mettre une deuxième paire abaisse la résistance équivalente et peut suffire à casser la communication sur un bus long. J'ai perdu une soirée là-dessus, à chercher un bug logiciel qui était un problème d'électricité.
+
+Côté firmware, la boucle utile tient en quelques lignes une fois la bibliothèque en place : on déclenche une mesure périodique, on attend le drapeau de disponibilité, on lit les trois grandeurs.
+
+~~~
+scd4x.startPeriodicMeasurement();
+
+while (true) {
+  if (scd4x.getDataReadyFlag()) {
+    scd4x.readMeasurement(co2, temperature, humidity);
+    publish(co2, temperature, humidity);
+  }
+  delay(1000);
+}
+~~~
+
+Le SCD41 rend aussi la température et l'humidité, parce qu'il en a besoin pour compenser sa propre mesure. C'est un bonus gratuit, et il est correct à condition de se souvenir d'une chose que j'ai mis un mois à comprendre.
+
+## L'erreur qui m'a coûté un mois
+
+Ma température était systématiquement trop haute. Deux degrés, parfois trois. J'ai d'abord accusé le capteur, puis l'étalonnage, puis la bibliothèque.
+
+C'était le boîtier. Le régulateur de tension de l'ESP32 dissipe quelques centaines de milliwatts en continu, et j'avais enfermé le tout dans une boîte imprimée en PLA de 60 × 40 × 25 mm. Le capteur mesurait honnêtement la température de sa propre alimentation.
+
+La correction n'est pas logicielle. Trois choses, dans l'ordre d'efficacité :
+
+1. **Éloigner** le capteur de la carte — dix centimètres de câble ruban suffisent à supprimer l'essentiel du problème.
+2. **Ouvrir** le boîtier : deux fentes opposées pour créer un tirage, pas un trou unique.
+3. **Alimenter** en 3,3 V directement plutôt qu'en 5 V via le régulateur, quand c'est possible.
+
+Après ça, l'écart résiduel était de 0,3 °C contre un thermomètre de référence. J'ai laissé un offset de compensation dans le firmware, mais je considère que c'est un aveu d'échec : on corrige en logiciel ce qu'on n'a pas su résoudre en mécanique.
+
+## La calibration, qui n'est pas ce qu'on croit
+
+Le SCD41 embarque une fonction d'auto-calibration : il suppose que sur une fenêtre de sept jours, le minimum observé correspond à l'air extérieur, soit environ 420 ppm, et il recale son zéro dessus.
+
+Cette hypothèse est excellente dans un bureau ventilé. Elle est **fausse dans une chambre qu'on n'aère jamais complètement**, et le capteur va alors dériver vers le bas en recalant son zéro sur un minimum qui vaut en réalité 700 ppm. Vos mesures deviennent optimistes, silencieusement, sans aucune alerte.
+
+Ce que j'ai fait : désactivé l'auto-calibration, et recalé manuellement une fois par trimestre en posant le capteur dehors vingt minutes, loin d'une route, en forçant la valeur de référence. C'est une manipulation de trois minutes qui garantit que le chiffre veut dire quelque chose.
+
+## Six mois de données, deux enseignements
+
+Les mesures partent en MQTT vers un petit courtier local, sont stockées, et tracées.
+
+D'abord, **la porte compte plus que la fenêtre**. Dormir porte ouverte plafonne la chambre à 900 ppm sur la nuit ; dormir porte fermée et fenêtre entrebâillée de deux centimètres monte à 1 400 ppm. Le volume d'air accessible pèse plus lourd que la taille de l'ouverture, et je ne l'aurais jamais deviné sans mesure.
+
+Ensuite, **la décroissance est plus lente que l'intuition**. Après une soirée à six personnes, revenir sous 800 ppm prend près de quarante minutes fenêtres grandes ouvertes. Aérer cinq minutes ne sert à rien d'autre qu'à se rassurer.
+
+## Ce que je referais autrement
+
+Je commencerais par la mesure la plus bête possible — capteur, câble, valeur affichée dans la console — avant de penser au boîtier, à l'écran, au réseau. Chaque couche ajoutée avant que la mesure soit fiable est une couche de plus à suspecter quand le chiffre est faux.
+
+Et je garderais un thermomètre de référence à côté pendant tout le développement. Sans point de comparaison, on ne débugge pas une mesure : on la contemple.
+</script>
+
+<script type="text/plain" id="md-imprimante">
+Une imprimante 3D qui marche bien est une imprimante dont on ne parle plus. La mienne a mis dix-huit mois à atteindre cet état, et l'essentiel du chemin s'est joué sur des réglages qui n'ont rien à voir avec ce qu'on lit en premier.
+
+## Le plateau avant tout
+
+J'ai passé des semaines à jouer sur la température, la rétraction, le débit. Aucun de ces réglages ne compense un premier calque approximatif. Un plateau mal réglé produit des symptômes qui ressemblent à dix autres problèmes : décollement d'angle, sous-extrusion apparente, adhérence irrégulière selon la zone.
+
+La procédure qui a tout changé tient en trois étapes, dans cet ordre strict :
+
+1. Chauffer le plateau à la température d'impression et **attendre dix minutes**. Le verre se bombe en chauffant ; régler à froid c'est régler une autre géométrie.
+2. Régler les quatre coins avec une feuille de papier, puis recommencer un deuxième tour complet — le serrage d'un coin déforme les autres.
+3. Imprimer un carré de test d'un seul calque sur toute la surface, et ajuster au vu du résultat, pas au vu de la feuille.
+
+## La rétraction n'est presque jamais le problème
+
+Les fils entre deux parois sont le symptôme préféré des forums, et la rétraction leur réponse automatique. Dans mon cas, sur trois séries de tests, la cause était l'humidité du filament deux fois sur trois.
+
+Du PLA laissé un mois à l'air libre dans une pièce à 60 % d'humidité absorbe assez d'eau pour crépiter en sortie de buse. L'eau se vaporise, fait éclater le boudin, et projette de la matière un peu partout. Aucun réglage de rétraction ne corrige une explosion de vapeur.
+
+> Un déshydrateur alimentaire d'occasion à vingt euros a résolu plus de problèmes d'impression que toutes mes heures de réglage fin.
+
+Quatre heures à 50 °C, et le même filament redevient exploitable.
+
+## Ce que j'ai appris sur le temps
+
+L'erreur de débutant, que j'ai faite longtemps, est de changer plusieurs paramètres entre deux essais. On gagne du temps apparent et on perd toute information : la pièce est meilleure, mais on ne sait pas pourquoi, donc on ne peut pas le reproduire.
+
+Un paramètre à la fois, une pièce de test de dix minutes plutôt qu'un objet de six heures, et une note écrite à chaque essai. C'est lent les trois premiers jours et beaucoup plus rapide ensuite.
+</script>
+
+<script type="text/plain" id="md-homelab">
+Mon serveur tient dans un boîtier de quinze centimètres de côté, consomme moins qu'une ampoule, et héberge à peu près tout ce dont j'ai besoin. Il a remplacé une tour bruyante qui dormait sous le bureau.
+
+## Ce qui tourne dessus
+
+Un stockage de fichiers, un agrégateur de flux RSS, un gestionnaire de mots de passe, un serveur multimédia, et le courtier MQTT qui reçoit mes capteurs. Le tout en conteneurs, décrits dans un seul fichier versionné.
+
+La règle que je me suis donnée : **si un service n'est pas dans le fichier de configuration, il n'existe pas**. Rien n'est installé à la main, rien n'est configuré en cliquant. La conséquence est qu'une réinstallation complète prend vingt minutes au lieu d'une journée d'archéologie.
+
+## La consommation, mesurée
+
+J'ai branché une prise wattmètre pendant deux semaines :
+
+- au repos, 4,1 W
+- en usage courant, entre 6 et 9 W
+- en pointe pendant une sauvegarde, 14 W
+
+Soit environ 60 kWh par an, moins de quinze euros d'électricité. L'ancienne tour en consommait 65 W au repos, soit dix fois plus pour rendre les mêmes services.
+
+## Les sauvegardes, seule chose qui compte vraiment
+
+Un homelab sans sauvegarde testée est une collection de fichiers en sursis. Ma règle : trois copies, deux supports différents, une hors du logement. En pratique, un disque interne, un disque externe branché une fois par semaine, et un dépôt chiffré distant.
+
+Et surtout : **une restauration d'essai tous les trimestres**. Une sauvegarde jamais restaurée n'est pas une sauvegarde, c'est une hypothèse.
+</script>
+
+<script type="text/plain" id="md-souder">
+Quatre ans à souder mal, puis une après-midi avec quelqu'un qui savait faire. Voici ce que cette après-midi a corrigé.
+
+## La panne, pas le fer
+
+J'ai longtemps cru qu'il me fallait une meilleure station. En réalité j'utilisais une panne fine et pointue pour tout, parce qu'elle semblait plus précise. C'est l'inverse : une panne **biseautée** transmet beaucoup plus de chaleur par contact, donc la soudure se fait en deux secondes au lieu de dix, donc le composant chauffe moins.
+
+Le contact thermique dépend de la surface touchée, pas de la finesse de la pointe.
+
+## Étamer, toujours
+
+Une panne oxydée ne transmet plus rien. Le geste à automatiser : étamer avant de poser, essuyer sur la laine de bronze, étamer à nouveau avant de ranger. Une panne qui passe la nuit propre et nue s'oxyde et devient inutilisable en quelques semaines.
+
+## Le flux change tout
+
+La soudure à âme de flux suffit pour du neuf. Pour du dessoudage, de la reprise, ou du composant monté en surface, un stylo de flux liquide transforme l'opération. La soudure se met à couler là où elle doit aller, au lieu de former des billes qui refusent de mouiller.
+
+> On ne chauffe pas la soudure, on chauffe la pièce. La soudure suit la chaleur.
+
+C'est la phrase qui m'a fait progresser le plus vite. Poser la panne au contact de la pastille *et* de la patte, compter une seconde, puis amener le fil de soudure du côté opposé à la panne. Si la soudure fond au contact du fer et pas de la pièce, le joint sera froid et cassera dans six mois.
+</script>
+
+<header class="mast">
+  <div class="wrap mast-in">
+    <a class="brand" href="#/">
+      <span class="lamp" aria-hidden="true"></span>
+      <span id="brand-name">Atelier de nuit</span>
+      <span class="sub">notes &amp; articles</span>
+    </a>
+    <nav class="nav" id="nav">
+      <a href="#/" data-k="home">Accueil</a>
+      <a href="#/apropos" data-k="apropos">À propos</a>
+      <a href="#/admin" data-k="admin" class="admin">Rédaction</a>
+    </nav>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <span>Site personnel, sans publicité ni suivi.</span>
+    <span><a href="#/">Flux RSS</a> &nbsp; <a href="#/apropos">À propos</a></span>
+  </div>
+</footer>
+
+<script>
+/* ============================================================
+   Données d'exemple
+   ============================================================ */
+const SITE = {
+  author: "Max",
+  handle: "@max.atelier",
+  title: "Atelier de nuit",
+  pitch: "Ce que je fabrique le soir, une fois la journée finie. Notes rapides et articles au long cours."
+};
+
+const md = id => document.getElementById(id).textContent.trim();
+
+const ARTICLES = [
+  { id:"co2", title:"Six mois avec un capteur de CO₂ fait maison",
+    dek:"Ce que la mesure d'un gaz invisible m'a appris sur les capteurs qui mentent, les boîtiers qui chauffent et les calibrations qui dérivent en silence.",
+    date:"2026-03-09", minutes:9, views:1284, tags:["capteurs","esp32"], seed:7, body:md("md-co2") },
+  { id:"souder", title:"Quatre ans à souder mal",
+    dek:"Une après-midi avec quelqu'un qui savait faire, et trois habitudes corrigées qui ont changé tous mes montages depuis.",
+    date:"2026-02-21", minutes:4, views:842, tags:["soudure","atelier"], seed:23, body:md("md-souder") },
+  { id:"homelab", title:"Un serveur à neuf watts",
+    dek:"Le petit boîtier qui a remplacé la tour sous le bureau : ce qui tourne dessus, ce que ça consomme vraiment, et la seule règle qui compte.",
+    date:"2026-02-04", minutes:5, views:967, tags:["homelab","réseau"], seed:41, body:md("md-homelab") },
+  { id:"imprimante", title:"Dix-huit mois à régler une imprimante 3D",
+    dek:"Le plateau avant tout, la rétraction presque jamais, et pourquoi un déshydrateur alimentaire vaut mieux qu'une semaine de réglages.",
+    date:"2026-01-17", minutes:5, views:1533, tags:["impression 3d","atelier"], seed:58, body:md("md-imprimante") }
+];
+
+const NOTES = [
+  { id:"n1", caption:"Troisième révision du boîtier du capteur. Cette fois les fentes sont opposées : l'air traverse au lieu de stagner. −2,4 °C sur la mesure interne.", date:"2026-03-11", tags:["capteurs","impression 3d"], seed:3, slides:[3,83,91] },
+  { id:"n2", caption:"Panne biseautée d'un côté, panne conique de l'autre, même joint. La différence de temps de chauffe est ridicule tellement elle est grande.", date:"2026-03-07", tags:["soudure","atelier"], seed:12 },
+  { id:"n3", caption:"Le bus I²C sortait n'importe quoi. Deux paires de résistances de tirage en parallèle. Une soirée perdue sur un problème d'électricité que je cherchais dans le code.", date:"2026-03-02", tags:["esp32","capteurs"], seed:19, slides:[19,27,35,47] },
+  { id:"n4", caption:"Wattmètre branché deux semaines sur le serveur. 4,1 W au repos. L'ancienne tour en tirait 65.", date:"2026-02-26", tags:["homelab","réseau"], seed:31 },
+  { id:"n5", caption:"Filament laissé un mois à l'air libre à gauche, quatre heures de déshydrateur à droite. Même bobine, même réglages.", date:"2026-02-18", tags:["impression 3d"], seed:44, slides:[44,61] },
+  { id:"n6", caption:"Câble ruban de dix centimètres entre la carte et le capteur. Rien d'autre n'a changé. C'était ça depuis le début.", date:"2026-02-12", tags:["capteurs","esp32"], seed:52 },
+  { id:"n7", caption:"Restauration d'essai trimestrielle. Vingt-deux minutes, tout est revenu. Une sauvegarde jamais restaurée n'est pas une sauvegarde.", date:"2026-02-01", tags:["homelab"], seed:66 },
+  { id:"n8", caption:"Rangement de l'établi un dimanche. Les composants par valeur, pas par type : je cherche une résistance de 4,7 k, pas « une résistance ».", date:"2026-01-24", tags:["atelier"], seed:74, slides:[74,88] }
+];
+
+const ALL_TAGS = [...new Set([...ARTICLES, ...NOTES].flatMap(x => x.tags))].sort((a,b)=>a.localeCompare(b,"fr"));
+
+/* ============================================================
+   Visuels générés : plaques d'atelier, déterministes, hors ligne
+   ============================================================ */
+function rng(seed){ let s = seed * 1973 + 7; return () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; }; }
+
+function plate(seed, w, h){
+  const r = rng(seed);
+  const p = [];
+  p.push(`<rect width="${w}" height="${h}" fill="#11161C"/>`);
+  // trame de fond
+  const step = 22;
+  for(let x = step; x < w; x += step) p.push(`<line x1="${x}" y1="0" x2="${x}" y2="${h}" stroke="rgba(255,255,255,.028)" stroke-width="1"/>`);
+  for(let y = step; y < h; y += step) p.push(`<line x1="0" y1="${y}" x2="${w}" y2="${y}" stroke="rgba(255,255,255,.028)" stroke-width="1"/>`);
+  // blocs
+  const blocks = 2 + Math.floor(r() * 3);
+  for(let i = 0; i < blocks; i++){
+    const bw = w * (.18 + r() * .34), bh = h * (.12 + r() * .3);
+    const x = r() * (w - bw), y = r() * (h - bh);
+    p.push(`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="3" fill="#1B222A" stroke="rgba(255,255,255,.07)" stroke-width="1"/>`);
+  }
+  // pistes laiton
+  const traces = 2 + Math.floor(r() * 3);
+  for(let i = 0; i < traces; i++){
+    let x = r() * w, y = r() * h;
+    const pts = [[x, y]];
+    for(let k = 0; k < 3 + Math.floor(r() * 3); k++){
+      const len = 26 + r() * 96;
+      if(r() > .5) x += r() > .5 ? len : -len; else y += r() > .5 ? len : -len;
+      pts.push([Math.max(8, Math.min(w - 8, x)), Math.max(8, Math.min(h - 8, y))]);
+    }
+    p.push(`<polyline points="${pts.map(q => q.map(n => n.toFixed(1)).join(",")).join(" ")}" fill="none" stroke="rgba(217,163,83,${(.24 + r() * .34).toFixed(2)})" stroke-width="${(1 + r() * 1.6).toFixed(1)}" stroke-linejoin="round" stroke-linecap="round"/>`);
+    const last = pts[pts.length - 1];
+    p.push(`<circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="${(2.4 + r() * 2.6).toFixed(1)}" fill="#D9A353" opacity=".8"/>`);
+  }
+  // lueur de lampe
+  p.push(`<defs><radialGradient id="g${seed}" cx="${(r()*100).toFixed(0)}%" cy="${(r()*60).toFixed(0)}%" r="72%">
+    <stop offset="0%" stop-color="#D9A353" stop-opacity=".17"/><stop offset="100%" stop-color="#D9A353" stop-opacity="0"/></radialGradient></defs>`);
+  p.push(`<rect width="${w}" height="${h}" fill="url(#g${seed})"/>`);
+  return `<svg class="plate" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Visuel d'atelier" style="width:100%;height:auto;aspect-ratio:${w}/${h}">${p.join("")}</svg>`;
+}
+
+/* ============================================================
+   Markdown minimal — la même fonction rend les articles
+   et la prévisualisation du back-office.
+   ============================================================ */
+function mdToHtml(src){
+  const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const inline = s => esc(s)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+  const out = [];
+  const lines = src.replace(/\r/g, "").split("\n");
+  let i = 0;
+  while(i < lines.length){
+    const line = lines[i];
+    if(/^~~~/.test(line)){
+      const buf = [];
+      i++;
+      while(i < lines.length && !/^~~~/.test(lines[i])) buf.push(lines[i++]);
+      i++;
+      out.push(`<pre><code>${esc(buf.join("\n"))}</code></pre>`);
+      continue;
+    }
+    if(/^###\s+/.test(line)){ out.push(`<h3>${inline(line.replace(/^###\s+/,""))}</h3>`); i++; continue; }
+    if(/^##\s+/.test(line)){ out.push(`<h2>${inline(line.replace(/^##\s+/,""))}</h2>`); i++; continue; }
+    if(/^---\s*$/.test(line)){ out.push("<hr>"); i++; continue; }
+    if(/^>\s?/.test(line)){
+      const buf = [];
+      while(i < lines.length && /^>\s?/.test(lines[i])) buf.push(lines[i++].replace(/^>\s?/,""));
+      out.push(`<blockquote><p>${inline(buf.join(" "))}</p></blockquote>`);
+      continue;
+    }
+    if(/^\d+\.\s+/.test(line)){
+      const buf = [];
+      while(i < lines.length && /^\d+\.\s+/.test(lines[i])) buf.push(`<li>${inline(lines[i++].replace(/^\d+\.\s+/,""))}</li>`);
+      out.push(`<ol>${buf.join("")}</ol>`);
+      continue;
+    }
+    if(/^[-*]\s+/.test(line)){
+      const buf = [];
+      while(i < lines.length && /^[-*]\s+/.test(lines[i])) buf.push(`<li>${inline(lines[i++].replace(/^[-*]\s+/,""))}</li>`);
+      out.push(`<ul>${buf.join("")}</ul>`);
+      continue;
+    }
+    if(line.trim() === ""){ i++; continue; }
+    const buf = [];
+    while(i < lines.length && lines[i].trim() !== "" && !/^(#{2,3}\s|>|~~~|[-*]\s|\d+\.\s|---\s*$)/.test(lines[i])) buf.push(lines[i++]);
+    out.push(`<p>${inline(buf.join(" "))}</p>`);
+  }
+  return out.join("\n");
+}
+
+/* ============================================================
+   Utilitaires
+   ============================================================ */
+const MOIS = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+const frDate = iso => { const d = new Date(iso + "T12:00:00"); return `${d.getDate()} ${MOIS[d.getMonth()]} ${d.getFullYear()}`; };
+const frShort = iso => { const d = new Date(iso + "T12:00:00"); return `${d.getDate()} ${MOIS[d.getMonth()].slice(0,4)}.`; };
+const nb = n => n.toLocaleString("fr-FR");
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const chars = a => a.body.replace(/\s+/g," ").length;
+const slidesOf = n => n.slides && n.slides.length ? n.slides : [n.seed];
+
+/* état des filtres, partagé entre articles et notes */
+const filter = { q:"", tag:null };
+
+function matches(item){
+  if(filter.tag && !item.tags.includes(filter.tag)) return false;
+  if(!filter.q) return true;
+  const q = filter.q.toLowerCase();
+  const hay = [item.title || "", item.dek || "", item.caption || "", item.body || "", item.tags.join(" ")].join(" ").toLowerCase();
+  return hay.includes(q);
+}
+
+/* ============================================================
+   Icônes
+   ============================================================ */
+const ICON = {
+  left:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 5 8 12 15 19"/></svg>',
+  right: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 5 16 12 9 19"/></svg>',
+  stack: '<svg class="stack" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="13" height="13" rx="2.5"/><path d="M16 20.5H5.5A2.5 2.5 0 0 1 3 18V7.5"/></svg>'
+};
+
+/* ============================================================
+   Vues
+   ============================================================ */
+function metaLine(a){
+  return `<div class="meta"><time datetime="${a.date}">${frDate(a.date)}</time>
+    <span>${a.minutes} min de lecture</span>
+    <span>${nb(a.views)} lectures</span></div>`;
+}
+
+function viewHome(){
+  const feat = ARTICLES[0];
+  const rest = ARTICLES.slice(1).filter(matches);
+  const notes = NOTES.filter(matches);
+  const featOut = matches(feat);
+
+  return `
+  <section class="hero">
+    <div class="wrap">
+      <h1 class="rise">${SITE.title}</h1>
+      <p class="rise">${SITE.pitch}</p>
+      <div class="bench rise">
+        <span>Dernier passage à l'établi <b>${frDate(NOTES[0].date)}</b></span>
+        <span><b>${ARTICLES.length}</b> articles</span>
+        <span><b>${NOTES.length}</b> notes</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <section class="front">
+      <a class="feature" href="#/article/${feat.id}">
+        ${plate(feat.seed, 800, 450)}
+        <div class="kicker">À la une</div>
+        <h2>${esc(feat.title)}</h2>
+        <p class="dek">${esc(feat.dek)}</p>
+        ${metaLine(feat)}
+      </a>
+      <div class="rail">
+        <h3>Dernières notes</h3>
+        <ol>
+          ${NOTES.slice(0,4).map(n => `
+            <li><a href="#/note/${n.id}">
+              ${plate(n.seed, 64, 64)}
+              <div>
+                <p class="cap">${esc(n.caption)}</p>
+                <div class="meta" style="margin-top:6px"><time datetime="${n.date}">${frShort(n.date)}</time></div>
+              </div>
+            </a></li>`).join("")}
+        </ol>
+      </div>
+    </section>
+
+    <section class="ig">
+      <div class="ig-head">
+        <h2>Depuis Instagram</h2>
+        <a class="handle" href="#/">${SITE.handle}</a>
+        <span class="rule"></span>
+        <div class="cnav" data-carousel>
+          <button class="cbtn" data-dir="-1" aria-label="Publications précédentes">${ICON.left}</button>
+          <button class="cbtn" data-dir="1" aria-label="Publications suivantes">${ICON.right}</button>
+        </div>
+      </div>
+      <ul class="track" id="ig-track" tabindex="0" aria-label="Publications Instagram récentes">
+        ${NOTES.map(n => `
+          <li><a href="#/note/${n.id}">
+            <div class="frame">
+              ${plate(slidesOf(n)[0], 400, 400)}
+              ${slidesOf(n).length > 1 ? ICON.stack : ""}
+            </div>
+            <p>${esc(n.caption)}</p>
+            <div class="meta"><time datetime="${n.date}">${frDate(n.date)}</time>${slidesOf(n).length > 1 ? `<span>${slidesOf(n).length} images</span>` : ""}</div>
+          </a></li>`).join("")}
+      </ul>
+    </section>
+
+    <section class="filters">
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+        <input id="q" type="search" placeholder="Chercher dans les articles et les notes" value="${esc(filter.q)}" aria-label="Chercher">
+      </label>
+      <div class="tags" role="group" aria-label="Filtrer par sujet">
+        ${ALL_TAGS.map(t => `<button class="tag" data-tag="${esc(t)}" aria-pressed="${filter.tag === t}">${esc(t)}</button>`).join("")}
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-head">Articles</h2>
+      ${(featOut ? [feat, ...rest] : rest).length === 0
+        ? `<p class="empty">Aucun article ne correspond.</p>`
+        : `<ul class="list">${(featOut ? [feat, ...rest] : rest).map(a => `
+            <li><a class="entry" href="#/article/${a.id}">
+              <div>
+                <h3>${esc(a.title)}</h3>
+                <p class="dek">${esc(a.dek)}</p>
+                ${metaLine(a)}
+              </div>
+              ${plate(a.seed, 132, 92)}
+            </a></li>`).join("")}</ul>`}
+    </section>
+
+    <section class="section" style="border-bottom:none">
+      <h2 class="section-head">Notes</h2>
+      ${notes.length === 0
+        ? `<p class="empty">Aucune note ne correspond.</p>`
+        : `<ul class="grid">${notes.map(n => `
+            <li><a class="note" href="#/note/${n.id}">
+              ${plate(n.seed, 400, 400)}
+              <p>${esc(n.caption)}</p>
+              <div class="meta"><time datetime="${n.date}">${frDate(n.date)}</time></div>
+            </a></li>`).join("")}</ul>`}
+    </section>
+  </div>`;
+}
+
+function viewArticle(id){
+  const a = ARTICLES.find(x => x.id === id);
+  if(!a) return viewHome();
+  return `
+  <div class="wrap">
+    <article class="article">
+      <a class="back" href="#/">Retour</a>
+      <header>
+        <h1>${esc(a.title)}</h1>
+        <p class="dek">${esc(a.dek)}</p>
+        ${metaLine(a)}
+      </header>
+      ${plate(a.seed, 1100, 480)}
+      <div class="prose">${mdToHtml(a.body)}</div>
+      <p class="endnote">${nb(chars(a))} caractères &nbsp;·&nbsp; publié le ${frDate(a.date)} &nbsp;·&nbsp; ${a.tags.join(", ")}</p>
+    </article>
+  </div>`;
+}
+
+function gallery(n){
+  const sl = slidesOf(n);
+  if(sl.length === 1) return `<div class="gal">${plate(sl[0], 720, 720)}</div>`;
+  return `
+  <div class="gal" data-gallery data-count="${sl.length}">
+    <div class="gal-win">
+      <div class="gal-track" data-track>${sl.map(sd => `<div>${plate(sd, 720, 720)}</div>`).join("")}</div>
+      <span class="gal-count" data-count-label>1 / ${sl.length}</span>
+      <button class="cbtn" data-dir="-1" aria-label="Image précédente">${ICON.left}</button>
+      <button class="cbtn" data-dir="1" aria-label="Image suivante">${ICON.right}</button>
+    </div>
+    <div class="dots" role="tablist" aria-label="Images de la publication">
+      ${sl.map((_, i) => `<button class="dot" role="tab" data-go="${i}" aria-current="${i === 0}" aria-label="Image ${i + 1}"></button>`).join("")}
+    </div>
+  </div>`;
+}
+
+function viewNote(id){
+  const n = NOTES.find(x => x.id === id);
+  if(!n) return viewHome();
+  return `
+  <div class="wrap">
+    <article class="notepage">
+      <a class="back" href="#/">Retour</a>
+      ${gallery(n)}
+      <p class="cap">${esc(n.caption)}</p>
+      <div class="meta">
+        <time datetime="${n.date}">${frDate(n.date)}</time>
+        <span>${n.tags.join(", ")}</span>
+      </div>
+    </article>
+  </div>`;
+}
+
+function viewAbout(){
+  return `
+  <div class="wrap">
+    <section class="about">
+      <div class="about-grid">
+        <div>
+          <h1>À propos</h1>
+          <p class="lede">Je m'appelle ${SITE.author}. Le jour je travaille sur des systèmes industriels ; le soir je démonte des choses sur un établi de soixante centimètres.</p>
+          <p>Ce site rassemble les deux formats que j'utilise déjà sans m'en rendre compte : des notes courtes prises sur le vif, avec une photo, quand quelque chose marche enfin ou casse bêtement — et des articles longs, écrits une fois que le projet a assez tourné pour que j'aie quelque chose d'utile à en dire.</p>
+          <p>Rien ici n'est vendu, sponsorisé ou affilié. Les montages sont les miens, les erreurs aussi, et je les laisse dans les articles parce que c'est souvent la partie la plus utile.</p>
+        </div>
+        <div class="skills">
+          <div class="skillset">
+            <h4>Électronique et embarqué</h4>
+            <div class="chips"><span class="chip">ESP32</span><span class="chip">I²C / SPI</span><span class="chip">Capteurs NDIR</span><span class="chip">KiCad</span><span class="chip">Soudure CMS</span></div>
+          </div>
+          <div class="skillset">
+            <h4>Logiciel</h4>
+            <div class="chips"><span class="chip">Python</span><span class="chip">FastAPI</span><span class="chip">Vue</span><span class="chip">PostgreSQL</span><span class="chip">Docker</span><span class="chip">MQTT</span></div>
+          </div>
+          <div class="skillset">
+            <h4>Atelier</h4>
+            <div class="chips"><span class="chip">Impression 3D</span><span class="chip">Fusion 360</span><span class="chip">Mesure</span></div>
+          </div>
+          <div class="skillset">
+            <h4>Ailleurs</h4>
+            <div class="links">
+              <a href="#/">Instagram<span>${SITE.handle}</span></a>
+              <a href="#/">GitHub<span>/max</span></a>
+              <a href="#/">LinkedIn<span>profil</span></a>
+              <a href="#/">Flux RSS<span>/rss.xml</span></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>`;
+}
+
+function viewAdmin(){
+  const a = ARTICLES[0];
+  return `
+  <div class="wrap">
+    <section class="admin-page">
+      <div class="admin-bar">
+        <h1>Rédaction</h1>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <span class="pill">Aperçu du back-office</span>
+          <button class="btn">Enregistrer le brouillon</button>
+          <button class="btn btn-primary">Publier</button>
+        </div>
+      </div>
+      <div class="editor">
+        <div>
+          <div class="field">
+            <label for="a-title">Titre</label>
+            <input id="a-title" type="text" value="${esc(a.title)}">
+          </div>
+          <div class="field">
+            <label for="a-dek">Chapô</label>
+            <input id="a-dek" type="text" value="${esc(a.dek)}">
+          </div>
+          <div class="field">
+            <label for="a-tags">Sujets, séparés par des virgules</label>
+            <input id="a-tags" type="text" value="${esc(a.tags.join(", "))}">
+          </div>
+          <div class="field">
+            <label for="a-body">Texte <span class="count" id="a-count"></span></label>
+            <textarea id="a-body" spellcheck="false">${esc(a.body)}</textarea>
+          </div>
+        </div>
+        <div class="preview"><div class="prose" id="a-preview"></div></div>
+      </div>
+    </section>
+  </div>`;
+}
+
+/* ============================================================
+   Routage
+   ============================================================ */
+const app = document.getElementById("app");
+const navEl = document.getElementById("nav");
+
+function route(){
+  const parts = (location.hash || "#/").replace(/^#\/?/, "").split("/");
+  const seg = parts[0] || "";
+  const id = parts[1] || "";
+  let html, active = "home";
+
+  if(seg === "article"){ html = viewArticle(id); active = "home"; }
+  else if(seg === "note"){ html = viewNote(id); active = "home"; }
+  else if(seg === "apropos"){ html = viewAbout(); active = "apropos"; }
+  else if(seg === "admin"){ html = viewAdmin(); active = "admin"; }
+  else { html = viewHome(); active = "home"; }
+
+  app.innerHTML = html;
+  navEl.querySelectorAll("a").forEach(el => el.classList.toggle("on", el.dataset.k === active));
+  window.scrollTo(0, 0);
+  wire();
+}
+
+function wire(){
+  const q = document.getElementById("q");
+  if(q){
+    q.addEventListener("input", e => {
+      filter.q = e.target.value;
+      const pos = e.target.selectionStart;
+      rerenderHome();
+      const nq = document.getElementById("q");
+      if(nq){ nq.focus(); nq.setSelectionRange(pos, pos); }
+    });
+  }
+  document.querySelectorAll(".tag").forEach(btn => {
+    btn.addEventListener("click", () => {
+      filter.tag = filter.tag === btn.dataset.tag ? null : btn.dataset.tag;
+      rerenderHome();
+    });
+  });
+
+  /* bande Instagram : flèches + état désactivé aux extrémités */
+  const track = document.getElementById("ig-track");
+  if(track){
+    const nav = document.querySelector("[data-carousel]");
+    const btns = nav ? [...nav.querySelectorAll(".cbtn")] : [];
+    const smooth = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    const sync = () => {
+      const max = track.scrollWidth - track.clientWidth - 2;
+      btns.forEach(b => {
+        b.disabled = Number(b.dataset.dir) < 0 ? track.scrollLeft <= 2 : track.scrollLeft >= max;
+      });
+    };
+    btns.forEach(b => b.addEventListener("click", () => {
+      const step = track.querySelector("li") ? track.querySelector("li").offsetWidth + 16 : 240;
+      const page = Math.max(1, Math.floor(track.clientWidth / step));
+      track.scrollBy({ left: Number(b.dataset.dir) * step * page, behavior: smooth });
+    }));
+    track.addEventListener("scroll", sync, { passive:true });
+    track.addEventListener("keydown", e => {
+      if(e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      const step = track.querySelector("li") ? track.querySelector("li").offsetWidth + 16 : 240;
+      track.scrollBy({ left: (e.key === "ArrowRight" ? 1 : -1) * step, behavior: smooth });
+    });
+    sync();
+  }
+
+  /* galerie d'une note */
+  const gal = document.querySelector("[data-gallery]");
+  if(gal){
+    const count = Number(gal.dataset.count);
+    const strip = gal.querySelector("[data-track]");
+    const label = gal.querySelector("[data-count-label]");
+    const dots = [...gal.querySelectorAll(".dot")];
+    const arrows = [...gal.querySelectorAll(".gal-win .cbtn")];
+    let i = 0;
+    const show = k => {
+      i = Math.max(0, Math.min(count - 1, k));
+      strip.style.transform = `translateX(-${i * 100}%)`;
+      label.textContent = `${i + 1} / ${count}`;
+      dots.forEach((d, j) => d.setAttribute("aria-current", String(j === i)));
+      arrows.forEach(b => { b.disabled = Number(b.dataset.dir) < 0 ? i === 0 : i === count - 1; });
+    };
+    arrows.forEach(b => b.addEventListener("click", () => show(i + Number(b.dataset.dir))));
+    dots.forEach(d => d.addEventListener("click", () => show(Number(d.dataset.go))));
+    document.addEventListener("keydown", e => {
+      if(!document.body.contains(gal)) return;
+      if(e.key === "ArrowLeft") show(i - 1);
+      if(e.key === "ArrowRight") show(i + 1);
+    });
+    show(0);
+  }
+
+  const body = document.getElementById("a-body");
+  if(body){
+    const paint = () => {
+      document.getElementById("a-preview").innerHTML = mdToHtml(body.value);
+      document.getElementById("a-count").textContent =
+        `— ${nb(body.value.replace(/\s+/g," ").length)} caractères`;
+    };
+    body.addEventListener("input", paint);
+    paint();
+  }
+}
+
+function rerenderHome(){
+  app.innerHTML = viewHome();
+  wire();
+}
+
+/* masthead */
+document.getElementById("brand-name").textContent = SITE.title;
+window.addEventListener("hashchange", route);
+route();
+</script>
