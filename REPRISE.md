@@ -6,6 +6,8 @@
 
 ## Lire d'abord
 
+- **[`docs/MISE-EN-LIGNE.md`](docs/MISE-EN-LIGNE.md)** — **ce qui reste à
+  faire pour que le site existe** : Google, R2, Meta, GitHub, VPS
 - **[`README.md`](README.md)** — démarrage et commandes du quotidien
 - **[`docs/OUTILS.md`](docs/OUTILS.md)** — la pile, si elle est nouvelle pour toi
 - **[`docs/PLAN.md`](docs/PLAN.md)** — le cahier des charges, avec son bandeau de
@@ -28,29 +30,31 @@
 | 10 — Export / import avec aller-retour vérifié | ✅ |
 | 11 — CI, compose de production, déploiement | ✅ écrit, **pas encore exécuté** |
 
-**260 tests.** `pnpm verify` et `pre-commit run --all-files` passent.
+**304 tests.** `pnpm verify` et `pre-commit run --all-files` passent.
+
+Le back-office est complet : tableau de bord, articles avec couverture et
+panneau Décliner, publications, accueil, CV illustré (photo + PDF),
+apparence, et un écran Technique qui connecte Instagram, synchronise et
+sauvegarde.
 
 ## ⚠ Ce qui t'attend, et qui bloque la mise en ligne
 
-Rien ne peut avancer sans ces comptes tiers. Tout le code est écrit et testé
-contre des services simulés ; il n'a jamais parlé aux vrais.
+**Il n'y a plus de code à écrire pour ouvrir le site — il reste des comptes
+à créer.** Tout est testé contre des services simulés ; rien n'a jamais
+parlé aux vrais.
 
-1. **Dépôt GitHub public** — le contrôle de secrets est passé, l'historique est
-   propre. Après publication : activer *Secret scanning*, *Push protection*,
-   CodeQL et Dependabot.
-2. **Identifiants OAuth Google** — `NUXT_OAUTH_GOOGLE_CLIENT_ID` et
-   `_SECRET`, URI de redirection `/api/auth/google`. Et
-   `NUXT_BOOTSTRAP_TECH_EMAIL` avec ton adresse : c'est le SEUL moyen d'avoir un
-   premier compte, personne ne pouvant s'en créer un.
-3. **Bucket Cloudflare R2** et ses clés — sans quoi aucun téléversement d'image.
-4. **App Meta + connexion de @unmaxdinfo_** (déjà en Pro) — puis enregistrer le
-   jeton, que le code chiffre en base.
-5. **Domaine `unmaxdinfo.fr`** chez Infomaniak, DNS chez Cloudflare.
-6. **Secrets GitHub du déploiement** : `DEPLOY_HOST`, `DEPLOY_USER`,
-   `DEPLOY_SSH_KEY`, `DEPLOY_PATH`.
+La marche à suivre complète, dans l'ordre, avec les noms de variables exacts
+et les pièges de chaque fournisseur : **[`docs/MISE-EN-LIGNE.md`](docs/MISE-EN-LIGNE.md)**.
+En résumé : dépôt GitHub public, OAuth Google, bucket Cloudflare R2, app
+Meta, domaine et DNS, secrets de déploiement.
 
-Avant de rendre le dépôt public, relire `docs/PLAN.md` : ses exemples JSON
-contiennent des données personnelles de Max.
+Deux points à ne pas rater, parce qu'ils ne se rattrapent pas :
+
+- **Avant** de rendre le dépôt public, relire `docs/PLAN.md` : ses exemples
+  JSON contiennent des données personnelles de Max. Une clé ou une donnée
+  poussée sur un dépôt public est compromise irréversiblement.
+- `NUXT_BOOTSTRAP_TECH_EMAIL` est le **seul** moyen d'obtenir un premier
+  compte : personne ne peut s'en créer un.
 
 ## Ce qui reste en dette
 
@@ -61,12 +65,17 @@ contiennent des données personnelles de Max.
 - **HTTPS en local** (mkcert) — les cookies `Secure` ne sont pas posés en clair,
   et Google exige des URI de redirection HTTPS hors localhost. À faire avant de
   déboguer l'authentification pour de vrai.
-- **Le back-office reste sommaire** : liste et éditeur d'articles seulement. Les
-  écrans Publications, Accueil, CV et Apparence ont leur API et leurs tests,
-  mais pas encore d'interface.
 - **Pas de test de bout en bout navigateur** (Playwright). Tout est vérifié par
   requêtes HTTP contre un vrai serveur, ce qui couvre le rendu serveur mais pas
-  l'interaction.
+  l'interaction. Les écrans les plus exposés à ce manque sont ceux qui
+  téléversent : le fichier part du navigateur directement vers R2, et ce
+  chemin-là n'est prouvé par aucun test.
+- **Les couvertures reprises de Substack pointent vers son CDN** : `r2_key`
+  reste nulle. Si Max ferme son Substack, elles disparaissent et il faudra
+  les retéléverser depuis l'écran d'édition.
+- **L'import depuis l'écran Technique ne fait que simuler.** Appliquer une
+  restauration passe encore par l'API. C'est volontaire tant que personne
+  n'a restauré une vraie sauvegarde au moins une fois.
 
 ## Ce qui casse en silence — à relire avant de coder
 
@@ -85,6 +94,10 @@ Chaque ligne a coûté du temps. Elles sont aussi dans `CLAUDE.md`.
 | Nitro | Parcourt `shared/` avec rollup, qui ignore les imports `?raw` de Vite |
 | Biome | Lit le `<script>` des `.vue` **sans le `<template>`** |
 | Serveur de dev Nuxt | Sert la page d'erreur en **200** ; le build de production répond bien 404 |
+| Routes Nuxt | Les **statiques passent avant les dynamiques** : un article dont le slug est celui d'un écran devient inaccessible, sans message. D'où `SLUGS_RESERVES` |
+| `$fetch<T>` écrit à la main | Annule l'inférence de Nitro et **accepte n'importe quel champ**. Laisser Nitro déduire |
+| `onConflictDoUpdate` | Exige une contrainte d'unicité **réelle** sur la cible ; sinon, échec à l'exécution seulement |
+| Jeton Instagram | Le code d'OAuth donne un jeton d'**une heure**. Sans le second échange, l'intégration meurt au bout d'une heure |
 
 ## Les frontières à ne jamais franchir
 

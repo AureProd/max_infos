@@ -10,6 +10,11 @@ Si tu découvres la pile (pnpm, Nuxt, Biome, Drizzle, Vitest), commence par
 **[`docs/OUTILS.md`](docs/OUTILS.md)** : à quoi sert chaque outil, et les
 trois commandes qui comptent pour chacun.
 
+Pour **mettre le site en ligne** — comptes Google, Cloudflare R2, Meta,
+GitHub, VPS —, tout est dans
+**[`docs/MISE-EN-LIGNE.md`](docs/MISE-EN-LIGNE.md)**, dans l'ordre où chaque
+étape débloque la suivante.
+
 ---
 
 ## Démarrer
@@ -63,6 +68,7 @@ Pour arrêter : `docker compose down`. Pour repartir d'une base vierge :
 | Créer une migration après avoir changé le schéma | `pnpm db:generate` |
 | Appliquer les migrations | `docker compose run --rm migrate` |
 | Explorer la base dans le navigateur | `pnpm db:studio` |
+| Rapatrier les couvertures Substack | `pnpm substack <url du flux> [--dry]` |
 | Semer le contenu d'origine | `docker compose run --rm --entrypoint sh migrate -c 'node_modules/.bin/tsx scripts/seed/seed.ts'` |
 | **Tout vérifier avant de pousser** | `pnpm verify` |
 
