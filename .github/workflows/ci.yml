@@ -9,10 +9,12 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Dépôt public : moindre privilège par défaut, relevé tâche par tâche si besoin.
+permissions:
+  contents: read
+
 env:
-  UV_VERSION: "0.11.2"
   NODE_VERSION: "22"
-  PYTHON_VERSION: "3.12"
 
 jobs:
   quality:
@@ -22,32 +24,33 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # pre-commit en différentiel a besoin de l'historique
-      - uses: astral-sh/setup-uv@v5
-        with:
-          version: ${{ env.UV_VERSION }}
-          enable-cache: true
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: uv sync --frozen --project backend
-      - run: npm ci --prefix frontend
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint et format
+        run: pnpm exec biome ci .
+      - name: Typage
+        run: pnpm typecheck
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: pre-commit (différentiel sur la PR, complet sur main)
         run: |
+          pipx install pre-commit
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            uv run --project backend pre-commit run \
-              --from-ref origin/${{ github.base_ref }} --to-ref HEAD --show-diff-on-failure
+            pre-commit run --from-ref origin/${{ github.base_ref }} --to-ref HEAD --show-diff-on-failure
           else
-            uv run --project backend pre-commit run --all-files --show-diff-on-failure
+            pre-commit run --all-files --show-diff-on-failure
           fi
-      - run: uv run --project backend ruff check backend
-      - run: uv run --project backend mypy app
-        working-directory: backend
 
-  test-backend:
-    name: Tests back
+  test:
+    name: Tests
     runs-on: ubuntu-latest
+    # Un seul projet, une seule installation, une couverture consolidée :
+    # mieux que les deux seuils de 80 % séparés de l'ancienne CI.
     services:
       postgres:
         image: postgres:17-alpine
@@ -60,78 +63,79 @@ jobs:
           --health-cmd "pg_isready -U unmaxdinfo"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      APP_ENV: dev
-      DB_HOST: localhost
-      DB_PORT: 5432
-      POSTGRES_DB: unmaxdinfo_test
-      POSTGRES_USER: unmaxdinfo
-      POSTGRES_PASSWORD: test
+      NUXT_PUBLIC_APP_ENV: dev
+      DATABASE_URL: postgres://unmaxdinfo:test@localhost:5432/unmaxdinfo_test
+      NUXT_DATABASE_URL: postgres://unmaxdinfo:test@localhost:5432/unmaxdinfo_test
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          version: ${{ env.UV_VERSION }}
-          enable-cache: true
-      - run: uv sync --frozen
-        working-directory: backend
-      - name: pytest
-        run: uv run pytest --cov --cov-report=term-missing --cov-report=xml --cov-fail-under=80
-        working-directory: backend
-      - name: Récapitulatif de couverture
-        if: always()
-        run: |
-          echo '### Couverture back' >> "$GITHUB_STEP_SUMMARY"
-          uv run coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY" || true
-        working-directory: backend
-
-  test-frontend:
-    name: Tests front
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-        working-directory: frontend
-      - run: npm run lint
-        working-directory: frontend
-      - run: npm run coverage
-        working-directory: frontend
-      - run: npm run build
-        working-directory: frontend
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Appliquer les migrations
+        run: pnpm db:migrate
+
+      - name: Aucune migration manquante
+        # L'équivalent d'`alembic --autogenerate --check` du lot 1 : si le
+        # schéma TypeScript a changé sans qu'on génère la migration, un
+        # fichier apparaît ici et la tâche échoue.
+        run: |
+          pnpm db:check
+          pnpm db:generate --name controle_de_derive
+          git diff --exit-code drizzle/ \
+            || { echo "::error::Une migration manque. Lancer 'pnpm db:generate' et commiter le fichier SQL."; exit 1; }
+
+      - name: Tests et couverture
+        run: pnpm coverage
+
+      - name: Récapitulatif de couverture
+        if: always()
+        run: |
+          echo '### Couverture' >> "$GITHUB_STEP_SUMMARY"
+          node -e "
+            const s = require('./coverage/coverage-summary.json').total;
+            const l = ['lines','statements','functions','branches'];
+            console.log('| Métrique | % |'); console.log('|---|---|');
+            for (const k of l) console.log(\`| \${k} | \${s[k].pct} |\`);
+          " >> "$GITHUB_STEP_SUMMARY" || true
 
   security:
     name: Sécurité
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          version: ${{ env.UV_VERSION }}
-          enable-cache: true
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: uv sync --frozen
-        working-directory: backend
-      - name: pip-audit
-        run: uv run pip-audit --strict
-        working-directory: backend
-        continue-on-error: false
-      - run: npm ci
-        working-directory: frontend
-      - run: npm audit --audit-level=high
-        working-directory: frontend
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: pnpm audit
+        run: pnpm audit --audit-level=high
+      - name: osv-scanner
+        # Interroge la base OSV, dont la couverture diffère de celle du
+        # registre npm : garder les deux n'est pas redondant.
+        run: pnpm dlx osv-scanner@latest scan source --lockfile=pnpm-lock.yaml
+
+  workflows:
+    name: Workflows
+    runs-on: ubuntu-latest
+    # Sur un dépôt public, les workflows sont une surface d'attaque à part
+    # entière : injection par titre de PR, actions non épinglées, secrets
+    # exposés à une PR extérieure.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color
 
   build:
     name: Image Docker
     runs-on: ubuntu-latest
-    needs: [quality, test-backend, test-frontend]
+    needs: [quality, test]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -139,7 +143,8 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: backend/deploy/Dockerfile
+          file: Dockerfile
+          target: prod
           push: false
           load: true
           tags: unmaxdinfo:ci
@@ -149,6 +154,9 @@ jobs:
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: unmaxdinfo:ci
+          # L'image GHCR devient publique : un secret qui s'y glisserait
+          # serait lisible par tout le monde.
+          scanners: vuln,secret
           severity: HIGH,CRITICAL
           exit-code: "1"
           ignore-unfixed: true
