@@ -172,6 +172,9 @@ fi
 
 if [ "${APP_ENV}" != "prod" ]; then
   export DASHBOARD_PORT="${DASHBOARD_PORT:-$((18080 + URL_PORT - 8080))}"
+  # Tous les ports publiés dérivent de URL_PORT : c'est ce qui permet de
+  # faire tourner plusieurs clones côte à côte sans rien régler.
+  export DB_TEST_PORT="${DB_TEST_PORT:-$((15432 + URL_PORT - 8080))}"
 fi
 
 export APP_IMAGE="${APP_IMAGE:-unmaxdinfo:${INSTANCE_NAME}}"
@@ -211,6 +214,7 @@ if [ -z "${SKIP_PORT_CHECK:-}" ] && [ "${APP_ENV}" != "prod" ]; then
   PORTS_BUSY=0
   check_port "${URL_PORT}" "site" || PORTS_BUSY=1
   check_port "${DASHBOARD_PORT}" "tableau de bord traefik" || PORTS_BUSY=1
+  [ "${APP_ENV}" = "dev" ] && { check_port "${DB_TEST_PORT}" "base de test" || PORTS_BUSY=1; }
   if [ "${PORTS_BUSY}" = "1" ]; then
     # Proposer le premier décalage dont TOUS les ports dérivés sont libres,
     # pour que la correction tienne en un copier-coller.
@@ -240,8 +244,13 @@ fi
 # dépôt — ce qui compte doublement maintenant qu'il est public.
 (
   umask 077
+  # --profile migrate est nécessaire : sans lui, `config` ÉCARTE purement et
+  # simplement les services rattachés à un profil, et le conteneur de
+  # migration serait absent de l'artefact. L'y inclure ne le démarre pas
+  # pour autant — `up` continue de l'ignorer, c'est tout l'intérêt.
   docker compose -p "${INSTANCE_NAME}" --project-directory . \
     -f ./deploy/docker-compose.yml -f "${APP_OVERRIDE}" ${LOCAL_CONFIG} \
+    --profile migrate \
     config > docker-compose.yml
 )
 chmod 600 docker-compose.yml
@@ -258,6 +267,7 @@ SETUP_ENV_FILE=${ENV_FILE}
 SETUP_APP_ENV=${APP_ENV}
 SETUP_URL_PORT=${URL_PORT}
 SETUP_DASHBOARD_PORT=${DASHBOARD_PORT:-}
+SETUP_DB_TEST_PORT=${DB_TEST_PORT:-}
 SETUP_PUBLIC_URL=http://${URL_HOST}:${URL_PORT}
 SETUP_UPDATED_AT=$(date -Iseconds)
 EOF
@@ -271,6 +281,7 @@ echo "Port          : ${URL_PORT} (${URL_PORT_SOURCE})"
 echo "Site          : http://${URL_HOST}:${URL_PORT}"
 echo "Sonde         : http://${URL_HOST}:${URL_PORT}/api/health"
 [ "${APP_ENV}" != "prod" ] && echo "Traefik       : http://localhost:${DASHBOARD_PORT}"
+[ "${APP_ENV}" = "dev" ] && echo "Base de test  : 127.0.0.1:${DB_TEST_PORT}"
 echo "-------------------------------------------------------"
 echo "Ensuite :"
 echo "  docker compose run --rm migrate     # applique les migrations"

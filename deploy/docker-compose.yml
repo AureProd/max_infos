@@ -18,9 +18,16 @@ services:
       - traefik.enable=true
       - traefik.http.routers.app-${INSTANCE_NAME}.rule=Host(`${URL_HOST}`)
       - traefik.http.routers.app-${INSTANCE_NAME}.priority=1
-      # Obligatoire : le conteneur expose deux ports en développement
-      # (3000 et 24678) et Traefik refuse alors de choisir tout seul.
+      # Explicite plutôt que déduit : Traefik doit savoir vers quel port
+      # envoyer, sans dépendre de ce que l'image expose.
       - traefik.http.services.app-${INSTANCE_NAME}.loadbalancer.server.port=3000
+      # Nommer le service du routeur, même quand il n'y en a qu'un. Dès
+      # qu'un conteneur déclare plus d'un service Traefik, un routeur qui ne
+      # nomme pas le sien est écarté SANS message d'erreur : le site répond
+      # alors 404 à travers le proxy tout en répondant 200 en direct sur le
+      # conteneur. Une heure de recherche, autant l'écrire une fois pour
+      # toutes.
+      - traefik.http.routers.app-${INSTANCE_NAME}.service=app-${INSTANCE_NAME}
       # Retire les en-têtes qui identifient la pile. Une valeur VIDE dans
       # customResponseHeaders supprime l'en-tête de la réponse : c'est le
       # seul endroit où Server et X-Powered-By disparaissent vraiment.

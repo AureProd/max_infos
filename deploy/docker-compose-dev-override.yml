@@ -27,23 +27,6 @@ services:
       # Lus par nuxt.config.ts pour calculer hmr.clientPort et allowedHosts.
       URL_PORT: ${URL_PORT:-8080}
       URL_HOST: ${URL_HOST}
-    labels:
-      # --- Routeur dédié au WebSocket de rechargement à chaud -------------
-      # Nuxt lance Vite en middlewareMode : Vite ouvre alors SON PROPRE
-      # serveur WebSocket, sur 24678, distinct du 3000. Sans ce routeur, le
-      # navigateur demande ws://${URL_HOST}:${URL_PORT}/_nuxt_hmr, Traefik
-      # l'envoie sur 3000, Nitro répond 404, et le rechargement à chaud ne
-      # se connecte jamais.
-      #
-      # Le chemin est inventé : dans cette branche, le serveur WebSocket de
-      # Vite accepte l'upgrade quel que soit le chemin. Il ne sert donc qu'à
-      # donner une prise à Traefik.
-      - traefik.http.routers.hmr-${INSTANCE_NAME}.rule=Host(`${URL_HOST}`) && PathPrefix(`/_nuxt_hmr`)
-      - traefik.http.routers.hmr-${INSTANCE_NAME}.priority=100
-      - traefik.http.routers.hmr-${INSTANCE_NAME}.service=hmr-${INSTANCE_NAME}
-      - traefik.http.services.hmr-${INSTANCE_NAME}.loadbalancer.server.port=24678
-      # AUCUN middleware ici : rien ne doit toucher à la négociation
-      # d'upgrade ni aux en-têtes Host et Origin, que Vite vérifie.
     healthcheck:
       # `nuxt dev` compile à la volée : le premier rendu peut dépasser 60 s.
       start_period: 180s
@@ -56,6 +39,36 @@ services:
       dockerfile: Dockerfile
       target: migrate
     image: unmaxdinfo-migrate:${INSTANCE_NAME}
+
+  # Base jetable réservée aux tests, publiée sur la boucle locale pour que
+  # `pnpm test` tourne depuis l'hôte. Celle de développement, elle, ne
+  # publie AUCUN port : on ne relâche pas cette règle pour les tests.
+  #
+  # tmpfs et non volume : les données ne survivent pas au conteneur, c'est
+  # exactement ce qu'on veut, et les écritures ne touchent pas le disque.
+  db-test:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: unmaxdinfo_test
+      POSTGRES_USER: unmaxdinfo
+      # Base éphémère, en mémoire, liée à 127.0.0.1 : rien à protéger.
+      POSTGRES_PASSWORD: test # pragma: allowlist secret
+      # Sans durabilité : une base de test qui perd tout au redémarrage est
+      # sans conséquence, et c'est deux à trois fois plus rapide.
+      POSTGRES_INITDB_ARGS: "--nosync"
+    command: >-
+      postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off
+    tmpfs:
+      - /var/lib/postgresql/data
+    ports:
+      - 127.0.0.1:${DB_TEST_PORT:-15432}:5432
+    networks: [default]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U unmaxdinfo -d unmaxdinfo_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
 volumes:
   nuxt_cache:

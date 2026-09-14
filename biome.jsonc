@@ -35,6 +35,14 @@
   },
   "overrides": [
     {
+      // Dans un test, une assertion non-nulle qui se révèle fausse produit
+      // un échec de test immédiat et lisible — exactement ce qu'on veut.
+      // La règle garde tout son sens dans app/, server/ et shared/, où une
+      // valeur nulle inattendue casserait une page en production.
+      "includes": ["test/**"],
+      "linter": { "rules": { "style": { "noNonNullAssertion": "off" } } }
+    },
+    {
       // Nuxt impose ces noms : le routage par fichiers veut `index.vue`, et
       // le layout par defaut s'appelle `default.vue`. La regle des noms en
       // plusieurs mots ne s'applique donc pas ici.

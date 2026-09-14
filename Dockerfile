@@ -24,6 +24,11 @@ RUN apt-get update \
  # pnpm échoue en « Cannot find matching keyid ». On le remplace avant de
  # l'activer.
  && npm i -g corepack@latest && corepack enable \
+ # `corepack enable` ne fait que poser des lanceurs : pnpm serait téléchargé
+ # au PREMIER APPEL, donc au démarrage du conteneur. Inacceptable pour le
+ # conteneur de migration, qui tournerait alors au milieu d'un déploiement
+ # avec une dépendance réseau. On le fige ici.
+ && corepack prepare pnpm@12.4.1 --activate \
  && npm cache clean --force
 WORKDIR /app
 
@@ -47,9 +52,9 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 FROM deps AS dev
 ENV NODE_ENV=development
 COPY . .
-# 3000 : le serveur Nuxt. 24678 : le WebSocket de rechargement à chaud, que
-# Vite ouvre à part quand Nuxt le lance en middlewareMode.
-EXPOSE 3000 24678
+# Un seul port : le WebSocket de rechargement à chaud est porté par ce même
+# serveur, sur /_nuxt/_nuxt_hmr.
+EXPOSE 3000
 # --host : sans lui, nuxi n'écoute que la boucle locale DU CONTENEUR et
 # Traefik ne l'atteint jamais.
 CMD ["pnpm", "dev", "--host", "0.0.0.0", "--port", "3000"]
@@ -61,7 +66,11 @@ FROM deps AS migrate
 ENV NODE_ENV=production
 COPY . .
 USER node
-CMD ["pnpm", "exec", "drizzle-kit", "migrate"]
+# Le binaire directement, et non `pnpm exec` : pnpm vérifie l'installation
+# au passage et tente d'écrire dans /app, propriété de root — ce qu'un
+# conteneur de migration non privilégié ne peut pas faire, et n'a aucune
+# raison de faire.
+CMD ["node_modules/.bin/drizzle-kit", "migrate"]
 
 # -------------------------------------------------------------------- build
 FROM deps AS build

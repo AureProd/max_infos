@@ -102,18 +102,23 @@ export default defineNuxtConfig({
       // domaine de préproduction.
       allowedHosts: [urlHost],
       // Vite 8 : server.hmr.* est déprécié au profit de server.ws.*.
+      //
+      // Un seul réglage est nécessaire, et c'est le seul qui compte :
+      // clientPort. Le navigateur compose l'URL du WebSocket avec le port
+      // qu'on lui donne ici ; sans lui il viserait le 3000 du conteneur,
+      // injoignable depuis l'hôte.
+      //
+      // Contrairement à ce qu'on pourrait croire, Nuxt 4 n'ouvre PAS de
+      // serveur WebSocket séparé pour le client : celui-ci est porté par le
+      // serveur principal, sur /_nuxt/_nuxt_hmr. Le routeur Traefik de
+      // l'application le couvre donc déjà, et aucun routeur dédié n'est
+      // nécessaire. Vérifié avec un vrai client WebSocket — curl n'en est
+      // pas un et renvoie 400 même quand tout fonctionne.
       ws: {
-        // Nuxt lance Vite en middlewareMode : Vite ouvre alors SON PROPRE
-        // serveur WebSocket, sur un port distinct du 3000. Sans ce réglage
-        // et sans le routeur Traefik correspondant (voir
-        // deploy/docker-compose-dev-override.yml), le rechargement à chaud
-        // ne se connecte jamais derrière le proxy.
         protocol: 'ws',
         // `host` volontairement absent : le client retombe sur l'hôte de la
         // page. Le figer casserait les clones servis sur un autre nom.
-        port: 24678, // port d'écoute DANS le conteneur
-        clientPort: urlPort, // port que le NAVIGATEUR compose : celui de Traefik
-        path: '/_nuxt_hmr', // le chemin sur lequel Traefik sait router
+        clientPort: urlPort,
       },
     },
   },
