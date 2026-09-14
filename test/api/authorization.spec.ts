@@ -143,6 +143,13 @@ const ATTENDU: Record<string, Attente> = {
   // 409 et non 200 : Instagram n'est pas connecté dans les tests. Ce qui
   // compte ici est qu'un `editor` reçoive 403 AVANT d'en arriver là.
   'POST /api/admin/instagram/sync': { anonyme: 401, editor: 403, tech: 409 },
+  // 409 également : sans NUXT_INSTAGRAM_APP_ID, il n'y a nulle part où
+  // envoyer Max. Le point vérifié reste le 403 de l'`editor`.
+  'GET /api/admin/instagram/connect': { anonyme: 401, editor: 403, tech: 409 },
+  // 400 : ni code ni état dans la requête de la matrice. Un `editor` doit
+  // être refusé AVANT ce contrôle — sans quoi n'importe qui pourrait faire
+  // aboutir un code et remplacer le jeton du site.
+  'GET /api/admin/instagram/callback': { anonyme: 401, editor: 403, tech: 400 },
 }
 
 /**

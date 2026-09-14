@@ -229,3 +229,79 @@ export async function enregistrerProfil(profil: ProfilInstagram): Promise<void> 
     .values({ key: 'instagram_public', value: valeur, scope: 'public' })
     .onConflictDoUpdate({ target: setting.key, set: { value: valeur, updatedAt: new Date() } })
 }
+
+/**
+ * L'échange OAuth, en deux temps imposés par Meta.
+ *
+ * Le code d'autorisation donne un jeton COURT (une heure), inutilisable
+ * tel quel : il faut immédiatement l'échanger contre un jeton long
+ * (60 jours), seul rafraîchissable. Oublier le second échange donne une
+ * intégration qui marche une heure puis meurt sans message clair — c'est
+ * le piège classique de cette API.
+ */
+const OAUTH_JETON = 'https://api.instagram.com/oauth/access_token'
+
+/** L'URL vers laquelle envoyer Max pour qu'il autorise l'application. */
+export function urlAutorisation(appId: string, redirection: string, etat: string): string {
+  const q = new URLSearchParams({
+    client_id: appId,
+    redirect_uri: redirection,
+    // Lecture seule : le site ne publie jamais, il ne demande donc jamais
+    // la permission de publier.
+    scope: 'instagram_business_basic',
+    response_type: 'code',
+    state: etat,
+  })
+  return `https://www.instagram.com/oauth/authorize?${q}`
+}
+
+export async function echangerCode(
+  code: string,
+  appId: string,
+  appSecret: string,
+  redirection: string,
+  http: typeof globalThis.fetch = globalThis.fetch,
+): Promise<string> {
+  // Formulaire et non JSON : cet unique point d'entrée de Meta refuse
+  // l'application/json, sans le dire autrement que par un 400.
+  const corps = new URLSearchParams({
+    client_id: appId,
+    client_secret: appSecret,
+    grant_type: 'authorization_code',
+    redirect_uri: redirection,
+    code,
+  })
+  const reponse = await http(OAUTH_JETON, { method: 'POST', body: corps })
+  if (!reponse.ok) throw new Error(`Instagram a refusé le code (${reponse.status})`)
+  const court = (await reponse.json()) as { access_token?: string }
+  if (!court.access_token) throw new Error("Instagram n'a pas renvoyé de jeton")
+  return court.access_token
+}
+
+/** Le second échange : jeton court → jeton long, le seul qui vaille. */
+export async function allongerJeton(
+  jetonCourt: string,
+  appSecret: string,
+  http: ClientHttp = clientParDefaut,
+): Promise<string> {
+  const long = await http<{ access_token: string }>(`${BASE}/access_token`, {
+    query: {
+      grant_type: 'ig_exchange_token',
+      client_secret: appSecret,
+      access_token: jetonCourt,
+    },
+  })
+  return long.access_token
+}
+
+/**
+ * L'URI de redirection, DÉDUITE de l'URL publique.
+ *
+ * Elle doit correspondre au caractère près à celle déclarée chez Meta. La
+ * déduire d'une seule source évite l'écart le plus fréquent — une barre
+ * oblique finale de différence, et l'échange échoue sur un message qui ne
+ * dit pas pourquoi.
+ */
+export function urlDeRedirection(baseUrl: string): string {
+  return `${baseUrl.replace(/\/$/, '')}/api/admin/instagram/callback`
+}

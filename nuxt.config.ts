@@ -115,9 +115,6 @@ export default defineNuxtConfig({
       google: { clientId: '', clientSecret: '', redirectURL: '' },
     },
     secretEncryptionKey: '',
-    sessionSecret: '',
-    sessionCookieName: 'umdi_session',
-    sessionMaxAge: 1_209_600,
     bootstrapTechEmail: '',
     r2AccountId: '',
     r2AccessKeyId: '',
@@ -135,7 +132,7 @@ export default defineNuxtConfig({
     public: {
       version,
       appEnv: 'dev',
-      baseUrl: 'http://unmaxdinfo.localhost:8080',
+      baseUrl: 'http://unmaxdinfo.localhost:8000',
       r2BaseUrl: '',
     },
   },
