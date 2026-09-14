@@ -1,156 +1,100 @@
 # Où on en est — reprise du chantier
 
-> Dernière séance : **lundi 14 septembre 2026**. Lots 1 à 4 terminés.
+> Dernière séance : **lundi 14 septembre 2026**. **Les onze lots sont écrits.**
 > Pour reprendre : lancer `claude` dans `~/Documents/perso/max_infos` et dire
 > « reprends le chantier, lis REPRISE.md ».
 
-## Le plan
+## Lire d'abord
 
-Le plan complet est dans **[`docs/PLAN.md`](docs/PLAN.md)** : contexte, décisions
-arrêtées, contraintes des API tierces, modèle de données, API, back-office,
-export/import, Docker/Traefik/CI, qualité, découpage en 11 lots, vérification.
-
-**Le lire en entier avant de coder**, en tenant compte de son bandeau de mise à
-jour : le plan a été écrit pour Python, le projet est en TypeScript. Il contient
-des contraintes vérifiées qu'il ne faut pas réapprendre — la découverte
-automatique LinkedIn est impossible, Substack n'a pas d'API de publication, et
-le site **ne publie jamais** sur les réseaux.
-
-Si la pile est nouvelle pour toi : **[`docs/OUTILS.md`](docs/OUTILS.md)**.
-
-## La bascule vers TypeScript
-
-Le lot 1 avait été livré en **Python / FastAPI**. Avant d'attaquer le lot 2, on a
-basculé sur **Nuxt 4 full-stack, tout en TypeScript**.
-
-Le motif décisif : la section « Référencement sans migration Nuxt » du plan
-décrivait un module `app/render/` qui devait ré-injecter à la main les balises
-`<title>`, Open Graph et JSON-LD dans `index.html`, plus un second moteur
-Markdown côté serveur. **Toute cette complexité n'existait que pour éviter
-Nuxt**, dont le rendu serveur est natif. S'y ajoutent : JB connaît déjà Vue, les
-types du schéma remontent jusqu'aux composants, et le back-office (lots 5 à 8,
-le gros du travail) est du Vue dans les deux cas.
-
-C'était le moment le moins coûteux : le lot 1 ne contenait que de l'outillage,
-aucune logique métier. Ses **décisions** ont toutes été conservées — liste des
-secrets obligatoires en production, contraintes SQL nommées, baseline
-`detect-secrets`, mode différentiel de `pre-commit` en CI.
-
-Le dépôt sera **public** (le plan disait privé).
+- **[`README.md`](README.md)** — démarrage et commandes du quotidien
+- **[`docs/OUTILS.md`](docs/OUTILS.md)** — la pile, si elle est nouvelle pour toi
+- **[`docs/PLAN.md`](docs/PLAN.md)** — le cahier des charges, avec son bandeau de
+  mise à jour : il a été écrit pour FastAPI, le projet est en TypeScript
+- **[`CLAUDE.md`](CLAUDE.md)** — les règles et ce qui casse en silence
 
 ## Avancement
 
 | Lot | État |
 |---|---|
-| **1 — Dépôt, structure, outillage qualité, CI** | ✅ refait en TypeScript |
-| **2 — Nuxt + Postgres + Drizzle + modèles + `./setup` + Traefik de dev** | ✅ **terminé** |
-| **3 — API publique en lecture + migration du contenu** | ✅ terminé |
-| **4 — OAuth Google, rôles, sessions** | ✅ terminé |
-| **5 — Admin : articles, médias (R2), tags** | ⏭ **à faire, prochaine étape** |
-| 6 → 11 | à faire, voir `docs/PLAN.md` |
+| 1 — Dépôt, outillage qualité, CI | ✅ |
+| 2 — Nuxt + Postgres + Drizzle + `./setup` + Traefik de dev | ✅ |
+| 3 — API publique en lecture + contenu migré en base | ✅ |
+| 4 — OAuth Google, rôles, sessions | ✅ |
+| 5 — Back-office : articles, médias, tags | ✅ |
+| 6 — Instagram : jeton chiffré, synchronisation, cartes maison | ✅ |
+| 7 — Rattachement, LinkedIn manuel, gabarits | ✅ |
+| 8 — Réglages : accueil, CV, contact, apparence | ✅ |
+| 9 — Référencement : flux, plan du site, JSON-LD, cache | ✅ |
+| 10 — Export / import avec aller-retour vérifié | ✅ |
+| 11 — CI, compose de production, déploiement | ✅ écrit, **pas encore exécuté** |
 
-### Ce qui tourne, vérifié
+**260 tests.** `pnpm verify` et `pre-commit run --all-files` passent.
 
-```bash
-./setup && docker compose run --rm migrate && docker compose up -d --wait
-curl http://unmaxdinfo.localhost:8080/api/health        # {"status":"ok",…}
-curl http://unmaxdinfo.localhost:8080/api/health/ready  # {"database":"ok",…}
-```
+## ⚠ Ce qui t'attend, et qui bloque la mise en ligne
 
-- Les 10 tables du plan sont en base, par la migration `drizzle/0000_initial.sql`
-- Le rendu **serveur** est confirmé : le contenu est dans la réponse HTTP
-- Une page inexistante renvoie un vrai **404** (l'ancien routeur redirigeait
-  vers l'accueil — mauvais pour le référencement)
-- Le rechargement à chaud passe par Traefik : modification répercutée en ~1 s
-- Le tableau de bord Traefik (18080) ne liste **que** les conteneurs du projet
-- 23 tests, `pnpm lint` et `pnpm typecheck` propres, `pre-commit` complet vert
+Rien ne peut avancer sans ces comptes tiers. Tout le code est écrit et testé
+contre des services simulés ; il n'a jamais parlé aux vrais.
 
-### Trois corrections faites au passage, à ne pas défaire
+1. **Dépôt GitHub public** — le contrôle de secrets est passé, l'historique est
+   propre. Après publication : activer *Secret scanning*, *Push protection*,
+   CodeQL et Dependabot.
+2. **Identifiants OAuth Google** — `NUXT_OAUTH_GOOGLE_CLIENT_ID` et
+   `_SECRET`, URI de redirection `/api/auth/google`. Et
+   `NUXT_BOOTSTRAP_TECH_EMAIL` avec ton adresse : c'est le SEUL moyen d'avoir un
+   premier compte, personne ne pouvant s'en créer un.
+3. **Bucket Cloudflare R2** et ses clés — sans quoi aucun téléversement d'image.
+4. **App Meta + connexion de @unmaxdinfo_** (déjà en Pro) — puis enregistrer le
+   jeton, que le code chiffre en base.
+5. **Domaine `unmaxdinfo.fr`** chez Infomaniak, DNS chez Cloudflare.
+6. **Secrets GitHub du déploiement** : `DEPLOY_HOST`, `DEPLOY_USER`,
+   `DEPLOY_SSH_KEY`, `DEPLOY_PATH`.
 
-1. **`useFilters` passait son état au niveau du module** — en rendu serveur,
-   une fuite entre visiteurs, le module étant instancié une fois par processus
-   Node. Réécrit en `useState`. Un test le couvre.
-2. **`nb()` appelait `toLocaleString('fr-FR')`**, qui produit U+202F ou U+00A0
-   selon la version d'ICU : écart d'hydratation sur chaque nombre. Réécrit à la
-   main, test sur les points de code exacts.
-3. **Le moteur Markdown écrivait `href="$2"` sans rien vérifier** : une cible
-   `javascript:` s'exécutait. Sans conséquence tant que seul Max écrit — mais
-   l'**import Substack du lot 3** y fera passer du texte qu'il n'a pas écrit.
+Avant de rendre le dépôt public, relire `docs/PLAN.md` : ses exemples JSON
+contiennent des données personnelles de Max.
 
-### Prochaine étape : le lot 5
+## Ce qui reste en dette
 
-Back-office réel : écrire et publier un article, téléverser une image vers R2,
-gérer les tags. C'est là que le moteur Markdown maison laisse place à `marked`
-+ assainissement **côté serveur**, avec le résultat stocké dans
-`article.body_html` — et que les deux dérogations `v-html` inscrites dans
-`scripts/hooks/check-v-html.sh` doivent être retirées.
+- **`docker compose watch`** rebâtirait l'image quand `pnpm-lock.yaml` change.
+  Le piège s'est produit **trois fois** (tsx, nuxt-auth-utils, puis marked) :
+  l'image garde un `node_modules` périmé et l'erreur ne dit pas pourquoi.
+  Contrepartie : `up --watch` tourne au premier plan.
+- **HTTPS en local** (mkcert) — les cookies `Secure` ne sont pas posés en clair,
+  et Google exige des URI de redirection HTTPS hors localhost. À faire avant de
+  déboguer l'authentification pour de vrai.
+- **Le back-office reste sommaire** : liste et éditeur d'articles seulement. Les
+  écrans Publications, Accueil, CV et Apparence ont leur API et leurs tests,
+  mais pas encore d'interface.
+- **Pas de test de bout en bout navigateur** (Playwright). Tout est vérifié par
+  requêtes HTTP contre un vrai serveur, ce qui couvre le rendu serveur mais pas
+  l'interaction.
 
-Prévoir un **test d'or** au moment de la bascule : rendre les cinq articles
-existants par les deux moteurs et comparer, pour découvrir ce que le CSS
-`.prose` devra rattraper.
+## Ce qui casse en silence — à relire avant de coder
 
-Il faut d'abord créer le bucket Cloudflare R2 et ses clés.
+Chaque ligne a coûté du temps. Elles sont aussi dans `CLAUDE.md`.
 
-### Dettes identifiées, à traiter quand l'occasion se présente
+| Piège | Ce qu'il faut savoir |
+|---|---|
+| `process.env` dans `nuxt.config.ts` | **Figé au build**. Tout ce qui varie à l'exécution passe par `NUXT_*` |
+| `docker compose config` | Déplie les `env_file` et **écarte les services à profil** (`--profile migrate`) |
+| Traefik | Ne lit sa config statique **qu'au démarrage** ; refuse de router vers un conteneur *unhealthy* ; écarte **sans erreur** un routeur qui ne nomme pas son service |
+| Drizzle | `sql\`${v}\`` devient un **paramètre lié**, inutilisable en DDL → `sql.raw`. **Relire le SQL généré** |
+| Identifiants | `GENERATED BY DEFAULT`, jamais `ALWAYS` : sinon aucun import ne peut restaurer les liaisons. Et **resynchroniser les séquences** après import |
+| `useFetch` | Range le 404 dans `error` et rend quand même : il faut le **propager** |
+| `useRuntimeConfig` | À appeler dans le contexte du composant, jamais dans une fonction passée à `useHead` |
+| `toLocaleString` | Casse l'hydratation (U+202F ou U+00A0 selon l'ICU) |
+| Nitro | Parcourt `shared/` avec rollup, qui ignore les imports `?raw` de Vite |
+| Biome | Lit le `<script>` des `.vue` **sans le `<template>`** |
+| Serveur de dev Nuxt | Sert la page d'erreur en **200** ; le build de production répond bien 404 |
 
-- **Une base indisponible fait tomber le site entier**, y compris les pages qui
-  pourraient s'en passer. Les `routeRules` de Nitro (cache SWR) permettraient de
-  continuer à servir la dernière version rendue. Consigné dans
-  `server/api/health/ready.get.ts`.
-- **`docker compose watch`** remplacerait la liste de montages par une règle
-  unique et **rebâtirait l'image quand `pnpm-lock.yaml` change** — le piège
-  rencontré deux fois (tsx, puis nuxt-auth-utils absents de l'image).
-  Contrepartie : `docker compose up --watch` tourne au premier plan.
-- **HTTPS en local** (mkcert) avant d'aller plus loin sur l'authentification :
-  les cookies `Secure` ne sont pas posés en clair, et Google exige des URI de
-  redirection HTTPS hors localhost.
+## Les frontières à ne jamais franchir
 
-## Détails d'implémentation à connaître
+Elles sont tenues par des tests qui **s'auto-alimentent** : une route ou un
+réglage ajouté demain est couvert sans que personne n'y pense.
 
-- **`runtimeConfig` et le préfixe `NUXT_`** : tout ce que `nuxt.config.ts` lit
-  par `process.env` est **figé au build**. Sans ce préfixe, une image construite
-  en CI embarquerait les variables du runner GitHub. Seul `NUXT_PUBLIC_*` part
-  au navigateur.
-- **Deux sondes.** `/api/health` ne fait aucune entrée-sortie : c'est elle
-  qu'interroge le healthcheck, donc elle qui conditionne le routage Traefik, qui
-  refuse de servir un conteneur *unhealthy*. `/api/health/ready` fait le
-  `SELECT 1`.
-- **Un routeur Traefik doit nommer son service** dès qu'un conteneur en déclare
-  plus d'un, sinon il est écarté **sans message d'erreur** — symptôme : 404 à
-  travers le proxy, 200 en direct sur le conteneur.
-- **`docker compose config` déplie les `env_file`** dans l'artefact : les
-  secrets y sont, il n'existe pas d'option pour l'éviter. Le fichier est écrit
-  en 0600 et gitignoré.
-- **`docker compose config` écarte les services à profil** : d'où
-  `--profile migrate` dans `./setup`.
-- **Colonnes `text` + `CHECK`, jamais `pgEnum`** : `ALTER TYPE … ADD VALUE` ne
-  s'exécute pas dans une transaction, or une migration est jouée en bloc. Un
-  tuple TypeScript alimente le type, le SQL et Zod.
-- **Biome ne lit pas les `<template>` Vue** : deux règles sont désactivées sur
-  les `.vue`, `vue-tsc` prend le relais.
-- **Nitro parcourt `shared/` avec rollup**, qui ignore les imports `?raw` de
-  Vite : les données de maquette vivent donc dans `app/data/`, pas dans
-  `shared/`.
-- **Le WebSocket de rechargement à chaud est porté par le serveur principal**
-  (`/_nuxt/_hmr`), et non par un port séparé : aucun routeur Traefik dédié n'est
-  nécessaire, seul `clientPort` l'est.
-
-## Décisions encore ouvertes (aucune ne bloque)
-
-- Créer le dépôt GitHub **public** et y pousser `main` — et **avant de le rendre
-  public**, passer
-  `git log -p | grep -iE 'secret|token|password|BEGIN .* KEY'`, puis activer
-  *Secret scanning*, *Push protection*, CodeQL et Dependabot
-- Relire `docs/PLAN.md` avant publication : ses exemples JSON contiennent des
-  données personnelles de Max (CV, téléphone)
-- **Créer les identifiants OAuth dans la console Google** et déclarer l'URI de
-  redirection `http://unmaxdinfo.localhost:8080/api/auth/google`, puis
-  renseigner `NUXT_OAUTH_GOOGLE_CLIENT_ID` et `NUXT_OAUTH_GOOGLE_CLIENT_SECRET`
-  dans `.env.dev`. Renseigner aussi `NUXT_BOOTSTRAP_TECH_EMAIL` avec ton adresse :
-  c'est le seul moyen d'avoir un premier compte sur une base vierge, personne ne
-  pouvant se créer de compte.
-- Créer l'app Meta et connecter le compte Instagram (@unmaxdinfo_ est déjà en
-  Pro) — nécessaire au lot 6
-- Acheter `unmaxdinfo.fr` chez Infomaniak et déléguer le DNS à Cloudflare —
-  lot 11
-- Créer le bucket Cloudflare R2 et ses clés — lot 5
+- Le test d'autorisations **inventorie `server/api/admin/` par le système de
+  fichiers** et exige que la matrice le couvre exactement.
+- Le test des réglages **énumère `SETTING_SCOPE`** : chaque clé technique doit
+  répondre 403 à un `editor`.
+- `social_post.raw` n'apparaît dans aucune réponse. La table `secret` n'est
+  jamais exportée. Un brouillon répond 404, jamais 403.
+- Le site **ne publie jamais** sur les réseaux.
