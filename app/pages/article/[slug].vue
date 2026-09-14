@@ -5,11 +5,28 @@ const route = useRoute()
 const slug = computed(() => String(route.params.slug))
 
 const { data: site } = await useSite()
-// Le 404 vient du serveur : useFetch le propage, la page n'a rien à
-// vérifier elle-même et les robots reçoivent le bon code.
-const { data: article } = await useFetch(() => `/api/articles/${slug.value}`, {
+const { data: article, error } = await useFetch(() => `/api/articles/${slug.value}`, {
   key: () => `article-${slug.value}`,
 })
+
+/**
+ * Le 404 de l'API ne se propage PAS tout seul : useFetch le range dans
+ * `error` et rend la page avec `data` à null, ce qui produirait un 200 sur
+ * un article inexistant. Les robots l'indexeraient comme une page valide,
+ * et c'est précisément ce que le plan cherche à éviter.
+ *
+ * À savoir : le serveur de DÉVELOPPEMENT de Nuxt sert la page d'erreur avec
+ * un code 200 malgré cela. Le build de production, lui, répond bien 404 —
+ * c'est vérifié par test/api/seo.spec.ts, qui tourne contre un vrai build.
+ * Inutile de « corriger » ce qu'on observe en développement.
+ */
+if (error.value || !article.value) {
+  throw createError({
+    statusCode: error.value?.statusCode ?? 404,
+    statusMessage: 'Article introuvable',
+    fatal: true,
+  })
+}
 
 useSeoMeta({
   title: () => article.value?.seoTitle ?? article.value?.title,

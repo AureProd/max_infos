@@ -8,6 +8,12 @@ const { data: site } = await useSite()
 const { data: posts } = await useFetch('/api/social-posts', { key: 'publications' })
 
 const item = computed(() => posts.value?.find((p) => p.id === id.value))
+
+// Même raison que pour la page d'article : sans cela, une publication
+// inexistante répondrait 200.
+if (!item.value) {
+  throw createError({ statusCode: 404, statusMessage: 'Publication introuvable', fatal: true })
+}
 const { data: article } = await useFetch('/api/articles', {
   key: () => `publication-article-${id.value}`,
   query: { taille: 50 },

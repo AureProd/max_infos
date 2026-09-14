@@ -182,7 +182,20 @@ export APP_IMAGE="${APP_IMAGE:-unmaxdinfo:${INSTANCE_NAME}}"
 export MIGRATE_IMAGE="${MIGRATE_IMAGE:-unmaxdinfo-migrate:${INSTANCE_NAME}}"
 
 # --------------------------------------------------------------------------
+AVANT_TRAEFIK=""
+[ -f ./deploy/config/traefik-dev.yml ] && AVANT_TRAEFIK="$(cat ./deploy/config/traefik-dev.yml)"
 envsubst < ./deploy/config/traefik-dev.yml.tpl > ./deploy/config/traefik-dev.yml
+
+# Traefik ne lit sa configuration STATIQUE qu'au démarrage. Régénérer le
+# fichier sous un conteneur déjà lancé ne change rien, et `up -d` ne le
+# recrée pas puisque la définition du service n'a pas bougé : on croit avoir
+# appliqué un réglage qui n'est pas actif. Piège vécu, d'où cet avis.
+if [ -n "${AVANT_TRAEFIK}" ] &&
+   [ "${AVANT_TRAEFIK}" != "$(cat ./deploy/config/traefik-dev.yml)" ] &&
+   docker ps --filter "label=com.docker.compose.project=${INSTANCE_NAME}" \
+             --filter "name=-rp-" --format '{{.Names}}' 2>/dev/null | grep -q .; then
+  TRAEFIK_A_RECREER=1
+fi
 
 # --------------------------------------------------------------------------
 # Contrôle des ports AVANT d'écrire un compose qui ne pourrait pas démarrer.
@@ -287,4 +300,10 @@ echo "-------------------------------------------------------"
 echo "Ensuite :"
 echo "  docker compose run --rm migrate     # applique les migrations"
 echo "  docker compose up -d --wait         # démarre la pile"
+if [ -n "${TRAEFIK_A_RECREER:-}" ]; then
+  echo "-------------------------------------------------------"
+  echo "/!\ La configuration Traefik a changé et le conteneur tourne encore."
+  echo "    Il ne la relira qu'au redémarrage :"
+  echo "      docker compose up -d --force-recreate rp"
+fi
 echo "-------------------------------------------------------"

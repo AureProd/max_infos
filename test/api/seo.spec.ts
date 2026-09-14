@@ -75,6 +75,23 @@ describe('balises de partage, dans la réponse HTTP', () => {
   })
 })
 
+describe('codes de réponse', () => {
+  it('un article inexistant répond 404, pas 200', async () => {
+    // useFetch range le 404 de l'API dans `error` et rend quand même la
+    // page : sans propagation explicite, les robots indexeraient une page
+    // vide comme valide.
+    expect((await fetch('/article/jamais-existe')).status).toBe(404)
+  })
+
+  it('un BROUILLON répond 404 sur le site public', async () => {
+    expect((await fetch('/article/brouillon-seo')).status).toBe(404)
+  })
+
+  it('un article publié répond bien 200', async () => {
+    expect((await fetch('/article/article-seo')).status).toBe(200)
+  })
+})
+
 describe('flux RSS', () => {
   it('est bien du XML, et se déclare comme tel', async () => {
     const r = await fetch('/rss.xml')
