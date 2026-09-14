@@ -23,7 +23,7 @@ AUTORISES=(
   # jamais construit dans le navigateur. Rien de non assaini ne peut entrer
   # en base, donc rien de non assaini ne peut en sortir.
   "app/pages/article/[slug].vue"
-  "app/pages/redaction/index.vue"
+  "app/pages/redaction/[slug].vue"
 )
 
 fautifs=()
