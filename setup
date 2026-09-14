@@ -79,16 +79,17 @@ DATABASE_URL=postgres://unmaxdinfo:${DB_PASS}@db:5432/unmaxdinfo
 
 # --- Application ----------------------------------------------------------
 NUXT_DATABASE_URL=postgres://unmaxdinfo:${DB_PASS}@db:5432/unmaxdinfo
-NUXT_SESSION_SECRET=$(gen_hex)
+NUXT_SESSION_PASSWORD=$(gen_hex)
 NUXT_SECRET_ENCRYPTION_KEY=$(gen_key)
-NUXT_SESSION_COOKIE_NAME=umdi_session
+NUXT_SESSION_NAME=umdi_session
 NUXT_SESSION_MAX_AGE=1209600
 NUXT_PUBLIC_APP_ENV=dev
 NUXT_PUBLIC_BASE_URL=http://unmaxdinfo.localhost:8080
 
 # --- À compléter soi-même (lots 4 à 6) ------------------------------------
-NUXT_GOOGLE_CLIENT_ID=
-NUXT_GOOGLE_CLIENT_SECRET=
+NUXT_OAUTH_GOOGLE_CLIENT_ID=
+NUXT_OAUTH_GOOGLE_CLIENT_SECRET=
+NUXT_OAUTH_GOOGLE_REDIRECT_URL=http://unmaxdinfo.localhost:8080/api/auth/google
 NUXT_BOOTSTRAP_TECH_EMAIL=
 NUXT_R2_ACCOUNT_ID=
 NUXT_R2_ACCESS_KEY_ID=
@@ -127,7 +128,7 @@ ensure_secret() {
   sed -i "s|^${nom}=.*$|${nom}=${neuf}|" "${ENV_FILE}"
   echo "▸ ${nom} était vide : secret de développement généré dans ${ENV_FILE}"
 }
-ensure_secret NUXT_SESSION_SECRET gen_hex
+ensure_secret NUXT_SESSION_PASSWORD gen_hex
 ensure_secret NUXT_SECRET_ENCRYPTION_KEY gen_key
 
 # --------------------------------------------------------------------------

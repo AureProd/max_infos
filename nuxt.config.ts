@@ -21,6 +21,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-09-14',
   devtools: { enabled: true },
 
+  // nuxt-auth-utils fournit la session scellée en cookie et le flux OAuth
+  // Google. Il remplace ce que faisaient authlib et itsdangerous côté
+  // Python, en moins de code.
+  modules: ['nuxt-auth-utils'],
+
   // Le design entier vit dans ce fichier. Il est chargé globalement, comme
   // avant, et exclu du formateur (voir biome.json).
   css: ['~/assets/css/base.css'],
@@ -49,6 +54,11 @@ export default defineNuxtConfig({
   nitro: {
     preset: 'node-server',
     compressPublicAssets: true,
+    // server/api/test/ contient une route qui ouvre une session sans preuve
+    // d'identité, pour le test d'autorisations. Elle n'entre dans le bundle
+    // que si on le demande EXPLICITEMENT au moment du build. Par défaut,
+    // elle n'existe pas dans l'image — pas même désactivée : absente.
+    ignore: process.env.NUXT_TEST_ROUTES === 'true' ? [] : ['api/test/**'],
   },
 
   // Valeurs par défaut VIDES, jamais factices : rien ne peut tourner en
@@ -60,12 +70,27 @@ export default defineNuxtConfig({
   // devient vite piégeux. `NUXT_GOOGLE_CLIENT_ID` alimente `googleClientId`.
   runtimeConfig: {
     databaseUrl: '',
+    // Lu par nuxt-auth-utils pour sceller le cookie de session. Il impose
+    // ce chemin exact (runtimeConfig.session.password) et un minimum de
+    // 32 caractères.
+    session: {
+      name: 'umdi_session',
+      password: '',
+      cookie: { sameSite: 'lax', httpOnly: true, secure: true, path: '/' },
+      maxAge: 60 * 60 * 24 * 14,
+    },
+    // Chemin imposé par nuxt-auth-utils, alimenté par
+    // NUXT_OAUTH_GOOGLE_CLIENT_ID et NUXT_OAUTH_GOOGLE_CLIENT_SECRET.
+    // On ne double PAS ces clés ailleurs : deux noms pour un même secret,
+    // c'est la garantie qu'un jour l'un des deux sera renseigné et pas
+    // l'autre, avec un message d'erreur qui ne dira pas lequel.
+    oauth: {
+      google: { clientId: '', clientSecret: '', redirectURL: '' },
+    },
     secretEncryptionKey: '',
     sessionSecret: '',
     sessionCookieName: 'umdi_session',
     sessionMaxAge: 1_209_600,
-    googleClientId: '',
-    googleClientSecret: '',
     bootstrapTechEmail: '',
     r2AccountId: '',
     r2AccessKeyId: '',

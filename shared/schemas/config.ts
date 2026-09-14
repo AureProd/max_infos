@@ -21,19 +21,52 @@ export type Environnement = (typeof ENVIRONNEMENTS)[number]
 export const SECRETS_REQUIS_EN_PROD = [
   'databaseUrl',
   'secretEncryptionKey',
-  'sessionSecret',
+  'sessionPassword',
   'googleClientId',
   'googleClientSecret',
 ] as const
 
+/**
+ * Où lire chaque secret dans la configuration, et sous quel nom de variable
+ * l'opérateur le renseigne. Les deux diffèrent : nuxt-auth-utils impose
+ * `session.password` et `oauth.google.*`, qui ne se déduisent pas du nom
+ * plat qu'on emploie dans les messages.
+ */
+export const CHEMIN_DES_SECRETS: Record<
+  (typeof SECRETS_REQUIS_EN_PROD)[number],
+  { chemin: readonly string[]; variable: string }
+> = {
+  databaseUrl: { chemin: ['databaseUrl'], variable: 'NUXT_DATABASE_URL' },
+  secretEncryptionKey: {
+    chemin: ['secretEncryptionKey'],
+    variable: 'NUXT_SECRET_ENCRYPTION_KEY',
+  },
+  sessionPassword: { chemin: ['session', 'password'], variable: 'NUXT_SESSION_PASSWORD' },
+  googleClientId: {
+    chemin: ['oauth', 'google', 'clientId'],
+    variable: 'NUXT_OAUTH_GOOGLE_CLIENT_ID',
+  },
+  googleClientSecret: {
+    chemin: ['oauth', 'google', 'clientSecret'],
+    variable: 'NUXT_OAUTH_GOOGLE_CLIENT_SECRET',
+  },
+}
+
 const configSchema = z.object({
   databaseUrl: z.string(),
   secretEncryptionKey: z.string(),
-  sessionSecret: z.string(),
-  sessionCookieName: z.string().min(1),
-  sessionMaxAge: z.coerce.number().int().positive(),
-  googleClientId: z.string(),
-  googleClientSecret: z.string(),
+  session: z.object({
+    // nuxt-auth-utils impose ce chemin et 32 caractères au minimum.
+    password: z.string(),
+    name: z.string().min(1).optional(),
+  }),
+  oauth: z.object({
+    google: z.object({
+      clientId: z.string(),
+      clientSecret: z.string(),
+      redirectURL: z.string().optional(),
+    }),
+  }),
   bootstrapTechEmail: z.string(),
   r2AccountId: z.string(),
   r2AccessKeyId: z.string(),
@@ -61,7 +94,20 @@ export type Config = z.infer<typeof configSchema>
  * dans son fichier .env, pas `sessionSecret` dans le code.
  */
 export function nomVariable(cle: string): string {
+  const connu = CHEMIN_DES_SECRETS[cle as keyof typeof CHEMIN_DES_SECRETS]
+  if (connu) return connu.variable
   return `NUXT_${cle.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase()}`
+}
+
+/** Lit une valeur imbriquée, sans supposer qu'elle existe. */
+function valeurA(objet: unknown, chemin: readonly string[]): unknown {
+  return chemin.reduce<unknown>(
+    (courant, cle) =>
+      courant && typeof courant === 'object'
+        ? (courant as Record<string, unknown>)[cle]
+        : undefined,
+    objet,
+  )
 }
 
 /**
@@ -72,7 +118,9 @@ export function parseConfig(brut: unknown): Config {
   const config = configSchema.parse(brut)
 
   if (config.public.appEnv === 'prod') {
-    const manquants = SECRETS_REQUIS_EN_PROD.filter((cle) => !config[cle])
+    const manquants = SECRETS_REQUIS_EN_PROD.filter(
+      (cle) => !valeurA(config, CHEMIN_DES_SECRETS[cle].chemin),
+    )
       .map(nomVariable)
       .sort()
     if (manquants.length > 0) {

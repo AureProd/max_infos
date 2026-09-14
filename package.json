@@ -31,6 +31,7 @@
   "dependencies": {
     "drizzle-orm": "^0.45.2",
     "nuxt": "^4.5.2",
+    "nuxt-auth-utils": "^0.5.30",
     "postgres": "^3.4.9",
     "vue": "^3.5.40",
     "zod": "^4.6.5"

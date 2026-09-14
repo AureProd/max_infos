@@ -41,6 +41,9 @@ export default defineConfig(async () => ({
           // compose de développement, pas à celle de dev : les tests
           // écrivent, et ne doivent rien y laisser.
           env: {
+            // Active la route de session de test, exclue du bundle sinon.
+            NUXT_TEST_ROUTES: 'true',
+            NUXT_SESSION_PASSWORD: 'mot-de-passe-de-session-pour-les-tests-32c', // pragma: allowlist secret
             NUXT_DATABASE_URL:
               process.env.TEST_DATABASE_URL ??
               'postgres://unmaxdinfo:test@127.0.0.1:15432/unmaxdinfo_test', // pragma: allowlist secret

@@ -2,6 +2,13 @@
 import { countChars, nb } from '#shared/utils/format'
 import { renderMarkdown } from '#shared/utils/markdown'
 
+definePageMeta({ middleware: 'redaction' })
+
+const { utilisateur, peut, deconnecter } = useUtilisateur()
+// Ce qui relève de l'infrastructure n'apparaît pas dans le menu de Max.
+// Ce masquage est du confort : la sécurité est le refus du serveur.
+const voitLaTechnique = peut('tech')
+
 /**
  * Aperçu du futur back-office. La prévisualisation est réelle ;
  * l'enregistrement sera branché sur l'API au lot 5.
@@ -45,9 +52,13 @@ useSeoMeta({ title: 'Rédaction', robots: 'noindex, nofollow' })
       <div class="admin-bar">
         <h1>Rédaction</h1>
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
-          <span class="pill">Aperçu du back-office</span>
+          <span class="pill">{{ utilisateur?.name ?? utilisateur?.email }}</span>
+          <NuxtLink v-if="voitLaTechnique" class="btn" to="/redaction/technique">
+            Technique
+          </NuxtLink>
           <button class="btn">Enregistrer le brouillon</button>
           <button class="btn btn-primary">Publier</button>
+          <button class="btn" type="button" @click="deconnecter">Se déconnecter</button>
         </div>
       </div>
 

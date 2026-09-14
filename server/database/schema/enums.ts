@@ -39,8 +39,11 @@ export type SocialSource = (typeof SOCIAL_SOURCE)[number]
 export const SETTING_SCOPE = ['public', 'tech'] as const
 export type SettingScope = (typeof SETTING_SCOPE)[number]
 
-export const USER_ROLE = ['tech', 'editor'] as const
-export type UserRole = (typeof USER_ROLE)[number]
+// Réexporté depuis shared/ : la contrainte SQL et la règle d'autorisation
+// doivent décrire exactement le même ensemble. Import relatif et non
+// `#shared`, parce que ce fichier est aussi lu par le script de semis, qui
+// tourne sous tsx et ne connaît pas les alias de Nuxt.
+export { ROLES as USER_ROLE, type Role as UserRole } from '../../../shared/utils/roles'
 
 /**
  * Fabrique l'expression `colonne in ('a', 'b')` d'une contrainte CHECK à
@@ -53,6 +56,12 @@ export function uneValeurParmi(colonne: AnyPgColumn, valeurs: readonly string[])
   // contrainte générée serait `in ($1, $2)` et donc inopérante.
   // Les valeurs viennent de nos propres tuples `as const`, jamais d'une
   // saisie ; l'apostrophe est malgré tout échappée.
-  const liste = valeurs.map((v) => `'${v.replace(/'/g, "''")}'`).join(', ')
+  // TRIÉ : sans cela, l'ordre du tuple TypeScript fuirait dans le SQL, et
+  // le moindre réordonnancement — qui ne change rien au sens — produirait
+  // une migration. Le tri rend la contrainte générée déterministe.
+  const liste = [...valeurs]
+    .sort()
+    .map((v) => `'${v.replace(/'/g, "''")}'`)
+    .join(', ')
   return sql`${colonne} in (${sql.raw(liste)})`
 }

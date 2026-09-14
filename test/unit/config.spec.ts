@@ -10,11 +10,8 @@ import { nomVariable, parseConfig, SECRETS_REQUIS_EN_PROD } from '#shared/schema
 const CONFIG_MINIMALE = {
   databaseUrl: '',
   secretEncryptionKey: '',
-  sessionSecret: '',
-  sessionCookieName: 'umdi_session',
-  sessionMaxAge: 1_209_600,
-  googleClientId: '',
-  googleClientSecret: '',
+  session: { password: '', name: 'umdi_session' },
+  oauth: { google: { clientId: '', clientSecret: '' } },
   bootstrapTechEmail: '',
   r2AccountId: '',
   r2AccessKeyId: '',
@@ -37,9 +34,8 @@ const CONFIG_MINIMALE = {
 const SECRETS_DE_PROD = {
   databaseUrl: 'postgres://u:p@db:5432/d', // pragma: allowlist secret
   secretEncryptionKey: 'k'.repeat(44),
-  sessionSecret: 's'.repeat(64),
-  googleClientId: 'id',
-  googleClientSecret: 'cs', // pragma: allowlist secret
+  session: { password: 's'.repeat(64), name: 'umdi_session' },
+  oauth: { google: { clientId: 'id', clientSecret: 'cs' } }, // pragma: allowlist secret
 }
 
 describe('configuration', () => {
@@ -47,7 +43,7 @@ describe('configuration', () => {
     const c = parseConfig(CONFIG_MINIMALE)
     expect(c.public.appEnv).toBe('dev')
     expect(c.secretEncryptionKey).toBe('')
-    expect(c.sessionSecret).toBe('')
+    expect(c.session.password).toBe('')
   })
 
   it('accepte preview sans secret', () => {
@@ -68,18 +64,18 @@ describe('configuration', () => {
       parseConfig({
         ...CONFIG_MINIMALE,
         ...SECRETS_DE_PROD,
-        sessionSecret: '',
-        googleClientId: '',
+        session: { password: '', name: 'umdi_session' },
+        oauth: { google: { clientId: '', clientSecret: 'cs' } }, // pragma: allowlist secret
         public: { ...CONFIG_MINIMALE.public, appEnv: 'prod' },
       })
     } catch (e) {
       message = (e as Error).message
     }
     // L'opérateur lit un nom de variable d'environnement, pas une clé TypeScript.
-    expect(message).toContain('NUXT_GOOGLE_CLIENT_ID')
-    expect(message).toContain('NUXT_SESSION_SECRET')
-    expect(message.indexOf('NUXT_GOOGLE_CLIENT_ID')).toBeLessThan(
-      message.indexOf('NUXT_SESSION_SECRET'),
+    expect(message).toContain('NUXT_OAUTH_GOOGLE_CLIENT_ID')
+    expect(message).toContain('NUXT_SESSION_PASSWORD')
+    expect(message.indexOf('NUXT_OAUTH_GOOGLE_CLIENT_ID')).toBeLessThan(
+      message.indexOf('NUXT_SESSION_PASSWORD'),
     )
     expect(message).not.toContain('NUXT_DATABASE_URL')
   })
@@ -100,8 +96,11 @@ describe('configuration', () => {
   })
 
   it('traduit une clé de configuration en nom de variable d’environnement', () => {
-    expect(nomVariable('sessionSecret')).toBe('NUXT_SESSION_SECRET')
-    expect(nomVariable('googleClientId')).toBe('NUXT_GOOGLE_CLIENT_ID')
+    // Les secrets connus ont un nom EXPLICITE, parce qu'il ne se déduit pas
+    // du chemin : nuxt-auth-utils impose session.password et oauth.google.*.
+    expect(nomVariable('sessionPassword')).toBe('NUXT_SESSION_PASSWORD')
+    expect(nomVariable('googleClientId')).toBe('NUXT_OAUTH_GOOGLE_CLIENT_ID')
+    // Les autres suivent la règle générale.
     expect(nomVariable('r2AccessKeyId')).toBe('NUXT_R2_ACCESS_KEY_ID')
   })
 
@@ -112,7 +111,7 @@ describe('configuration', () => {
       'googleClientId',
       'googleClientSecret',
       'secretEncryptionKey',
-      'sessionSecret',
+      'sessionPassword',
     ])
   })
 })
