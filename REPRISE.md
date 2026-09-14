@@ -43,8 +43,9 @@ Le dépôt sera **public** (le plan disait privé).
 | Lot | État |
 |---|---|
 | **1 — Dépôt, structure, outillage qualité, CI** | ✅ refait en TypeScript |
-| **2 — Nuxt + Postgres + Drizzle + modèles + `./setup` + Traefik de dev** | 🟡 **presque fini** — voir ci-dessous |
-| 3 → 11 | à faire, voir `docs/PLAN.md` |
+| **2 — Nuxt + Postgres + Drizzle + modèles + `./setup` + Traefik de dev** | ✅ **terminé** |
+| **3 — API publique en lecture + migration du contenu** | ⏭ **à faire, prochaine étape** |
+| 4 → 11 | à faire, voir `docs/PLAN.md` |
 
 ### Ce qui tourne, vérifié
 
@@ -62,23 +63,34 @@ curl http://unmaxdinfo.localhost:8080/api/health/ready  # {"database":"ok",…}
 - Le tableau de bord Traefik (18080) ne liste **que** les conteneurs du projet
 - 23 tests, `pnpm lint` et `pnpm typecheck` propres, `pre-commit` complet vert
 
-### Ce qu'il reste à faire pour clore le lot 2
+### Trois corrections faites au passage, à ne pas défaire
 
-Convertir en TypeScript ce qui dort encore dans `frontend/src/` : 11 composants,
-les 5 vues (→ `app/pages/`), `src/lib/` et `useFilters`. Puis supprimer
-`frontend/`.
+1. **`useFilters` passait son état au niveau du module** — en rendu serveur,
+   une fuite entre visiteurs, le module étant instancié une fois par processus
+   Node. Réécrit en `useState`. Un test le couvre.
+2. **`nb()` appelait `toLocaleString('fr-FR')`**, qui produit U+202F ou U+00A0
+   selon la version d'ICU : écart d'hydratation sur chaque nombre. Réécrit à la
+   main, test sur les points de code exacts.
+3. **Le moteur Markdown écrivait `href="$2"` sans rien vérifier** : une cible
+   `javascript:` s'exécutait. Sans conséquence tant que seul Max écrit — mais
+   l'**import Substack du lot 3** y fera passer du texte qu'il n'a pas écrit.
 
-**Trois pièges connus, à traiter au moment de la conversion :**
+### Prochaine étape : le lot 3
 
-1. **`useFilters.js` garde son état hors de la fonction.** Acceptable en
-   application monopage ; **en rendu serveur c'est une fuite entre visiteurs**,
-   le module étant instancié une fois par processus Node. Réécriture en
-   `useState` **obligatoire**.
-2. **`nb()` de `format.js` casse l'hydratation.** `toLocaleString('fr-FR')`
-   produit U+202F ou U+00A0 selon la version d'ICU : le serveur et le navigateur
-   ne rendent pas le même octet. À réécrire à la main, sans `Intl`.
-3. **`slide.js`** accepte quatre formes disjointes : c'est le seul typage non
-   trivial de la conversion (union discriminée).
+API publique en lecture, puis migration du contenu en dur vers la base.
+Le contenu attend dans `app/data/*.ts` et `scripts/seed/content/*.md`.
+
+Deux points à trancher au moment de la migration, signalés par l'exploration :
+
+- `article.ratio` n'existe pas dans le modèle de données : soit le dériver des
+  dimensions du média, soit ajouter la colonne.
+- `article.chars` sert de **graine au visuel de repli** (`chars % 97`) :
+  recalculer la valeur à l'import changerait le visuel des cinq articles
+  existants. Reprendre les valeurs du fichier pour ceux-là, recalculer pour les
+  nouveaux.
+- Les identifiants `ig-1` et `ig-2` de `instagram.ts` et `posts.ts` se
+  chevauchent en pointant vers des articles **différents** : incohérence de
+  maquette à arbitrer.
 
 ## Détails d'implémentation à connaître
 
@@ -103,6 +115,12 @@ les 5 vues (→ `app/pages/`), `src/lib/` et `useFilters`. Puis supprimer
   tuple TypeScript alimente le type, le SQL et Zod.
 - **Biome ne lit pas les `<template>` Vue** : deux règles sont désactivées sur
   les `.vue`, `vue-tsc` prend le relais.
+- **Nitro parcourt `shared/` avec rollup**, qui ignore les imports `?raw` de
+  Vite : les données de maquette vivent donc dans `app/data/`, pas dans
+  `shared/`.
+- **Le WebSocket de rechargement à chaud est porté par le serveur principal**
+  (`/_nuxt/_hmr`), et non par un port séparé : aucun routeur Traefik dédié n'est
+  nécessaire, seul `clientPort` l'est.
 
 ## Décisions encore ouvertes (aucune ne bloque)
 
