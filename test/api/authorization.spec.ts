@@ -131,6 +131,14 @@ const ATTENDU: Record<string, Attente> = {
 
   'GET /api/admin/users': { anonyme: 401, editor: 403, tech: 200 },
   'GET /api/admin/instagram/status': { anonyme: 401, editor: 403, tech: 200 },
+  'GET /api/admin/export': { anonyme: 401, editor: 403, tech: 200 },
+  'POST /api/admin/import': {
+    anonyme: 401,
+    editor: 403,
+    tech: 200,
+    // Simulation : n'écrit rien, ce qui laisse la matrice sans effet de bord.
+    corps: { archive: { manifest: { version: 1 } }, simulation: true },
+  },
   // 409 et non 200 : Instagram n'est pas connecté dans les tests. Ce qui
   // compte ici est qu'un `editor` reçoive 403 AVANT d'en arriver là.
   'POST /api/admin/instagram/sync': { anonyme: 401, editor: 403, tech: 409 },

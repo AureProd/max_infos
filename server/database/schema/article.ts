@@ -23,7 +23,16 @@ import { media } from './media'
 export const article = pgTable(
   'article',
   {
-    id: integer().generatedAlwaysAsIdentity().primaryKey(),
+    /**
+     * BY DEFAULT et non ALWAYS.
+     *
+     * `GENERATED ALWAYS` refuse toute insertion explicite d'identifiant, ce
+     * qui rend un import impossible à restaurer : les tables de liaison
+     * référencent ces identifiants, et les laisser se régénérer romprait
+     * tous les liens. C'est précisément le cas pour lequel `BY DEFAULT`
+     * existe. Toutes les tables du schéma suivent cette règle.
+     */
+    id: integer().generatedByDefaultAsIdentity().primaryKey(),
     slug: text().notNull(),
     title: text().notNull(),
     dek: text(),
@@ -64,7 +73,7 @@ export const article = pgTable(
 export const tag = pgTable(
   'tag',
   {
-    id: integer().generatedAlwaysAsIdentity().primaryKey(),
+    id: integer().generatedByDefaultAsIdentity().primaryKey(),
     slug: text().notNull(),
     label: text().notNull(),
     // Une variable CSS du thème, pas une couleur en dur.

@@ -25,7 +25,7 @@ import {
 export const socialPost = pgTable(
   'social_post',
   {
-    id: integer().generatedAlwaysAsIdentity().primaryKey(),
+    id: integer().generatedByDefaultAsIdentity().primaryKey(),
     network: text().$type<SocialNetwork>().notNull(),
     // Nul pour les publications LinkedIn saisies à la main : leur
     // découverte automatique est impossible (le scope r_member_social est

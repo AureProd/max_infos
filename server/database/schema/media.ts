@@ -11,7 +11,7 @@ import { appUser } from './user'
 export const media = pgTable(
   'media',
   {
-    id: integer().generatedAlwaysAsIdentity().primaryKey(),
+    id: integer().generatedByDefaultAsIdentity().primaryKey(),
     // Nullable : un média peut être référencé AVANT d'être hébergé dans R2.
     // C'est le cas des couvertures importées de Substack, qui vivent encore
     // sur son CDN et seront ré-hébergées au lot 5. Inventer une fausse clé

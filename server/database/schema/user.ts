@@ -13,7 +13,7 @@ import { USER_ROLE, type UserRole, uneValeurParmi } from './enums'
 export const appUser = pgTable(
   'app_user',
   {
-    id: integer().generatedAlwaysAsIdentity().primaryKey(),
+    id: integer().generatedByDefaultAsIdentity().primaryKey(),
     email: text().notNull(),
     name: text(),
     avatarUrl: text(),
