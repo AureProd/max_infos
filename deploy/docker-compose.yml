@@ -6,11 +6,18 @@ services:
   app:
     image: ${APP_IMAGE}
     restart: always
-    # env_file et non environment : `docker compose config` résout les
-    # ${...}, donc un secret placé en environment: finirait EN CLAIR dans
-    # l'artefact généré. Ici Compose n'écrit que le chemin du fichier.
+    # env_file et non environment : un secret placé en environment: serait
+    # résolu par `docker compose config` et finirait EN CLAIR dans
+    # l'artefact généré.
+    #
+    # required: false parce que le RENDU se fait sur le runner de CI, où le
+    # fichier n'existe pas — il vit sur le serveur. Sans cela, l'étape de
+    # déploiement échouerait avant même de copier quoi que ce soit. Un
+    # fichier manquant en production reste rattrapé par la validation de
+    # configuration, qui refuse de démarrer sans ses secrets.
     env_file:
-      - ${ENV_FILE:-.env}
+      - path: ${ENV_FILE:-.env}
+        required: false
     depends_on:
       db:
         condition: service_healthy
@@ -47,7 +54,8 @@ services:
     image: postgres:17-alpine
     restart: always
     env_file:
-      - ${ENV_FILE:-.env}
+      - path: ${ENV_FILE:-.env}
+        required: false
     # Aucun ports: — la base n'est joignable que par le réseau interne du
     # projet, jamais depuis l'hôte.
     volumes:
@@ -72,7 +80,8 @@ services:
     profiles: ["migrate"]
     restart: "no"
     env_file:
-      - ${ENV_FILE:-.env}
+      - path: ${ENV_FILE:-.env}
+        required: false
     depends_on:
       db:
         condition: service_healthy

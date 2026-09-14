@@ -1,0 +1,146 @@
+name: Déploiement
+
+on:
+  push:
+    branches: [main]
+    # Un tag déploie aussi : permet de rejouer une version précise.
+    tags: ["v*"]
+  workflow_dispatch:
+
+# Le déploiement est CONDITIONNÉ à la réussite de la CI : sans cela, un
+# commit qui casse les tests partirait quand même en production.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  NODE_VERSION: "22"
+
+jobs:
+  attendre-ci:
+    name: Attendre la CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          running-workflow-name: Attendre la CI
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 20
+          allowed-conclusions: success
+
+  publier:
+    name: Construire et publier les images
+    runs-on: ubuntu-latest
+    needs: [attendre-ci]
+    outputs:
+      image: ${{ steps.meta.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        run: |
+          echo "tags=${{ env.REGISTRY }}/${{ github.repository }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Image applicative
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: prod
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ github.repository }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image de migration
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: migrate
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}-migrate:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ github.repository }}-migrate:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deployer:
+    name: Déployer sur le VPS
+    runs-on: ubuntu-latest
+    needs: [publier]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Rendre le compose de production
+        env:
+          INSTANCE_NAME: unmaxdinfo
+          URL_HOST: unmaxdinfo.fr
+          APP_ENV: prod
+          ENV_FILE: .env
+          APP_IMAGE: ${{ env.REGISTRY }}/${{ github.repository }}:${{ github.sha }}
+          MIGRATE_IMAGE: ${{ env.REGISTRY }}/${{ github.repository }}-migrate:${{ github.sha }}
+        run: |
+          docker compose -p "$INSTANCE_NAME" --project-directory . \
+            -f deploy/docker-compose.yml \
+            -f deploy/docker-compose-prod-override.yml \
+            --profile migrate \
+            config > docker-compose.yml
+          # Contrôle : le fichier rendu ne doit contenir aucun secret. Les
+          # valeurs viennent du .env qui vit sur le serveur, jamais d'ici.
+          if grep -qE '(PASSWORD|SECRET|TOKEN)=[^[:space:]$]' docker-compose.yml; then
+            echo "::error::Le compose rendu contient une valeur secrète"
+            exit 1
+          fi
+
+      - name: Copier sur le serveur
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: docker-compose.yml
+          target: ${{ secrets.DEPLOY_PATH }}
+
+      - name: Migrer PUIS basculer
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.DEPLOY_PATH }}"
+            docker compose pull
+            # Le && fait toute la garantie : migration en échec = aucune
+            # bascule, l'ancienne image continue de servir.
+            docker compose run --rm migrate
+            docker compose up -d --wait
+            docker image prune -f
+
+      - name: Vérifier que le site répond
+        run: |
+          for _ in $(seq 1 20); do
+            if curl -fsS https://unmaxdinfo.fr/api/health > /dev/null; then
+              echo "Le site répond."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Le site ne répond pas après le déploiement"
+          exit 1

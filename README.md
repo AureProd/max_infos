@@ -61,6 +61,7 @@ Pour arrêter : `docker compose down`. Pour repartir d'une base vierge :
 | Créer une migration après avoir changé le schéma | `pnpm db:generate` |
 | Appliquer les migrations | `docker compose run --rm migrate` |
 | Explorer la base dans le navigateur | `pnpm db:studio` |
+| Semer le contenu d'origine | `docker compose run --rm --entrypoint sh migrate -c 'node_modules/.bin/tsx scripts/seed/seed.ts'` |
 | **Tout vérifier avant de pousser** | `pnpm verify` |
 
 Les tests ont besoin de la base `db-test`, que `docker compose up` démarre
@@ -105,6 +106,27 @@ Trois fichiers de la racine sont **générés** et gitignorés :
 Ne pas les modifier à la main — relancer `./setup`.
 
 ---
+
+## Déploiement
+
+Un `push` sur `main` déclenche `deploy.yml`, qui **attend que la CI soit
+verte**, publie les images sur GHCR, rend le compose de production et le
+copie sur le VPS. Puis, dans cet ordre :
+
+```bash
+docker compose pull
+docker compose run --rm migrate   # si ceci échoue…
+docker compose up -d --wait       # …ceci ne s'exécute pas
+```
+
+C'est toute la garantie : une migration en échec ne bascule rien, et
+l'ancienne image continue de servir. Les migrations doivent donc rester
+**compatibles vers l'arrière** le temps de la bascule — ajouter une colonne,
+jamais la renommer d'un coup.
+
+Secrets GitHub attendus : `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`,
+`DEPLOY_PATH`. Le fichier `.env` vit **sur le serveur**, jamais dans le
+dépôt ni dans la CI.
 
 ## Conventions
 
