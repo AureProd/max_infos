@@ -1,5 +1,23 @@
 # unmaxdinfo.fr — passage de la maquette à la production
 
+> ## ⚠ Mise à jour du 14 septembre 2026 — la pile a changé
+>
+> Ce plan a été rédigé et approuvé pour un backend **Python / FastAPI**. Le projet
+> a depuis basculé sur une pile **tout-TypeScript, en Nuxt 4 full-stack**.
+>
+> **Ce qui reste entièrement valable** : le contexte, le modèle de données, les
+> contraintes des API tierces, le découpage du back-office, l'export/import, la
+> stratégie de test, le découpage en lots et la procédure de vérification.
+>
+> **Ce qui est caduc** : tous les noms d'outils Python, et surtout la section
+> « Référencement sans migration Nuxt » — le module `app/render/` n'existe plus,
+> le rendu serveur de Nuxt le remplace nativement. C'est précisément le motif de
+> la bascule. Le dépôt est par ailleurs **public**, et non privé.
+>
+> La table de correspondance entre les deux piles est dans
+> **[`OUTILS.md`](OUTILS.md#correspondance-avec-lancienne-pile)**.
+
+
 ## Context
 
 Le dossier `~/Documents/perso/max_infos` contient aujourd'hui une **maquette Vue 3 + Vite
@@ -28,10 +46,10 @@ alimenté par copier-coller assisté.
 
 | Sujet | Choix |
 |---|---|
-| Backend | FastAPI + SQLAlchemy 2 + Alembic, Python 3.12, gestion des dépendances avec `uv` |
+| Backend | ~~FastAPI + SQLAlchemy 2 + Alembic~~ → **Nuxt 4 (Nitro) + Drizzle ORM, TypeScript**, dépendances avec `pnpm` |
 | Base | PostgreSQL 17 |
-| Front | **On garde le Vue 3 + Vite existant** — aucune migration Nuxt |
-| Référencement | HTML servi par l'API avec balises et corps d'article injectés, puis hydratation Vue |
+| Front | ~~Vue 3 + Vite, aucune migration Nuxt~~ → **Nuxt 4**, qui reprend le Vue existant converti en TypeScript |
+| Référencement | ~~Injection manuelle dans index.html~~ → **rendu serveur natif de Nuxt** |
 | Médias | **Cloudflare R2** (S3, via `boto3`), servis sur `media.unmaxdinfo.fr` |
 | Domaine | `unmaxdinfo.fr`, registrar Infomaniak |
 | Auth | OAuth2 Google, liste blanche + rôles en base (`tech`, `editor`) |
@@ -39,7 +57,7 @@ alimenté par copier-coller assisté.
 | LinkedIn | **Aucune API** — URL collée à la main, rendu par l'embed officiel |
 | Publication | **Le site ne publie jamais.** Il découvre, affiche, et aide à la rédaction |
 | Substack | Import one-shot du flux RSS existant, puis copie assistée |
-| Dépôt / CI | GitHub **privé** + Actions + GHCR, déploiement SSH du compose rendu |
+| Dépôt / CI | GitHub **public** + Actions + GHCR, déploiement SSH du compose rendu |
 | Traefik | **Déjà en place sur le serveur** — le projet rejoint son réseau externe |
 
 ## Contraintes techniques vérifiées (à ne pas réapprendre)
@@ -227,7 +245,11 @@ la restriction n'est pas qu'un refus serveur, c'est une absence dans le menu.
 
 ---
 
-## Référencement sans migration Nuxt
+## ~~Référencement sans migration Nuxt~~ — CADUC
+
+> Toute cette section est sans objet depuis la bascule : le rendu serveur de Nuxt
+> fait nativement ce que ce module devait fabriquer à la main. Conservée pour
+> mémoire, parce qu'elle explique *pourquoi* la bascule a eu lieu.
 
 `app/render/` intercepte les requêtes HTML (`Accept: text/html`) sur `/`, `/article/{slug}`,
 `/publication/{id}`, `/a-propos`. Il lit `frontend/dist/index.html` une fois au démarrage, puis

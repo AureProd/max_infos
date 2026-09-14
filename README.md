@@ -1,86 +1,135 @@
-# Un Max d'info — maquette du site
+# unmaxdinfo.fr
 
-Maquette interactive du site personnel de **Maximilien Huet**, qui rassemble au même
-endroit les articles longs publiés en newsletter, les publications Instagram et les
-versions courtes. Thème sombre, angles francs, accent sur le bleu du logo (`#2462E9`).
+Site et back-office de **Un Max d'info**, le travail journalistique de
+Maximilien Huet : articles longs, déclinés en publications Instagram et
+LinkedIn.
 
-C'est une **maquette locale** : aucune base de données, aucune API. Le contenu vit dans
-`frontend/src/data/` et `frontend/src/content/`.
+Le plan complet du chantier — architecture, modèle de données, découpage en
+lots, procédure de vérification — vit dans **[`docs/PLAN.md`](docs/PLAN.md)**.
+Si tu découvres la pile (pnpm, Nuxt, Biome, Drizzle, Vitest), commence par
+**[`docs/OUTILS.md`](docs/OUTILS.md)** : à quoi sert chaque outil, et les
+trois commandes qui comptent pour chacun.
 
 ---
 
-## Démarrer / arrêter
+## Démarrer
+
+Il faut **Docker** (≥ 28) et **Node 22.19+**. Rien d'autre.
 
 ```bash
-cd frontend
-npm install      # la première fois seulement
-npm run dev      # démarre → http://localhost:5173/
+corepack enable pnpm            # la première fois seulement
+pnpm install
+
+./setup                         # crée .env.dev et génère les secrets locaux
+./setup                         # relancer : produit le docker-compose.yml
+
+docker compose run --rm migrate # applique les migrations
+docker compose up -d --wait     # démarre la pile
 ```
 
-Arrêter : **Ctrl + C** dans le terminal où tourne la commande.
+Trois adresses :
 
-S'il tourne en arrière-plan et que tu n'as plus le terminal :
+| | |
+|---|---|
+| Le site | <http://unmaxdinfo.localhost:8080> |
+| La sonde | <http://unmaxdinfo.localhost:8080/api/health> |
+| Le tableau de bord Traefik | <http://localhost:18080> |
+
+`unmaxdinfo.localhost` résout nativement vers `127.0.0.1` dans Chrome et
+Firefox : **il n'y a rien à écrire dans `/etc/hosts`**.
+
+Pour arrêter : `docker compose down`. Pour repartir d'une base vierge :
+`docker compose down -v`.
+
+---
+
+## Les commandes
+
+| Ce que je veux faire | Commande |
+|---|---|
+| Installer les dépendances | `pnpm install` |
+| Ajouter une dépendance / de développement | `pnpm add <paquet>` / `pnpm add -D <paquet>` |
+| Démarrer le site | `./setup && docker compose up -d --wait` |
+| Voir les journaux | `docker compose logs -f app` |
+| Savoir sur quoi ce dossier est réglé | `./setup --show` |
+| Corriger le style et le formatage | `pnpm check` |
+| Vérifier seulement, sans corriger | `pnpm lint` |
+| Vérifier les types | `pnpm typecheck` |
+| Lancer les tests | `pnpm test` |
+| …en continu pendant qu'on code | `pnpm test:watch` |
+| …avec la couverture | `pnpm coverage` |
+| Créer une migration après avoir changé le schéma | `pnpm db:generate` |
+| Appliquer les migrations | `docker compose run --rm migrate` |
+| Explorer la base dans le navigateur | `pnpm db:studio` |
+| **Tout vérifier avant de pousser** | `pnpm verify` |
+
+Les tests ont besoin de la base `db-test`, que `docker compose up` démarre
+avec le reste. Elle vit en mémoire et ne conserve rien.
+
+### Faire tourner plusieurs copies du dépôt
 
 ```bash
-pkill -f "vite"                  # arrête le serveur
-lsof -i :5173                    # vérifier que le port est libéré
+URL_PORT=8081 ./setup && docker compose up -d --wait
 ```
 
-Autres commandes :
-
-```bash
-npm run build    # construit le site statique dans frontend/dist/
-npm run preview  # sert le build de production pour vérification
-```
+Tous les ports publiés dérivent de `URL_PORT` : le tableau de bord Traefik
+(`18081`) et la base de test (`15433`) suivent. Chaque copie a son propre
+Traefik, qui ne voit que ses propres conteneurs.
 
 ---
 
 ## Où se trouve quoi
 
-| Fichier | Contenu |
-|---|---|
-| `frontend/src/assets/base.css` | Toute la charte : couleurs, typographie, mises en page |
-| `frontend/src/data/site.js` | Nom, accroche, liens, compétences |
-| `frontend/src/data/articles.js` | Métadonnées des articles (titres, dates, couvertures, tags) |
-| `frontend/src/content/*.md` | Le texte des articles, en Markdown |
-| `frontend/src/data/instagram.js` | Publications Instagram et aperçu du format carrousel |
+```
+app/                    ce qui est envoyé au navigateur
+  pages/                UNE PAGE = UN FICHIER. pages/a-propos.vue → /a-propos
+  components/           auto-importés : pas d'import à écrire
+  composables/          fonctions réutilisables (useXxx)
+  layouts/default.vue   l'entête et le pied de page communs
+  assets/css/base.css   TOUT le design du site
+server/                 ce qui tourne sur le serveur, jamais envoyé au client
+  api/                  UNE ROUTE = UN FICHIER. api/health.get.ts → GET /api/health
+  database/schema/      les tables, source de vérité du modèle de données
+  plugins/              exécutés au démarrage (dont la validation de la config)
+shared/                 partagé entre les deux, importé par #shared/...
+drizzle/                migrations SQL générées, relues à la main et versionnées
+deploy/                 docker-compose et configuration Traefik
+scripts/seed/           contenu de la maquette, à passer en base au lot 3
+test/                   unit (rapide) · nuxt (composants) · api (vraie base)
+docs/                   PLAN.md (le chantier) · OUTILS.md (la pile)
+setup                   génère le docker-compose.yml de la racine
+```
 
-### Changer la palette
-
-Tout est en haut de `base.css`, dans le bloc `:root`. Les neutres suivent le thème sombre
-de Discord, teintés vers le bleu du logo ; l'ambre `--gold` est son complémentaire exact
-et ne sert qu'aux chiffres clés et à la mention « À la une ».
-
-### Ajouter un article
-
-1. Déposer le texte dans `frontend/src/content/mon-article.md`
-2. L'importer et ajouter son entrée dans `frontend/src/data/articles.js`
-
-Les intertitres s'écrivent `## Mon intertitre`, les citations `> Ma citation`.
-
-### Ajouter une publication Instagram
-
-Copier l'adresse de la publication, puis reporter l'identifiant qui suit `/p/` ou `/reel/`
-dans le champ `shortcode` de `frontend/src/data/instagram.js`. L'embed officiel se charge
-directement depuis Instagram, sans jeton ni compte développeur.
-
-Un banc d'essai est aussi intégré à la page d'accueil : coller une adresse dans le champ
-prévu affiche l'embed immédiatement, sans toucher au code.
+Trois fichiers de la racine sont **générés** et gitignorés :
+`docker-compose.yml`, `.setup-state` et `deploy/config/traefik-dev.yml`.
+Ne pas les modifier à la main — relancer `./setup`.
 
 ---
 
-## À savoir
+## Conventions
 
-- **Les embeds Instagram sont servis en thème clair** par Instagram, et cela ne peut pas
-  être changé. Trois options restent à trancher : les garder tels quels, utiliser
-  `/embed/` sans légende, ou ne les afficher que sur la page d'une publication.
-- **Aucune récupération automatique n'est possible** : l'API Basic Display d'Instagram a
-  fermé fin 2024 et l'API profil exige une connexion. Les publications se renseignent donc
-  à la main.
-- **Les articles n'ont pas d'intertitres** dans leur source d'origine. Le rendu les prend
-  en charge dès qu'ils sont ajoutés.
+**Les messages de commit** suivent [Conventional
+Commits](https://www.conventionalcommits.org/fr/), et un hook les refuse
+sinon. Préfixes admis : `feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
+`test`, `build`, `ci`, `chore`, `revert`. Un `!` signale une rupture
+(`chore!: …`).
 
-## Ensuite
+**Les vérifications tournent avant chaque commit.** À installer une fois :
 
-La version de production est **en cours de construction**. L'état d'avancement, le plan complet
-et les prochaines étapes sont dans [`REPRISE.md`](REPRISE.md) et [`docs/PLAN.md`](docs/PLAN.md).
+```bash
+uv tool install pre-commit     # ou : pipx install pre-commit
+pre-commit install --install-hooks -t pre-commit -t commit-msg
+```
+
+C'est le seul outil Python qui subsiste, et c'est délibéré : le hook qui
+compte le plus est `detect-secrets`, avec une liste de faux positifs déjà
+auditée, et il est écrit en Python. Changer d'ordonnanceur pour retirer
+Python tout en gardant un hook Python n'enlèverait rien.
+
+**Le développement se fait en TDD** : le test d'abord, rouge, puis le code.
+
+**Aucun secret dans le dépôt.** `./setup` génère les secrets de
+développement dans `.env.dev`, qui est gitignoré. Le dépôt étant public,
+une clé poussée serait compromise immédiatement et irréversiblement — les
+forks et les caches GitHub la conservent malgré toute réécriture
+d'historique.
