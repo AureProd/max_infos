@@ -1,5 +1,5 @@
 import { and, eq, inArray, notInArray } from 'drizzle-orm'
-import { slugify } from '#shared/utils/slug'
+import { SLUGS_RESERVES, slugify } from '#shared/utils/slug'
 import { useBase } from '~~/server/database/client'
 import { article, articleTag, tag } from '~~/server/database/schema'
 import { compterCaracteres, minutesDeLecture, rendreMarkdown } from './markdown'
@@ -62,7 +62,10 @@ export function champsDerives(bodyMd: string) {
  */
 export async function slugLibre(titre: string, sauf?: number): Promise<string> {
   const db = useBase()
-  const base = slugify(titre) || 'article'
+  const brut = slugify(titre) || 'article'
+  // Un slug réservé est décalé d'emblée : `accueil` devient `accueil-2`,
+  // plutôt que d'être rendu inaccessible par le routage du back-office.
+  const base = (SLUGS_RESERVES as readonly string[]).includes(brut) ? `${brut}-2` : brut
   for (let n = 1; n < 200; n++) {
     const candidat = n === 1 ? base : `${base}-${n}`
     const [pris] = await db

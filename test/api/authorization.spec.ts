@@ -62,6 +62,7 @@ const BROUILLON = {
 }
 
 const ATTENDU: Record<string, Attente> = {
+  'GET /api/admin/dashboard': { anonyme: 401, editor: 200, tech: 200 },
   'GET /api/admin/articles': { anonyme: 401, editor: 200, tech: 200 },
   'POST /api/admin/articles': { anonyme: 401, editor: 201, tech: 201, corps: BROUILLON },
   'GET /api/admin/articles/[slug]': { anonyme: 401, editor: 200, tech: 200 },

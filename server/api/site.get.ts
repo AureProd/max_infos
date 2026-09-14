@@ -1,5 +1,28 @@
+import { inArray } from 'drizzle-orm'
 import { SETTING_KEYS, SETTING_SCOPE } from '#shared/schemas/settings'
+import { useBase } from '~~/server/database/client'
+import { media } from '~~/server/database/schema'
 import { lireReglage } from '~~/server/utils/reglages'
+
+/**
+ * Ramasse tout ce qui ressemble à `…MediaId` dans les réglages.
+ *
+ * Un réglage ne stocke qu'un identifiant : sans résolution, la photo du CV
+ * et le PDF téléchargeable ne sont qu'un nombre que le navigateur ne sait
+ * pas afficher. Le balayage est GÉNÉRIQUE, par nom de champ, pour qu'un
+ * futur `bannerMediaId` soit servi sans qu'on y repense.
+ */
+function identifiantsDeMedia(valeur: unknown, trouves = new Set<number>()): Set<number> {
+  if (Array.isArray(valeur)) {
+    for (const v of valeur) identifiantsDeMedia(v, trouves)
+  } else if (valeur && typeof valeur === 'object') {
+    for (const [cle, v] of Object.entries(valeur)) {
+      if (cle.endsWith('MediaId') && typeof v === 'number') trouves.add(v)
+      else identifiantsDeMedia(v, trouves)
+    }
+  }
+  return trouves
+}
 
 /**
  * Tous les réglages de portée PUBLIQUE.
@@ -19,5 +42,19 @@ export default defineEventHandler(async () => {
 
   const sortie: Record<string, unknown> = {}
   for (const cle of publiques) sortie[cle] = await lireReglage(cle)
-  return sortie
+
+  const ids = [...identifiantsDeMedia(sortie)]
+  const fichiers = ids.length
+    ? await useBase()
+        .select({ id: media.id, url: media.url, alt: media.alt, mime: media.mime })
+        .from(media)
+        .where(inArray(media.id, ids))
+    : []
+
+  // Une table indexée par identifiant plutôt qu'une liste : la page lit
+  // `medias[cv.photoMediaId]` sans avoir à chercher.
+  return {
+    ...sortie,
+    medias: Object.fromEntries(fichiers.map((f) => [f.id, f])),
+  }
 })

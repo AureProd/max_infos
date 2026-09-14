@@ -148,6 +148,13 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
           <textarea id="cv-intro" v-model="cv.valeur.value.intro" rows="4" />
         </div>
 
+        <MediaPicker v-model="cv.valeur.value.photoMediaId" libelle="Photo du CV" />
+        <MediaPicker v-model="cv.valeur.value.pdfMediaId" genre="pdf" libelle="CV en PDF" />
+        <p class="hint">
+          Le PDF est proposé au téléchargement en bas de la page « À propos ». Sans photo, la page
+          s'affiche sans encadré : rien ne casse.
+        </p>
+
         <template v-for="r in RUBRIQUES" :key="r.cle">
           <h3>
             {{ r.libelle }}

@@ -47,6 +47,7 @@ beforeAll(async () => {
 
 const ECRANS_EDITEUR = [
   '/redaction',
+  '/redaction/articles',
   '/redaction/publications',
   '/redaction/accueil',
   '/redaction/apropos',

@@ -13,7 +13,8 @@ const voitLaTechnique = peut('tech')
 
 const ecrans = computed(() =>
   [
-    { to: '/redaction', libelle: 'Articles', tech: false },
+    { to: '/redaction', libelle: 'Tableau de bord', tech: false },
+    { to: '/redaction/articles', libelle: 'Articles', tech: false },
     { to: '/redaction/publications', libelle: 'Publications', tech: false },
     { to: '/redaction/accueil', libelle: 'Accueil', tech: false },
     { to: '/redaction/apropos', libelle: 'À propos', tech: false },
