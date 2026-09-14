@@ -42,11 +42,63 @@ function routesDepuisFichiers(dossier: string, prefixe = '/api/admin'): string[]
 /**
  * Ce qu'on ATTEND, tenu à la main. Toute route admin doit y figurer.
  * anonyme → 401 (« identifie-toi »), editor sans droit → 403 (« non »).
+ *
+ * `corps` fournit une charge valide quand la route en exige une : sans
+ * elle, un 400 masquerait le code d'autorisation qu'on veut vérifier.
  */
-const ATTENDU: Record<string, { anonyme: number; editor: number; tech: number }> = {
+interface Attente {
+  anonyme: number
+  editor: number
+  tech: number
+  corps?: unknown
+}
+
+const BROUILLON = {
+  title: 'Article de la matrice',
+  bodyMd: 'Un corps.',
+  tags: ['matrice'],
+  featured: false,
+}
+
+const ATTENDU: Record<string, Attente> = {
   'GET /api/admin/articles': { anonyme: 401, editor: 200, tech: 200 },
+  'POST /api/admin/articles': { anonyme: 401, editor: 201, tech: 201, corps: BROUILLON },
+  'GET /api/admin/articles/[slug]': { anonyme: 401, editor: 200, tech: 200 },
+  'PUT /api/admin/articles/[slug]': { anonyme: 401, editor: 200, tech: 200, corps: BROUILLON },
+  'DELETE /api/admin/articles/[slug]': { anonyme: 401, editor: 404, tech: 404 },
+  'PUT /api/admin/articles/[slug]/status': {
+    anonyme: 401,
+    editor: 200,
+    tech: 200,
+    corps: { status: 'draft' },
+  },
+  'POST /api/admin/preview': {
+    anonyme: 401,
+    editor: 200,
+    tech: 200,
+    corps: { bodyMd: '## Titre' },
+  },
+  'GET /api/admin/media': { anonyme: 401, editor: 200, tech: 200 },
+  'POST /api/admin/media/upload-url': {
+    anonyme: 401,
+    editor: 201,
+    tech: 201,
+    corps: { filename: 'photo.png', contentType: 'image/png', bytes: 1024 },
+  },
+  'GET /api/admin/tags': { anonyme: 401, editor: 200, tech: 200 },
   'GET /api/admin/users': { anonyme: 401, editor: 403, tech: 200 },
 }
+
+/**
+ * Le slug sur lequel les routes paramétrées opèrent.
+ *
+ * DELETE vise volontairement un slug INEXISTANT et attend 404 : la matrice
+ * vérifie l'autorisation, pas la suppression, et détruire l'article
+ * casserait les cas suivants. Un 404 prouve tout autant que le contrôle de
+ * rôle a été franchi — un anonyme, lui, reçoit 401 avant d'y arriver.
+ */
+const SLUG_EXISTANT = 'article-de-la-matrice'
+const SLUG_ABSENT = 'jamais-vu-de-la-matrice'
 
 let sqlClient: postgres.Sql
 let db: BaseDeTest
@@ -66,6 +118,14 @@ beforeAll(async () => {
     .returning({ id: appUser.id })
   comptes.editor = e?.id ?? 0
   comptes.tech = t?.id ?? 0
+
+  // L'article sur lequel opèrent les routes paramétrées.
+  const { article } = await import('../../server/database/schema')
+  await db.insert(article).values({
+    slug: SLUG_EXISTANT,
+    title: 'Article de la matrice',
+    bodyMd: 'Un corps.',
+  })
 }, 60_000)
 
 afterAll(async () => {
@@ -108,11 +168,19 @@ describe('matrice route × rôle', () => {
   )
 
   it.each(cas)('%s — %s → %i', async (route, qui, attendu) => {
-    const [methode, chemin] = route.split(' ') as [string, string]
+    const [methode, gabarit] = route.split(' ') as [string, string]
+    const slug = methode === 'DELETE' ? SLUG_ABSENT : SLUG_EXISTANT
+    const chemin = gabarit.replace('[slug]', slug)
     const cookie = qui === 'anonyme' ? '' : await sessionPour(qui)
+    const corps = ATTENDU[route]?.corps
+
     const r = await fetch(chemin, {
       method: methode,
-      headers: cookie ? { cookie } : {},
+      headers: {
+        ...(cookie ? { cookie } : {}),
+        ...(corps ? { 'content-type': 'application/json' } : {}),
+      },
+      ...(corps ? { body: JSON.stringify(corps) } : {}),
     })
     expect(r.status).toBe(attendu)
   })

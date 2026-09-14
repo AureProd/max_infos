@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { countChars, nb } from '#shared/utils/format'
-import { renderMarkdown } from '#shared/utils/markdown'
+import { nb } from '#shared/utils/format'
 
 definePageMeta({ middleware: 'redaction' })
 
@@ -40,8 +39,39 @@ watch(
   { immediate: true },
 )
 
-const preview = computed(() => renderMarkdown(draft.value.body))
-const length = computed(() => nb(countChars(draft.value.body)))
+/**
+ * L'aperçu vient du SERVEUR, par le même moteur que l'enregistrement.
+ * Un rendu côté navigateur finirait par diverger de ce qui est publié —
+ * et Max verrait autre chose que ses lecteurs.
+ */
+interface Apercu {
+  html: string
+  charCount: number
+  readingMinutes: number
+}
+
+const apercu = ref<Apercu>({ html: '', charCount: 0, readingMinutes: 1 })
+let minuteur: ReturnType<typeof setTimeout> | undefined
+
+watch(
+  () => draft.value.body,
+  (corps) => {
+    // Débattu : on n'envoie pas une requête à chaque frappe.
+    clearTimeout(minuteur)
+    minuteur = setTimeout(async () => {
+      // Type annoté : l'inférence de routes de Nitro sature sur cette
+      // chaîne d'appels imbriqués (« Excessive stack depth »).
+      apercu.value = await $fetch<Apercu>('/api/admin/preview', {
+        method: 'POST',
+        body: { bodyMd: corps },
+      })
+    }, 300)
+  },
+  { immediate: true },
+)
+
+const preview = computed(() => apercu.value.html)
+const length = computed(() => nb(apercu.value.charCount))
 
 useSeoMeta({ title: 'Rédaction', robots: 'noindex, nofollow' })
 </script>

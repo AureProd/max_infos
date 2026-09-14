@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { frDate, nb } from '#shared/utils/format'
-import { renderMarkdown } from '#shared/utils/markdown'
 
 const route = useRoute()
 const slug = computed(() => String(route.params.slug))
@@ -11,8 +10,6 @@ const { data: site } = await useSite()
 const { data: article } = await useFetch(() => `/api/articles/${slug.value}`, {
   key: () => `article-${slug.value}`,
 })
-
-const html = computed(() => (article.value ? renderMarkdown(article.value.bodyMd) : ''))
 
 useSeoMeta({
   title: () => article.value?.seoTitle ?? article.value?.title,
@@ -61,12 +58,13 @@ onMounted(() => {
       />
 
       <!--
-        v-html du corps de l'article. Le moteur de shared/utils/markdown.ts
-        échappe le HTML du texte et neutralise les cibles de lien
-        dangereuses. Disparaît au lot 5, quand le rendu sera assaini côté
-        serveur à l'enregistrement et servi depuis article.bodyHtml.
+        Le corps vient de article.bodyHtml : rendu ET ASSAINI côté serveur au
+        moment de l'enregistrement, jamais ici. Rien de non assaini ne peut
+        entrer en base, donc rien de non assaini ne peut en sortir.
+        app/pages/article/[slug].vue reste inscrit dans la liste autorisée de
+        check-v-html.sh pour cette seule raison.
       -->
-      <div class="prose" v-html="html" />
+      <div class="prose" v-html="article.bodyHtml" />
 
       <p class="endnote">
         <span>{{ nb(article.charCount) }} caractères</span>

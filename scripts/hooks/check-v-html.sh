@@ -18,11 +18,10 @@ AUTORISES=(
   "app/components/PlateImage.vue"
   "app/components/SlideView.vue"
 
-  # Corps d'article et son aperçu, rendus par shared/utils/markdown.ts, qui
-  # échappe le HTML du texte et neutralise les cibles de lien dangereuses.
-  # DÉROGATION TEMPORAIRE : elle disparaît au lot 5, quand le rendu sera
-  # assaini côté serveur à l'enregistrement et stocké en base. Les deux
-  # lignes ci-dessous doivent alors être retirées.
+  # Corps d'article et son aperçu. Le HTML vient du SERVEUR, rendu et
+  # assaini par server/utils/markdown.ts au moment de l'enregistrement —
+  # jamais construit dans le navigateur. Rien de non assaini ne peut entrer
+  # en base, donc rien de non assaini ne peut en sortir.
   "app/pages/article/[slug].vue"
   "app/pages/redaction/index.vue"
 )

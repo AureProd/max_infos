@@ -43,6 +43,15 @@ export default defineConfig(async () => ({
           env: {
             // Active la route de session de test, exclue du bundle sinon.
             NUXT_TEST_ROUTES: 'true',
+            // Identifiants R2 factices : la signature d'URL est du calcul
+            // local, sans appel réseau. Ils permettent de tester la route de
+            // téléversement sans bucket, et sans que la matrice
+            // d'autorisations dépende de la configuration du stockage.
+            NUXT_R2_ENDPOINT: 'https://exemple.r2.cloudflarestorage.com',
+            NUXT_R2_ACCESS_KEY_ID: 'cle-de-test', // pragma: allowlist secret
+            NUXT_R2_SECRET_ACCESS_KEY: 'secret-de-test', // pragma: allowlist secret
+            NUXT_R2_BUCKET: 'unmaxdinfo-test',
+            NUXT_PUBLIC_R2_BASE_URL: 'https://media.exemple.test',
             NUXT_SESSION_PASSWORD: 'mot-de-passe-de-session-pour-les-tests-32c', // pragma: allowlist secret
             NUXT_DATABASE_URL:
               process.env.TEST_DATABASE_URL ??

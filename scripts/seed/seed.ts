@@ -19,6 +19,7 @@ import { eq, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from '../../server/database/schema'
+import { rendreMarkdown } from '../../server/utils/markdown'
 import { slugify } from '../../shared/utils/slug'
 import { ARTICLES } from './data/articles'
 import { IG_MEDIA } from './data/instagram'
@@ -87,6 +88,9 @@ async function main(): Promise<void> {
         title: a.title,
         dek: a.dek,
         bodyMd: a.body,
+        // Rendu par le MÊME moteur que le back-office : les articles
+        // migrés sont servis exactement comme ceux écrits ensuite.
+        bodyHtml: rendreMarkdown(a.body),
         status: 'published',
         publishedAt: new Date(`${a.date}T12:00:00Z`),
         coverMediaId: coverId,
@@ -102,7 +106,13 @@ async function main(): Promise<void> {
       })
       .onConflictDoUpdate({
         target: schema.article.slug,
-        set: { title: a.title, dek: a.dek, bodyMd: a.body, coverMediaId: coverId },
+        set: {
+          title: a.title,
+          dek: a.dek,
+          bodyMd: a.body,
+          bodyHtml: rendreMarkdown(a.body),
+          coverMediaId: coverId,
+        },
       })
       .returning({ id: schema.article.id })
 

@@ -35,3 +35,52 @@ export const slugParam = z
   .min(1)
   .max(200)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug invalide')
+
+// ---------------------------------------------------------------------------
+// Back-office
+
+export const brouillonArticle = z.object({
+  title: z.string().trim().min(1).max(300),
+  dek: z.string().trim().max(600).nullable().optional(),
+  bodyMd: z.string().max(500_000).default(''),
+  /** Slugs de sujets. Les inconnus sont créés. */
+  tags: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
+  coverMediaId: z.number().int().positive().nullable().optional(),
+  seoTitle: z.string().trim().max(300).nullable().optional(),
+  seoDescription: z.string().trim().max(600).nullable().optional(),
+  substackUrl: z.string().trim().url().max(600).nullable().optional(),
+  featured: z.boolean().default(false),
+})
+
+export type BrouillonArticle = z.infer<typeof brouillonArticle>
+
+/** Création : le slug est proposé, ou déduit du titre. */
+export const creationArticle = brouillonArticle.extend({
+  slug: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .max(200)
+    .optional(),
+})
+
+export const changementStatut = z.object({
+  status: z.enum(['draft', 'published']),
+  /** Publication différée. Absent = maintenant. */
+  publishedAt: z.string().datetime().nullable().optional(),
+})
+
+export const demandeTeleversement = z.object({
+  filename: z.string().trim().min(1).max(300),
+  contentType: z.string().trim().min(1).max(200),
+  bytes: z
+    .number()
+    .int()
+    .positive()
+    .max(25 * 1024 * 1024),
+  alt: z.string().trim().max(600).optional(),
+})
+
+export const apercuMarkdown = z.object({
+  bodyMd: z.string().max(500_000),
+})
