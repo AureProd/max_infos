@@ -84,3 +84,41 @@ export const demandeTeleversement = z.object({
 export const apercuMarkdown = z.object({
   bodyMd: z.string().max(500_000),
 })
+
+// ---------------------------------------------------------------------------
+// Déclinaisons sociales (lot 7)
+
+/**
+ * Saisie manuelle d'une publication.
+ *
+ * LinkedIn est saisi à la main par nécessité : le scope `r_member_social`
+ * est fermé aux nouvelles applications, la découverte automatique est donc
+ * hors de portée. Instagram peut l'être aussi, pour une publication qui
+ * précéderait la connexion de l'API.
+ */
+export const publicationManuelle = z.object({
+  network: z.enum(['instagram', 'linkedin']),
+  url: z.string().trim().url().max(600),
+  caption: z.string().trim().max(4000).optional(),
+  postedAt: z.string().date().optional(),
+  mediaType: z.enum(['reel', 'carousel', 'image', 'post']).optional(),
+})
+
+export const liaisonPublication = z.object({
+  articleSlug: z.string().trim().min(1).max(200).nullable(),
+})
+
+export const visibilitePublication = z.object({
+  hidden: z.boolean(),
+})
+
+/**
+ * Gabarits de déclinaison, éditables par Max.
+ *
+ * Les variables sont résolues à partir de l'article : {{titre}}, {{chapo}},
+ * {{url}}, {{sujets}}, {{minutes}}.
+ */
+export const gabarits = z.object({
+  linkedin: z.string().max(8000),
+  reel: z.string().max(8000),
+})

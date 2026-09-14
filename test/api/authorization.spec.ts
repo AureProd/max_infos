@@ -87,6 +87,28 @@ const ATTENDU: Record<string, Attente> = {
   },
   'GET /api/admin/tags': { anonyme: 401, editor: 200, tech: 200 },
   'GET /api/admin/social-posts': { anonyme: 401, editor: 200, tech: 200 },
+  'POST /api/admin/social-posts': {
+    anonyme: 401,
+    editor: 201,
+    tech: 201,
+    corps: { network: 'linkedin', url: 'https://www.linkedin.com/posts/x' },
+  },
+  // Identifiant inexistant : 404 après le contrôle de rôle, qui est ce
+  // qu'on vérifie ici. Un anonyme, lui, reçoit 401 avant d'y arriver.
+  'DELETE /api/admin/social-posts/[id]': { anonyme: 401, editor: 404, tech: 404 },
+  'PUT /api/admin/social-posts/[id]/article': {
+    anonyme: 401,
+    editor: 404,
+    tech: 404,
+    corps: { articleSlug: null },
+  },
+  'PUT /api/admin/social-posts/[id]/visibility': {
+    anonyme: 401,
+    editor: 404,
+    tech: 404,
+    corps: { hidden: true },
+  },
+  'GET /api/admin/articles/[slug]/declinaisons': { anonyme: 401, editor: 200, tech: 200 },
 
   // --- Réservé au rôle technique -------------------------------------------
   'GET /api/admin/users': { anonyme: 401, editor: 403, tech: 200 },
@@ -177,7 +199,9 @@ describe('matrice route × rôle', () => {
   it.each(cas)('%s — %s → %i', async (route, qui, attendu) => {
     const [methode, gabarit] = route.split(' ') as [string, string]
     const slug = methode === 'DELETE' ? SLUG_ABSENT : SLUG_EXISTANT
-    const chemin = gabarit.replace('[slug]', slug)
+    // [id] vise volontairement une publication inexistante : la matrice
+    // vérifie l'autorisation, pas la manipulation.
+    const chemin = gabarit.replace('[slug]', slug).replace('[id]', '999999')
     const cookie = qui === 'anonyme' ? '' : await sessionPour(qui)
     const corps = ATTENDU[route]?.corps
 
