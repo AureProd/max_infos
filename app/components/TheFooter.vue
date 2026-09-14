@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SITE } from '#shared/data/site'
+import { SITE } from '~/data/site'
 </script>
 
 <template>

@@ -1,17 +1,133 @@
 <script setup lang="ts">
-import { SITE } from '#shared/data/site'
+import { frDate, frShort } from '#shared/utils/format'
+import { ARTICLES } from '~/data/content'
+import { SITE } from '~/data/site'
+
+const { articles, isActive } = useFilters()
+const feature = computed(() => ARTICLES[0])
+const rail = computed(() => ARTICLES.slice(1, 4))
+const rest = computed(() => ARTICLES.slice(1))
 
 useSeoMeta({
   title: SITE.name,
   description: SITE.tagline,
+  ogTitle: SITE.name,
+  ogDescription: SITE.pitch,
+  ogType: 'website',
 })
 </script>
 
 <template>
-  <!-- Page d'attente du lot 2. La vraie page d'accueil arrive avec la
-       conversion des vues, puis se branche sur l'API au lot 3. -->
-  <section class="wrap">
-    <h1>{{ SITE.name }}</h1>
-    <p>{{ SITE.tagline }}</p>
-  </section>
+  <div class="wrap">
+    <section class="hero">
+      <h1>{{ SITE.tagline }}</h1>
+      <p class="strap">{{ SITE.pitch }}</p>
+      <p class="scroll-cue">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="5 9 12 16 19 9" />
+        </svg>
+        Défiler
+      </p>
+    </section>
+
+    <section v-if="feature" class="front">
+      <NuxtLink class="feature" :to="`/article/${feature.id}`">
+        <CoverImage :src="feature.cover" :seed="7" ratio="4 / 5" :alt="feature.title" />
+        <div class="feature-text">
+          <div class="kicker">À la une</div>
+          <h2>{{ feature.title }}</h2>
+          <p class="dek">{{ feature.dek }}</p>
+          <div class="meta">
+            <span class="byline">{{ SITE.byline }}</span>
+            <time :datetime="feature.date">le {{ frDate(feature.date) }}</time>
+            <span>{{ feature.minutes }} min de lecture</span>
+            <span>{{ feature.tags.join(', ') }}</span>
+          </div>
+        </div>
+      </NuxtLink>
+
+      <div class="rail">
+        <h3>Derniers articles</h3>
+        <ol>
+          <li v-for="article in rail" :key="article.id">
+            <NuxtLink :to="`/article/${article.id}`">
+              <CoverImage
+                :src="article.cover"
+                :seed="article.chars % 97"
+                ratio="1 / 1"
+                :alt="article.title"
+              />
+              <div>
+                <p class="cap">{{ article.title }}</p>
+                <div class="meta">
+                  <time :datetime="article.date">{{ frShort(article.date) }}</time>
+                  <span>{{ article.minutes }} min</span>
+                </div>
+              </div>
+            </NuxtLink>
+          </li>
+        </ol>
+      </div>
+    </section>
+  </div>
+
+  <ArticleMarquee />
+
+  <div class="wrap">
+    <section class="section" style="border-top: none">
+      <div class="section-head">
+        <h2>Les articles</h2>
+        <span class="rule" />
+        <span class="note">{{ ARTICLES.length }} publiés</span>
+      </div>
+      <ul class="cards">
+        <li v-for="article in rest" :key="article.id">
+          <ArticleCard :article="article" />
+        </li>
+      </ul>
+    </section>
+
+    <InstagramBlock />
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Tout parcourir</h2>
+        <span class="rule" />
+        <span v-if="isActive" class="note">{{ articles.length }} résultat(s)</span>
+      </div>
+
+      <FilterBar />
+
+      <p v-if="articles.length === 0" class="empty">Aucun article ne correspond.</p>
+      <ul v-else class="list">
+        <li v-for="article in articles" :key="article.id">
+          <NuxtLink class="entry" :to="`/article/${article.id}`">
+            <div>
+              <h3>{{ article.title }}</h3>
+              <p class="dek">{{ article.dek }}</p>
+              <div class="meta">
+                <time :datetime="article.date">{{ frDate(article.date) }}</time>
+                <span>{{ article.minutes }} min</span>
+                <span>{{ article.tags.join(', ') }}</span>
+              </div>
+            </div>
+            <CoverImage
+              :src="article.cover"
+              :seed="article.chars % 97"
+              ratio="1 / 1"
+              :alt="article.title"
+            />
+          </NuxtLink>
+        </li>
+      </ul>
+    </section>
+  </div>
 </template>
