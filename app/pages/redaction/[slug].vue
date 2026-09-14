@@ -79,6 +79,7 @@ useSeoMeta({ title: () => `${brouillon.value.title} — Rédaction`, robots: 'no
             <label for="a-tags">Sujets, séparés par des virgules</label>
             <input id="a-tags" v-model="sujets" type="text" />
           </div>
+          <MediaPicker v-model="brouillon.coverMediaId" libelle="Image de couverture" />
           <div class="field">
             <label for="a-body">
               Texte
@@ -99,6 +100,8 @@ useSeoMeta({ title: () => `${brouillon.value.title} — Rédaction`, robots: 'no
           <div class="prose" v-html="apercu.html" />
         </div>
       </div>
+
+      <DeclinerPanneau :slug="slug ?? ''" :publie="statut === 'published'" />
     </section>
   </div>
 </template>
