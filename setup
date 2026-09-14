@@ -1,0 +1,278 @@
+#!/usr/bin/env bash
+#
+# Génère le docker-compose.yml de la racine à partir de deploy/.
+#
+#   ./setup [fichier_env]   prépare l'instance (défaut : le dernier utilisé,
+#                           sinon .env.dev)
+#   ./setup --show          affiche ce pour quoi ce dossier est réglé, sans
+#                           rien régénérer
+#
+# Le fichier d'environnement et le port sont mémorisés dans ./.setup-state,
+# si bien que `./setup` seul réutilise le réglage du dossier. C'est un cache,
+# pas de la configuration : le supprimer est sans conséquence.
+#
+# Variables reconnues :
+#   URL_PORT         change le port 8080 par défaut (permet plusieurs clones
+#                    côte à côte : tous les ports publiés en dérivent)
+#   INSTANCE_NAME    change le nom du projet Docker Compose
+#   SKIP_PORT_CHECK  saute le contrôle « ce port est-il libre »
+
+set -euo pipefail
+
+STATE_FILE="./.setup-state"
+
+# Lit une clé du fichier d'état. Ne jamais le `source` : c'est de la sortie
+# générée, pas de la configuration.
+state_get() {
+  [ -f "${STATE_FILE}" ] || return 0
+  sed -n "s/^${1}=\([^[:space:]]\+\)$/\1/p" "${STATE_FILE}" | tail -1
+}
+
+if [ "${1:-}" = "--show" ]; then
+  if [ -f "${STATE_FILE}" ]; then
+    cat "${STATE_FILE}"
+  else
+    echo "/!\\ Aucun ${STATE_FILE} : lancer d'abord ./setup <fichier_env>"
+    exit 1
+  fi
+  exit 0
+fi
+
+# Ce que l'appelant a exporté l'emporte sur ce qui est mémorisé. Capturé ici,
+# avant que quoi que ce soit d'autre n'écrive URL_PORT.
+URL_PORT_FROM_ENV="${URL_PORT:-}"
+
+ENV_FILE="${1:-$(state_get SETUP_ENV_FILE)}"
+ENV_FILE="${ENV_FILE:-.env.dev}"
+if [ -z "${1:-}" ] && [ -f "${STATE_FILE}" ]; then
+  echo "▸ Réutilisation du fichier d'environnement mémorisé : ${ENV_FILE}"
+fi
+
+# --------------------------------------------------------------------------
+# Génération des secrets de développement.
+#
+# Rien n'est jamais écrit ailleurs que dans le fichier d'environnement,
+# lui-même gitignoré (.env.* sauf .env.example) : detect-secrets ne voit
+# donc jamais rien passer.
+gen_hex() { openssl rand -hex 32; }     # 64 caractères, rien à échapper dans une URL
+gen_key() { openssl rand -base64 32; }  # 32 octets, pour AES-256-GCM
+
+if [ ! -f "${ENV_FILE}" ]; then
+  DB_PASS="$(gen_hex)"
+  umask 077   # le fichier naît en 0600
+  cat > "${ENV_FILE}" <<EOF
+# Généré par ./setup le $(date -Iseconds). JAMAIS commité (voir .gitignore).
+# Les variables sans préfixe sont lues par Compose, Traefik et Postgres ;
+# celles préfixées NUXT_ sont lues par l'application AU DÉMARRAGE.
+
+APP_ENV=dev
+URL_HOST=unmaxdinfo.localhost
+URL_PORT=8080
+
+POSTGRES_DB=unmaxdinfo
+POSTGRES_USER=unmaxdinfo
+POSTGRES_PASSWORD=${DB_PASS}
+DB_HOST=db
+DB_PORT=5432
+# Lue par drizzle-kit, qui n'est pas Nitro et ignore le préfixe NUXT_.
+DATABASE_URL=postgres://unmaxdinfo:${DB_PASS}@db:5432/unmaxdinfo
+
+# --- Application ----------------------------------------------------------
+NUXT_DATABASE_URL=postgres://unmaxdinfo:${DB_PASS}@db:5432/unmaxdinfo
+NUXT_SESSION_SECRET=$(gen_hex)
+NUXT_SECRET_ENCRYPTION_KEY=$(gen_key)
+NUXT_SESSION_COOKIE_NAME=umdi_session
+NUXT_SESSION_MAX_AGE=1209600
+NUXT_PUBLIC_APP_ENV=dev
+NUXT_PUBLIC_BASE_URL=http://unmaxdinfo.localhost:8080
+
+# --- À compléter soi-même (lots 4 à 6) ------------------------------------
+NUXT_GOOGLE_CLIENT_ID=
+NUXT_GOOGLE_CLIENT_SECRET=
+NUXT_BOOTSTRAP_TECH_EMAIL=
+NUXT_R2_ACCOUNT_ID=
+NUXT_R2_ACCESS_KEY_ID=
+NUXT_R2_SECRET_ACCESS_KEY=
+NUXT_R2_BUCKET=unmaxdinfo-media
+NUXT_R2_ENDPOINT=
+NUXT_PUBLIC_R2_BASE_URL=
+NUXT_INSTAGRAM_APP_ID=
+NUXT_INSTAGRAM_APP_SECRET=
+NUXT_INSTAGRAM_SYNC_INTERVAL_MINUTES=60
+NUXT_SCHEDULER_ENABLED=false
+EOF
+  umask 022
+  echo "▸ ${ENV_FILE} créé, secrets de développement générés."
+  echo "  Compléter les identifiants Google, R2 et Instagram le moment venu,"
+  echo "  puis relancer ./setup."
+  exit 1
+fi
+
+# shellcheck disable=SC1090
+source "${ENV_FILE}"
+export ENV_FILE
+
+APP_ENV="${APP_ENV:-dev}"
+
+# Complète en place un secret resté vide. UNIQUEMENT en développement : en
+# preview et en production, un secret manquant doit faire ÉCHOUER le
+# démarrage, jamais être inventé en silence.
+ensure_secret() {
+  [ "${APP_ENV}" = "dev" ] || return 0
+  local nom="${1}" gen="${2}" val
+  val="$(sed -n "s/^${nom}=\(.*\)$/\1/p" "${ENV_FILE}" | tail -1)"
+  [ -n "${val}" ] && return 0
+  local neuf; neuf="$(${gen})"
+  # Séparateur | : le base64 contient / et + mais jamais |
+  sed -i "s|^${nom}=.*$|${nom}=${neuf}|" "${ENV_FILE}"
+  echo "▸ ${nom} était vide : secret de développement généré dans ${ENV_FILE}"
+}
+ensure_secret NUXT_SESSION_SECRET gen_hex
+ensure_secret NUXT_SECRET_ENCRYPTION_KEY gen_key
+
+# --------------------------------------------------------------------------
+# Nom d'instance : utilisateur + dossier, ce qui permet plusieurs clones
+# côte à côte. Compose exige des minuscules alphanumériques, « - » et « _ ».
+if [ -z "${INSTANCE_NAME:-}" ]; then
+  CLEAN_USER="${USER,,}"; CLEAN_USER="${CLEAN_USER//./-}"
+  CLEAN_DIR="$(basename "$(pwd)")"; CLEAN_DIR="${CLEAN_DIR,,}"
+  INSTANCE_NAME="${CLEAN_USER}-${CLEAN_DIR}"
+fi
+export INSTANCE_NAME
+
+# --------------------------------------------------------------------------
+# L'environnement choisit l'override applicatif.
+LOCAL_CONFIG="-f ./deploy/docker-compose-local-override.yml"
+case "${APP_ENV}" in
+  dev)     APP_OVERRIDE="./deploy/docker-compose-dev-override.yml" ;;
+  preview) APP_OVERRIDE="./deploy/docker-compose-preview-override.yml" ;;
+  prod)    APP_OVERRIDE="./deploy/docker-compose-prod-override.yml"; LOCAL_CONFIG="" ;;
+  *) echo "/!\\ APP_ENV doit valoir dev, preview ou prod (lu : '${APP_ENV}')"; exit 1 ;;
+esac
+
+export URL_HOST="${URL_HOST:-unmaxdinfo.localhost}"
+
+URL_PORT_SOURCE="défaut"
+if [ -n "${URL_PORT_FROM_ENV}" ]; then
+  URL_PORT="${URL_PORT_FROM_ENV}"; URL_PORT_SOURCE="URL_PORT"
+elif REMEMBERED_PORT="$(state_get SETUP_URL_PORT)" && [ -n "${REMEMBERED_PORT}" ]; then
+  if [[ "${REMEMBERED_PORT}" =~ ^[0-9]+$ ]]; then
+    URL_PORT="${REMEMBERED_PORT}"; URL_PORT_SOURCE="mémorisé"
+  else
+    echo "/!\\ ${STATE_FILE} : SETUP_URL_PORT='${REMEMBERED_PORT}' ignoré (pas un nombre)"
+  fi
+fi
+export URL_PORT="${URL_PORT:-8080}"
+
+# La borne haute garde DASHBOARD_PORT dans la plage des ports valides.
+if ! [[ "${URL_PORT}" =~ ^[0-9]+$ ]] || ((URL_PORT < 1024 || URL_PORT > 55535)); then
+  echo "/!\\ URL_PORT doit être un entier entre 1024 et 55535 (lu : '${URL_PORT}')"
+  exit 1
+fi
+
+if [ "${APP_ENV}" != "prod" ]; then
+  export DASHBOARD_PORT="${DASHBOARD_PORT:-$((18080 + URL_PORT - 8080))}"
+fi
+
+export APP_IMAGE="${APP_IMAGE:-unmaxdinfo:${INSTANCE_NAME}}"
+export MIGRATE_IMAGE="${MIGRATE_IMAGE:-unmaxdinfo-migrate:${INSTANCE_NAME}}"
+
+# --------------------------------------------------------------------------
+envsubst < ./deploy/config/traefik-dev.yml.tpl > ./deploy/config/traefik-dev.yml
+
+# --------------------------------------------------------------------------
+# Contrôle des ports AVANT d'écrire un compose qui ne pourrait pas démarrer.
+# Le message de dockerd n'arrive qu'au `up` et ne dit pas QUI tient le port,
+# alors que le coupable est presque toujours un autre clone de ce dépôt.
+port_holder() {
+  docker ps --filter "publish=${1}" \
+    --format '{{.Label "com.docker.compose.project"}}' 2>/dev/null | sort -u | head -1
+}
+
+check_port() {
+  local port="${1}" label="${2}" holder
+  [ -z "${port}" ] && return 0
+  holder="$(port_holder "${port}")"
+  if [ -n "${holder}" ]; then
+    # Nos propres conteneurs sur nos propres ports : simple relance avec la
+    # pile déjà debout. Ne rien dire.
+    [ "${holder}" = "${INSTANCE_NAME}" ] && return 0
+    echo "/!\\ Le port ${port} (${label}) est déjà publié par le projet docker '${holder}'"
+    return 1
+  fi
+  if command -v ss >/dev/null 2>&1 && ss -ltnH "sport = :${port}" 2>/dev/null | grep -q .; then
+    echo "/!\\ Le port ${port} (${label}) est déjà pris par un processus local"
+    return 1
+  fi
+  return 0
+}
+
+if [ -z "${SKIP_PORT_CHECK:-}" ] && [ "${APP_ENV}" != "prod" ]; then
+  PORTS_BUSY=0
+  check_port "${URL_PORT}" "site" || PORTS_BUSY=1
+  check_port "${DASHBOARD_PORT}" "tableau de bord traefik" || PORTS_BUSY=1
+  if [ "${PORTS_BUSY}" = "1" ]; then
+    # Proposer le premier décalage dont TOUS les ports dérivés sont libres,
+    # pour que la correction tienne en un copier-coller.
+    for OFFSET in $(seq 0 9); do
+      CANDIDATE=$((8080 + OFFSET))
+      if [ -z "$(port_holder ${CANDIDATE})" ] && [ -z "$(port_holder $((18080 + OFFSET)))" ]; then
+        echo "    Essayer : URL_PORT=${CANDIDATE} ./setup ${ENV_FILE}"
+        break
+      fi
+    done
+    echo "    Ou poser SKIP_PORT_CHECK=1 pour générer quand même."
+    exit 1
+  fi
+fi
+
+# --------------------------------------------------------------------------
+# shellcheck disable=SC2086
+# ATTENTION : `docker compose config` déplie TOUJOURS le contenu des
+# env_file en blocs environment:. Les secrets se retrouvent donc en clair
+# dans l'artefact, et il n'existe pas d'option pour l'éviter
+# (--no-env-resolution a été essayé : sans effet). Les sources dans deploy/
+# gardent malgré tout env_file, qui reste la bonne forme — une seule source
+# de vérité, aucune duplication dans le dépôt.
+#
+# On protège donc l'artefact : umask restrictif pendant l'écriture, puis
+# droits 0600. Il est par ailleurs gitignoré, donc il n'atteint jamais le
+# dépôt — ce qui compte doublement maintenant qu'il est public.
+(
+  umask 077
+  docker compose -p "${INSTANCE_NAME}" --project-directory . \
+    -f ./deploy/docker-compose.yml -f "${APP_OVERRIDE}" ${LOCAL_CONFIG} \
+    config > docker-compose.yml
+)
+chmod 600 docker-compose.yml
+
+sed -i -e "s#$(pwd)#.#g" docker-compose.yml
+
+# Écrit seulement une fois la génération réussie, pour que l'état ne décrive
+# jamais une pile qui n'a pas pu être construite. Volontairement non secret
+# — aucun identifiant — pour qu'une invite de shell puisse le lire.
+cat > "${STATE_FILE}" <<EOF
+# Généré par ./setup — ne pas éditer, régénéré à chaque exécution
+SETUP_INSTANCE_NAME=${INSTANCE_NAME}
+SETUP_ENV_FILE=${ENV_FILE}
+SETUP_APP_ENV=${APP_ENV}
+SETUP_URL_PORT=${URL_PORT}
+SETUP_DASHBOARD_PORT=${DASHBOARD_PORT:-}
+SETUP_PUBLIC_URL=http://${URL_HOST}:${URL_PORT}
+SETUP_UPDATED_AT=$(date -Iseconds)
+EOF
+
+echo "-------------------------------------------------------"
+echo "INSTANCE PRÊTE : ${INSTANCE_NAME}"
+echo "-------------------------------------------------------"
+echo "Environnement : ${APP_ENV}"
+echo "Fichier env   : ${ENV_FILE}"
+echo "Port          : ${URL_PORT} (${URL_PORT_SOURCE})"
+echo "Site          : http://${URL_HOST}:${URL_PORT}"
+echo "Sonde         : http://${URL_HOST}:${URL_PORT}/api/health"
+[ "${APP_ENV}" != "prod" ] && echo "Traefik       : http://localhost:${DASHBOARD_PORT}"
+echo "-------------------------------------------------------"
+echo "Ensuite :"
+echo "  docker compose run --rm migrate     # applique les migrations"
+echo "  docker compose up -d --wait         # démarre la pile"
+echo "-------------------------------------------------------"

@@ -1,0 +1,83 @@
+# Base commune à tous les environnements, façonnée pour la production.
+# Les fichiers deploy/docker-compose-*-override.yml en dérivent, et
+# ./setup en compose l'artefact docker-compose.yml de la racine (gitignoré).
+
+services:
+  app:
+    image: ${APP_IMAGE}
+    restart: always
+    # env_file et non environment : `docker compose config` résout les
+    # ${...}, donc un secret placé en environment: finirait EN CLAIR dans
+    # l'artefact généré. Ici Compose n'écrit que le chemin du fichier.
+    env_file:
+      - ${ENV_FILE:-.env}
+    depends_on:
+      db:
+        condition: service_healthy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.app-${INSTANCE_NAME}.rule=Host(`${URL_HOST}`)
+      - traefik.http.routers.app-${INSTANCE_NAME}.priority=1
+      # Obligatoire : le conteneur expose deux ports en développement
+      # (3000 et 24678) et Traefik refuse alors de choisir tout seul.
+      - traefik.http.services.app-${INSTANCE_NAME}.loadbalancer.server.port=3000
+      # Retire les en-têtes qui identifient la pile. Une valeur VIDE dans
+      # customResponseHeaders supprime l'en-tête de la réponse : c'est le
+      # seul endroit où Server et X-Powered-By disparaissent vraiment.
+      - traefik.http.middlewares.hide-tech-${INSTANCE_NAME}.headers.customResponseHeaders.Server=
+      - traefik.http.middlewares.hide-tech-${INSTANCE_NAME}.headers.customResponseHeaders.X-Powered-By=
+      - traefik.http.routers.app-${INSTANCE_NAME}.middlewares=hide-tech-${INSTANCE_NAME}@docker
+    networks: [default, reverse_proxy]
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+      start_interval: 2s
+
+  db:
+    image: postgres:17-alpine
+    restart: always
+    env_file:
+      - ${ENV_FILE:-.env}
+    # Aucun ports: — la base n'est joignable que par le réseau interne du
+    # projet, jamais depuis l'hôte.
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks: [default]
+    healthcheck:
+      # CMD-SHELL : le $$ échappe l'interpolation Compose et laisse le shell
+      # du conteneur lire ses propres variables.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  migrate:
+    image: ${MIGRATE_IMAGE}
+    # Hors du `up` par défaut : le bug docker/compose#10596 fait sortir
+    # `up --wait` en 1 dès qu'un conteneur d'init se termine en 0. On
+    # l'invoque donc explicitement — ce qui est exactement la séquence
+    # attendue en production (lot 11) :
+    #   docker compose run --rm migrate && docker compose up -d --wait
+    profiles: ["migrate"]
+    restart: "no"
+    env_file:
+      - ${ENV_FILE:-.env}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [default]
+
+volumes:
+  db_data:
+
+networks:
+  default:
+  # En production : le réseau du Traefik déjà en place sur le VPS. Nom
+  # littéral, sans préfixe de projet. L'override local le repasse en
+  # external: false pour que Compose en crée un par instance.
+  reverse_proxy:
+    external: true

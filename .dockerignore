@@ -1,13 +1,31 @@
-frontend/node_modules
-frontend/dist
-backend/.venv
-**/__pycache__
-**/.pytest_cache
-**/.mypy_cache
-**/.ruff_cache
-.git
-.github
+# Ce qui ne doit jamais entrer dans le contexte de build.
+node_modules
+# Une sortie de build de l'hôte invaliderait le cache à chaque itération et
+# pourrait écraser celle construite dans le conteneur.
+.nuxt
+.output
+.data
+coverage
+
+# Reliquat de la maquette, converti au fil de l'eau puis supprimé.
+frontend
+
+# Sans intérêt pour l'image.
 mockup
 docs
-.env*
+.git
+.github
+.vscode
+.idea
+test
+**/*.log
+
+# Secrets et artefacts générés.
+.env
+.env.*
+!.env.example
 docker-compose.yml
+.setup-state
+deploy/config/traefik-dev.yml
+*.pem
+*.key

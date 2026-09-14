@@ -1,0 +1,42 @@
+# Traefik jetable de développement. Jamais déployé en production.
+# Partagé par les environnements « dev » et « preview ».
+
+services:
+  app:
+    depends_on:
+      rp:
+        condition: service_started
+    restart: unless-stopped
+
+  db:
+    restart: unless-stopped
+
+  rp:
+    # Version épinglée, et non `traefik` tout court : une montée de version
+    # majeure ne doit pas arriver par surprise un lundi matin.
+    image: traefik:v3.5
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Paris
+    volumes:
+      # Lecture seule : Traefik n'a besoin que d'énumérer les conteneurs.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./deploy/config/traefik-dev.yml:/traefik.yml:ro
+    ports:
+      # 127.0.0.1 et jamais 0.0.0.0 : la pile de développement n'est pas
+      # exposée au réseau local.
+      - 127.0.0.1:${URL_PORT:-8080}:80
+      # Calculé par ./setup : 18080 + (URL_PORT - 8080), et non un « 1 »
+      # collé devant URL_PORT, qui cesse d'être un port au-delà de quatre
+      # chiffres.
+      - 127.0.0.1:${DASHBOARD_PORT:-18080}:8080
+    networks: [reverse_proxy]
+
+networks:
+  # Pas de `name:`, volontairement. Un nom fixe ferait UN réseau global que
+  # chaque clone du dépôt rejoindrait, et chaque Traefik ramasserait alors
+  # les conteneurs des autres par la socket Docker — tous porteurs de la
+  # même règle Host(...). Laissé à Compose, le réseau prend le nom du
+  # projet : ${INSTANCE_NAME}_reverse_proxy.
+  reverse_proxy:
+    external: false

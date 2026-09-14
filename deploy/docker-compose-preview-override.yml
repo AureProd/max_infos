@@ -1,0 +1,20 @@
+# Preview : le VRAI build de production, derrière le Traefik local, sans
+# déployer. Sélectionné par ./setup quand APP_ENV=preview.
+#
+# Aucun montage de source, aucun rechargement à chaud : c'est bien l'image
+# de production qu'on regarde, avec son rendu serveur réel.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: prod
+    image: unmaxdinfo:${INSTANCE_NAME}-preview
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrate
+    image: unmaxdinfo-migrate:${INSTANCE_NAME}

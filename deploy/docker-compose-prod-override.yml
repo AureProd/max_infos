@@ -1,0 +1,16 @@
+# Production. Volontairement maigre : tout le reste est déjà façonné prod
+# dans deploy/docker-compose.yml.
+#
+# Le Traefik du VPS existe déjà. Ce projet n'en déploie AUCUN et ne modifie
+# rien chez lui : il pose seulement ses labels, tous suffixés par
+# ${INSTANCE_NAME}, et rejoint son réseau.
+
+services:
+  app:
+    restart: always
+  db:
+    restart: always
+
+networks:
+  reverse_proxy:
+    external: true
