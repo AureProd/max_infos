@@ -50,6 +50,7 @@ Pour arrêter : `docker compose down`. Pour repartir d'une base vierge :
 | Installer les dépendances | `pnpm install` |
 | Ajouter une dépendance / de développement | `pnpm add <paquet>` / `pnpm add -D <paquet>` |
 | Démarrer le site | `./setup && docker compose up -d --wait` |
+| …en surveillant les dépendances | `docker compose watch` |
 | Voir les journaux | `docker compose logs -f app` |
 | Savoir sur quoi ce dossier est réglé | `./setup --show` |
 | Corriger le style et le formatage | `pnpm check` |
@@ -66,6 +67,20 @@ Pour arrêter : `docker compose down`. Pour repartir d'une base vierge :
 
 Les tests ont besoin de la base `db-test`, que `docker compose up` démarre
 avec le reste. Elle vit en mémoire et ne conserve rien.
+
+### Après un `pnpm add`
+
+Le `node_modules` vit **dans l'image**. Ajouter une dépendance ne suffit donc
+pas : l'image garde l'ancienne et l'application échoue sur un module
+introuvable, avec un message qui ne dit pas pourquoi.
+
+```bash
+docker compose up -d --build    # reconstruit puis redémarre
+```
+
+Ou, mieux, laisser tourner `docker compose watch` : il reconstruit tout seul
+dès que `package.json` ou `pnpm-lock.yaml` changent. Contrepartie : la
+commande occupe le terminal.
 
 ### Faire tourner plusieurs copies du dépôt
 

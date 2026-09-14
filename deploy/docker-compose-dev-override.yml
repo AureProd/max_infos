@@ -24,9 +24,34 @@ services:
       # est bien plus rapide.
       - nuxt_cache:/app/.nuxt
     environment:
-      # Lus par nuxt.config.ts pour calculer hmr.clientPort et allowedHosts.
+      # Lus par nuxt.config.ts pour calculer ws.clientPort et allowedHosts.
       URL_PORT: ${URL_PORT:-8080}
       URL_HOST: ${URL_HOST}
+
+    # --- Surveillance des sources -----------------------------------------
+    #
+    # Les montages ci-dessus suffisent au rechargement à chaud, mais ils ne
+    # voient PAS le cas qui fait vraiment perdre du temps : une dépendance
+    # ajoutée. Le node_modules vit dans l'image ; après un `pnpm add`,
+    # l'image garde l'ancien et l'application échoue sur un module
+    # introuvable, sans que le message dise pourquoi. C'est arrivé trois
+    # fois pendant ce chantier.
+    #
+    # `docker compose watch` (ou `up --watch`) reconstruit l'image dès que
+    # package.json ou le lockfile changent.
+    #
+    # AUCUNE règle `sync` : les montages ci-dessus s'en chargent déjà, et
+    # Compose refuse de surveiller un chemin qu'un montage couvre — il le
+    # signale d'ailleurs par un avertissement. La surveillance ne sert donc
+    # qu'au cas que les montages ne voient pas : les dépendances.
+    develop:
+      watch:
+        - action: rebuild
+          path: package.json
+        - action: rebuild
+          path: pnpm-lock.yaml
+        - action: rebuild
+          path: pnpm-workspace.yaml
     healthcheck:
       # `nuxt dev` compile à la volée : le premier rendu peut dépasser 60 s.
       start_period: 180s
