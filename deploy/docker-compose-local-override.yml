@@ -32,11 +32,11 @@ services:
       # En HTTPS, le port public pointe sur l'entrée TLS. C'est ./setup qui
       # règle PORT_INTERNE selon URL_SCHEME, pour que l'adresse annoncée et
       # le port publié ne puissent pas diverger.
-      - 127.0.0.1:${URL_PORT:-8080}:${PORT_INTERNE:-80}
-      # Calculé par ./setup : 18080 + (URL_PORT - 8080), et non un « 1 »
-      # collé devant URL_PORT, qui cesse d'être un port au-delà de quatre
-      # chiffres.
-      - 127.0.0.1:${DASHBOARD_PORT:-18080}:8080
+      - 127.0.0.1:${URL_PORT:-8000}:${PORT_INTERNE:-80}
+      # Calculé par ./setup : URL_PORT + 10000. Un décalage fixe, et non un
+      # « 1 » collé devant URL_PORT, qui cesse d'être un port au-delà de
+      # quatre chiffres.
+      - 127.0.0.1:${DASHBOARD_PORT:-18000}:8080
     networks: [reverse_proxy]
 
 networks:

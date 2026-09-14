@@ -67,7 +67,8 @@ if [ ! -f "${ENV_FILE}" ]; then
 
 APP_ENV=dev
 URL_HOST=unmaxdinfo.localhost
-URL_PORT=8080
+# 8000 et non 8080 : le 8080 sert aux projets du travail.
+URL_PORT=8000
 
 POSTGRES_DB=unmaxdinfo
 POSTGRES_USER=unmaxdinfo
@@ -84,12 +85,12 @@ NUXT_SECRET_ENCRYPTION_KEY=$(gen_key)
 NUXT_SESSION_NAME=umdi_session
 NUXT_SESSION_MAX_AGE=1209600
 NUXT_PUBLIC_APP_ENV=dev
-NUXT_PUBLIC_BASE_URL=http://unmaxdinfo.localhost:8080
+NUXT_PUBLIC_BASE_URL=http://unmaxdinfo.localhost:8000
 
 # --- À compléter soi-même (lots 4 à 6) ------------------------------------
 NUXT_OAUTH_GOOGLE_CLIENT_ID=
 NUXT_OAUTH_GOOGLE_CLIENT_SECRET=
-NUXT_OAUTH_GOOGLE_REDIRECT_URL=http://unmaxdinfo.localhost:8080/api/auth/google
+NUXT_OAUTH_GOOGLE_REDIRECT_URL=http://unmaxdinfo.localhost:8000/api/auth/google
 NUXT_BOOTSTRAP_TECH_EMAIL=
 NUXT_R2_ACCOUNT_ID=
 NUXT_R2_ACCESS_KEY_ID=
@@ -112,6 +113,10 @@ fi
 # shellcheck disable=SC1090
 source "${ENV_FILE}"
 export ENV_FILE
+
+# Ce que le FICHIER D'ENVIRONNEMENT déclare. Capturé juste après le source,
+# avant que la valeur mémorisée n'ait une chance de l'écraser.
+URL_PORT_DU_FICHIER="${URL_PORT:-}"
 
 APP_ENV="${APP_ENV:-dev}"
 
@@ -155,9 +160,19 @@ esac
 
 export URL_HOST="${URL_HOST:-unmaxdinfo.localhost}"
 
+# Priorité, de la plus forte à la plus faible :
+#   1. ce que l'appelant exporte      — une intention explicite, ponctuelle
+#   2. le fichier d'environnement     — l'intention durable du dossier
+#   3. la valeur mémorisée            — un simple confort, quand rien ne dit
+#   4. le défaut
+#
+# Le fichier passe AVANT la mémoire : sans cela, changer URL_PORT dans
+# .env.dev ne produisait aucun effet et rien ne l'expliquait.
 URL_PORT_SOURCE="défaut"
 if [ -n "${URL_PORT_FROM_ENV}" ]; then
-  URL_PORT="${URL_PORT_FROM_ENV}"; URL_PORT_SOURCE="URL_PORT"
+  URL_PORT="${URL_PORT_FROM_ENV}"; URL_PORT_SOURCE="URL_PORT exporté"
+elif [ -n "${URL_PORT_DU_FICHIER}" ]; then
+  URL_PORT="${URL_PORT_DU_FICHIER}"; URL_PORT_SOURCE="${ENV_FILE}"
 elif REMEMBERED_PORT="$(state_get SETUP_URL_PORT)" && [ -n "${REMEMBERED_PORT}" ]; then
   if [[ "${REMEMBERED_PORT}" =~ ^[0-9]+$ ]]; then
     URL_PORT="${REMEMBERED_PORT}"; URL_PORT_SOURCE="mémorisé"
@@ -165,7 +180,7 @@ elif REMEMBERED_PORT="$(state_get SETUP_URL_PORT)" && [ -n "${REMEMBERED_PORT}" 
     echo "/!\\ ${STATE_FILE} : SETUP_URL_PORT='${REMEMBERED_PORT}' ignoré (pas un nombre)"
   fi
 fi
-export URL_PORT="${URL_PORT:-8080}"
+export URL_PORT="${URL_PORT:-8000}"
 
 # La borne haute garde DASHBOARD_PORT dans la plage des ports valides.
 if ! [[ "${URL_PORT}" =~ ^[0-9]+$ ]] || ((URL_PORT < 1024 || URL_PORT > 55535)); then
@@ -174,10 +189,16 @@ if ! [[ "${URL_PORT}" =~ ^[0-9]+$ ]] || ((URL_PORT < 1024 || URL_PORT > 55535));
 fi
 
 if [ "${APP_ENV}" != "prod" ]; then
-  export DASHBOARD_PORT="${DASHBOARD_PORT:-$((18080 + URL_PORT - 8080))}"
-  # Tous les ports publiés dérivent de URL_PORT : c'est ce qui permet de
-  # faire tourner plusieurs clones côte à côte sans rien régler.
-  export DB_TEST_PORT="${DB_TEST_PORT:-$((15432 + URL_PORT - 8080))}"
+  # Tous les ports publiés DÉRIVENT de URL_PORT, par un simple décalage :
+  # changer URL_PORT suffit à déplacer toute l'instance, ce qui permet de
+  # faire tourner plusieurs clones côte à côte — ou de laisser le 8080 aux
+  # projets du travail.
+  #
+  # Décalages fixes plutôt qu'un calcul relatif à l'ancien défaut : « + 10000 »
+  # se lit et se vérifie de tête, là où « 18080 + (URL_PORT - 8080) » disait
+  # exactement la même chose sans que personne puisse le voir.
+  export DASHBOARD_PORT="${DASHBOARD_PORT:-$((URL_PORT + 10000))}"
+  export DB_TEST_PORT="${DB_TEST_PORT:-$((URL_PORT + 7000))}"
 fi
 
 export APP_IMAGE="${APP_IMAGE:-unmaxdinfo:${INSTANCE_NAME}}"
@@ -288,8 +309,9 @@ if [ -z "${SKIP_PORT_CHECK:-}" ] && [ "${APP_ENV}" != "prod" ]; then
     # Proposer le premier décalage dont TOUS les ports dérivés sont libres,
     # pour que la correction tienne en un copier-coller.
     for OFFSET in $(seq 0 9); do
-      CANDIDATE=$((8080 + OFFSET))
-      if [ -z "$(port_holder ${CANDIDATE})" ] && [ -z "$(port_holder $((18080 + OFFSET)))" ]; then
+      CANDIDATE=$((URL_PORT + 1 + OFFSET))
+      if [ -z "$(port_holder ${CANDIDATE})" ] &&
+         [ -z "$(port_holder $((CANDIDATE + 10000)))" ]; then
         echo "    Essayer : URL_PORT=${CANDIDATE} ./setup ${ENV_FILE}"
         break
       fi

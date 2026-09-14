@@ -31,9 +31,9 @@ Trois adresses :
 
 | | |
 |---|---|
-| Le site | <http://unmaxdinfo.localhost:8080> |
-| La sonde | <http://unmaxdinfo.localhost:8080/api/health> |
-| Le tableau de bord Traefik | <http://localhost:18080> |
+| Le site | <http://unmaxdinfo.localhost:8000> |
+| La sonde | <http://unmaxdinfo.localhost:8000/api/health> |
+| Le tableau de bord Traefik | <http://localhost:18000> |
 
 `unmaxdinfo.localhost` résout nativement vers `127.0.0.1` dans Chrome et
 Firefox : **il n'y a rien à écrire dans `/etc/hosts`**.
@@ -53,6 +53,7 @@ Pour arrêter : `docker compose down`. Pour repartir d'une base vierge :
 | …en surveillant les dépendances | `docker compose watch` |
 | Voir les journaux | `docker compose logs -f app` |
 | Savoir sur quoi ce dossier est réglé | `./setup --show` |
+| Changer de port | poser `URL_PORT` dans `.env.dev`, puis `./setup` |
 | Corriger le style et le formatage | `pnpm check` |
 | Vérifier seulement, sans corriger | `pnpm lint` |
 | Vérifier les types | `pnpm typecheck` |
@@ -89,7 +90,7 @@ Par défaut le site est servi en clair. Pour passer en HTTPS, poser dans
 
 ```
 URL_SCHEME=https
-NUXT_PUBLIC_BASE_URL=https://unmaxdinfo.localhost:8080
+NUXT_PUBLIC_BASE_URL=https://unmaxdinfo.localhost:8000
 ```
 
 puis `./setup && docker compose up -d --force-recreate rp app`.
@@ -113,11 +114,13 @@ mais le navigateur affiche un avertissement. Pour basculer ensuite, supprimer
 ### Faire tourner plusieurs copies du dépôt
 
 ```bash
-URL_PORT=8081 ./setup && docker compose up -d --wait
+URL_PORT=8001 ./setup && docker compose up -d --wait
 ```
 
-Tous les ports publiés dérivent de `URL_PORT` : le tableau de bord Traefik
-(`18081`) et la base de test (`15433`) suivent. Chaque copie a son propre
+Le projet occupe le **8000** et non le 8080, laissé aux projets du travail.
+Tous les ports publiés en dérivent par un décalage fixe — tableau de bord
+`+10000`, base de test `+7000` : le tableau de bord Traefik
+(`18001`) et la base de test (`15001`) suivent. Chaque copie a son propre
 Traefik, qui ne voit que ses propres conteneurs.
 
 ---

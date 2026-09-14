@@ -15,7 +15,7 @@
 import { version } from './package.json'
 
 const urlHost = process.env.URL_HOST ?? 'unmaxdinfo.localhost'
-const urlPort = Number(process.env.URL_PORT ?? 8080)
+const urlPort = Number(process.env.URL_PORT ?? 8000)
 
 export default defineNuxtConfig({
   compatibilityDate: '2026-09-14',
