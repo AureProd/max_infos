@@ -1,5 +1,4 @@
-import type { Article } from '#shared/types/content'
-import { ALL_TAGS, ARTICLES } from '~/data/content'
+import type { ListeArticlesQuery } from '#shared/schemas/api'
 
 export interface EtatFiltres {
   q: string
@@ -7,42 +6,47 @@ export interface EtatFiltres {
 }
 
 /**
- * État de filtrage de la liste d'articles : recherche libre et sujet.
+ * Filtrage de la liste d'articles : recherche libre et sujet.
  *
- * `useState` et NON un `reactive` au niveau du module.
+ * Le filtrage se fait désormais EN SQL, côté serveur : le navigateur ne
+ * télécharge plus tous les articles pour en cacher la plupart. C'est le
+ * gain direct du passage en base.
  *
- * La version d'origine gardait l'état hors de la fonction, ce qui était un
- * choix défendable en application monopage — les filtres survivaient à la
- * navigation. En rendu serveur, c'est une FUITE ENTRE VISITEURS : le module
- * est instancié une seule fois par processus Node, si bien que la recherche
- * d'un visiteur apparaîtrait chez le suivant. `useState` isole par requête
- * côté serveur et sérialise l'état vers le client, ce qui conserve le
- * comportement voulu sans le défaut.
+ * `useState` et NON un état au niveau du module : ce dernier serait
+ * instancié une seule fois par processus Node, et la recherche d'un
+ * visiteur apparaîtrait chez le suivant.
  */
 export function useFilters() {
   const state = useState<EtatFiltres>('filtres', () => ({ q: '', tag: null }))
 
-  const correspond = (article: Article): boolean => {
-    if (state.value.tag && !article.tags.includes(state.value.tag)) return false
-    if (!state.value.q) return true
-    const q = state.value.q.toLowerCase()
-    return [article.title, article.dek, article.body, article.tags.join(' ')]
-      .join(' ')
-      .toLowerCase()
-      .includes(q)
-  }
+  const query = computed<Partial<ListeArticlesQuery>>(() => ({
+    ...(state.value.q ? { q: state.value.q } : {}),
+    ...(state.value.tag ? { tag: state.value.tag } : {}),
+  }))
+
+  const { data: tags } = useFetch('/api/tags', { key: 'tags' })
+
+  const { data, status } = useFetch('/api/articles', {
+    key: 'articles-filtres',
+    query,
+    // Le serveur ne rend que la liste non filtrée ; les filtres sont une
+    // action du visiteur, donc la requête ne part qu'au navigateur.
+    watch: [query],
+  })
 
   return {
     state,
-    tags: ALL_TAGS,
-    toggleTag: (tag: string): void => {
-      state.value.tag = state.value.tag === tag ? null : tag
+    tags: computed(() => tags.value ?? []),
+    articles: computed(() => data.value?.items ?? []),
+    total: computed(() => data.value?.total ?? 0),
+    enCours: computed(() => status.value === 'pending'),
+    isActive: computed(() => Boolean(state.value.q || state.value.tag)),
+    toggleTag: (slug: string): void => {
+      state.value.tag = state.value.tag === slug ? null : slug
     },
     reset: (): void => {
       state.value.q = ''
       state.value.tag = null
     },
-    isActive: computed(() => Boolean(state.value.q || state.value.tag)),
-    articles: computed(() => ARTICLES.filter(correspond)),
   }
 }

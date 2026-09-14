@@ -24,7 +24,15 @@ export function useBase() {
     if (!databaseUrl) {
       throw new Error("NUXT_DATABASE_URL n'est pas renseignée")
     }
-    client = postgres(databaseUrl, { max: 10, onnotice: () => {} })
+    client = postgres(databaseUrl, {
+      max: 10,
+      onnotice: () => {},
+      // Sans borne, une base injoignable fait attendre la requête
+      // indéfiniment — et la sonde de disponibilité, censée répondre vite
+      // « ça ne va pas », ne répond alors jamais. Un orchestrateur qui
+      // attend un verdict n'en reçoit aucun.
+      connect_timeout: 5,
+    })
     base = creerBase(client)
   }
   return base

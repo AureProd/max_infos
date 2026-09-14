@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { ARTICLES, findArticle } from '~/data/content'
-import { IG_CAROUSEL_PREVIEW, IG_MEDIA } from '~/data/instagram'
-import { SITE } from '~/data/site'
+const { data: site } = await useSite()
+const { data: posts } = await useFetch('/api/social-posts', {
+  key: 'ig-block',
+  query: { network: 'instagram' },
+})
+const { data: liste } = await useFetch('/api/articles', { key: 'ig-block-articles' })
 </script>
 
 <template>
@@ -11,64 +14,44 @@ import { SITE } from '~/data/site'
         <div class="in" />
       </div>
       <div class="igp-id">
-        <a class="igp-handle" :href="SITE.instagram.url" target="_blank" rel="noopener">
-          {{ SITE.instagram.handle }}
+        <a
+          class="igp-handle"
+          :href="site?.instagram_public.url"
+          target="_blank"
+          rel="noopener"
+        >
+          {{ site?.instagram_public.handle }}
           <span class="igp-follow">Suivre</span>
         </a>
         <div class="igp-stats">
           <span
-            ><b>{{ IG_MEDIA.length }}</b> publications</span
+            ><b>{{ posts?.length ?? 0 }}</b> publications</span
           >
           <span
-            ><b>{{ ARTICLES.length }}</b> articles</span
+            ><b>{{ liste?.total ?? 0 }}</b> articles</span
           >
         </div>
-        <p class="igp-bio">{{ SITE.tagline }}</p>
+        <p class="igp-bio">{{ site?.identity.tagline }}</p>
       </div>
     </div>
 
     <div class="section-head">
       <h2>Sur Instagram</h2>
       <span class="rule" />
-      <a class="note" :href="SITE.instagram.url" target="_blank" rel="noopener"
-        >Voir le compte ↗</a
-      >
+      <a class="note" :href="site?.instagram_public.url" target="_blank" rel="noopener">
+        Voir le compte ↗
+      </a>
     </div>
 
     <ul class="ig-live">
-      <li v-for="item in IG_MEDIA" :key="item.id">
-        <InstagramEmbed :shortcode="item.shortcode" :kind="item.kind" />
-        <NuxtLink
-          v-if="findArticle(item.articleId)"
-          class="ig-src"
-          :to="`/article/${item.articleId}`"
-        >
-          L'article : « {{ findArticle(item.articleId)?.title }} »
-        </NuxtLink>
+      <li v-for="item in posts ?? []" :key="item.id">
+        <InstagramEmbed
+          v-if="item.shortcode"
+          :shortcode="item.shortcode"
+          :kind="item.mediaType === 'reel' ? 'reel' : 'p'"
+        />
+        <NuxtLink class="ig-src" :to="`/publication/${item.id}`">Ouvrir la publication</NuxtLink>
       </li>
     </ul>
-
-    <div class="section-head" style="margin-top: 54px">
-      <h2>Le format carrousel</h2>
-      <span class="rule" />
-      <span class="todo">à venir</span>
-    </div>
-    <p class="ig-note">
-      Tu n'as pas encore publié de carrousel. Voici le rendu qui les attend : dès que tu en publies
-      un, son identifiant se colle dans <code>shared/data/instagram.ts</code> et l'embed officiel
-      remplace cet aperçu.
-    </p>
-
-    <div class="ig-preview">
-      <SlideCarousel :slides="IG_CAROUSEL_PREVIEW.slides" :handle="SITE.instagram.handle" />
-      <div class="ig-preview-text">
-        <p>{{ IG_CAROUSEL_PREVIEW.caption }}</p>
-        <NuxtLink class="ig-src" :to="`/publication/${IG_CAROUSEL_PREVIEW.id}`">
-          Ouvrir l'aperçu en grand
-        </NuxtLink>
-      </div>
-    </div>
-
-    <InstagramConnect />
   </section>
 </template>

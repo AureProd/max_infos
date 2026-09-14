@@ -1,22 +1,37 @@
 <script setup lang="ts">
 import { countChars, nb } from '#shared/utils/format'
 import { renderMarkdown } from '#shared/utils/markdown'
-import { ARTICLES } from '~/data/content'
 
 /**
  * Aperçu du futur back-office. La prévisualisation est réelle ;
  * l'enregistrement sera branché sur l'API au lot 5.
  *
- * Cette page n'est PAS protégée : elle ne fait que manipuler des données en
- * dur, côté navigateur. La garde de route et les rôles arrivent au lot 4.
+ * Cette page n'est PAS protégée : elle ne fait que manipuler un brouillon
+ * dans le navigateur. La garde de route et les rôles arrivent au lot 4.
  */
-const source = ARTICLES[0]
-const draft = ref({
-  title: source?.title ?? '',
-  dek: source?.dek ?? '',
-  tags: source?.tags.join(', ') ?? '',
-  body: source?.body ?? '',
+// Un seul aller-retour : la liste sert juste à connaître le slug du
+// dernier article, dont on charge ensuite le corps complet.
+const { data: source } = await useAsyncData('redaction-source', async () => {
+  const liste = await $fetch('/api/articles', { query: { taille: 1 } })
+  const premier = liste.items[0]
+  return premier ? await $fetch(`/api/articles/${premier.slug}`) : null
 })
+
+const draft = ref({ title: '', dek: '', tags: '', body: '' })
+
+watch(
+  source,
+  (a) => {
+    if (!a) return
+    draft.value = {
+      title: a.title,
+      dek: a.dek ?? '',
+      tags: a.tags.map((t) => t.label).join(', '),
+      body: a.bodyMd,
+    }
+  },
+  { immediate: true },
+)
 
 const preview = computed(() => renderMarkdown(draft.value.body))
 const length = computed(() => nb(countChars(draft.value.body)))

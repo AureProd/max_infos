@@ -37,6 +37,14 @@ export default defineConfig(async () => ({
           name: 'api',
           environment: 'node',
           include: ['test/api/**/*.spec.ts'],
+          // Le serveur Nitro lancé par les tests parle à la base jetable du
+          // compose de développement, pas à celle de dev : les tests
+          // écrivent, et ne doivent rien y laisser.
+          env: {
+            NUXT_DATABASE_URL:
+              process.env.TEST_DATABASE_URL ??
+              'postgres://unmaxdinfo:test@127.0.0.1:15432/unmaxdinfo_test', // pragma: allowlist secret
+          },
           // La base est partagée : on évite la contention tant que la suite
           // est petite.
           fileParallelism: false,

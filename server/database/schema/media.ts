@@ -12,7 +12,15 @@ export const media = pgTable(
   'media',
   {
     id: integer().generatedAlwaysAsIdentity().primaryKey(),
-    r2Key: text().notNull(),
+    // Nullable : un média peut être référencé AVANT d'être hébergé dans R2.
+    // C'est le cas des couvertures importées de Substack, qui vivent encore
+    // sur son CDN et seront ré-hébergées au lot 5. Inventer une fausse clé
+    // pour satisfaire une contrainte aurait rendu le jour du transfert
+    // impossible à distinguer.
+    //
+    // L'index unique reste valable : sous PostgreSQL les NULL sont
+    // distincts, donc plusieurs médias sans clé R2 coexistent.
+    r2Key: text(),
     url: text().notNull(),
     mime: text().notNull(),
     width: integer(),

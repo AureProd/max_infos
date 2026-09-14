@@ -1,17 +1,17 @@
-import type { Article } from '#shared/types/content'
-import benMhidi from '~~/scripts/seed/content/ben-mhidi.md?raw'
-import controlerLia from '~~/scripts/seed/content/controler-lia.md?raw'
-import criDequoy from '~~/scripts/seed/content/cri-dequoy.md?raw'
-import fifa from '~~/scripts/seed/content/fifa.md?raw'
-import niDiciNiDailleurs from '~~/scripts/seed/content/ni-dici-ni-dailleurs.md?raw'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import type { Article } from '../../../shared/types/content'
 
-const BODIES: Record<string, string> = {
-  'controler-lia': controlerLia,
-  fifa,
-  'cri-dequoy': criDequoy,
-  'ni-dici-ni-dailleurs': niDiciNiDailleurs,
-  'ben-mhidi': benMhidi,
-}
+// Lecture par le système de fichiers, et non par les imports `?raw` de
+// Vite : ce fichier ne tourne plus que dans Node, au moment du semis.
+const DOSSIER = join(dirname(fileURLToPath(import.meta.url)), '..', 'content')
+const BODIES: Record<string, string> = Object.fromEntries(
+  ['controler-lia', 'fifa', 'cri-dequoy', 'ni-dici-ni-dailleurs', 'ben-mhidi'].map((slug) => [
+    slug,
+    readFileSync(join(DOSSIER, `${slug}.md`), 'utf8'),
+  ]),
+)
 
 /**
  * Articles longs, importés du Substack « Un Max d'info ».

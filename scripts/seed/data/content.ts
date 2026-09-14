@@ -1,4 +1,4 @@
-import type { Article, Post } from '#shared/types/content'
+import type { Article, Post } from '../../../shared/types/content'
 import { ARTICLES } from './articles'
 import { IG_POSTS, LI_POSTS, POSTS } from './posts'
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SITE } from '~/data/site'
+const { data: site } = await useSite()
 </script>
 
 <template>
@@ -7,7 +7,7 @@ import { SITE } from '~/data/site'
     <div class="wrap mast-in">
       <NuxtLink class="brand" to="/">
         <span class="dot" aria-hidden="true" />
-        <span>{{ SITE.name }}</span>
+        <span>{{ site?.identity.name }}</span>
       </NuxtLink>
       <nav class="nav">
         <NuxtLink to="/">Accueil</NuxtLink>

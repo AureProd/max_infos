@@ -1,26 +1,25 @@
 <script setup lang="ts">
 import { frDate } from '#shared/utils/format'
-import { findArticle } from '~/data/content'
-import { findMedia } from '~/data/instagram'
-import { SITE } from '~/data/site'
 
 const route = useRoute()
-const item = computed(() => findMedia(String(route.params.id)))
-const article = computed(() => (item.value ? findArticle(item.value.articleId) : null))
+const id = computed(() => Number(route.params.id))
 
-if (!item.value) {
-  throw createError({ statusCode: 404, statusMessage: 'Publication introuvable' })
-}
+const { data: site } = await useSite()
+const { data: posts } = await useFetch('/api/social-posts', { key: 'publications' })
 
-/** Seul l'aperçu de carrousel porte une légende ; les embeds n'en ont pas. */
-const legende = computed(() => {
-  const m = item.value
-  return m && 'caption' in m ? m.caption : SITE.tagline
+const item = computed(() => posts.value?.find((p) => p.id === id.value))
+const { data: article } = await useFetch('/api/articles', {
+  key: () => `publication-article-${id.value}`,
+  query: { taille: 50 },
 })
+const rattache = computed(() =>
+  article.value?.items.find((a) => a.slug && item.value && a.slug === item.value.shortcode),
+)
 
 useSeoMeta({
-  title: () => (article.value ? `Déclinaison — ${article.value.title}` : 'Publication'),
-  description: () => legende.value,
+  title: () => item.value?.caption ?? 'Publication',
+  description: () => item.value?.caption ?? site.value?.identity.tagline,
+  robots: 'noindex',
 })
 </script>
 
@@ -29,39 +28,36 @@ useSeoMeta({
     <article v-if="item" class="notepage">
       <NuxtLink class="back" to="/">← Retour</NuxtLink>
 
-      <p v-if="'preview' in item && item.preview" class="todo" style="margin-bottom: 20px">
-        aperçu du format carrousel — aucun carrousel publié pour l'instant
-      </p>
-
       <InstagramEmbed
-        v-if="'shortcode' in item && item.shortcode"
+        v-if="item.shortcode"
         :shortcode="item.shortcode"
-        :kind="item.kind"
+        :kind="item.mediaType === 'reel' ? 'reel' : 'p'"
         style="max-width: 400px"
       />
-      <SlideCarousel
-        v-else-if="'slides' in item"
-        :slides="item.slides"
-        :handle="SITE.instagram.handle"
-      />
 
-      <p v-if="'caption' in item && item.caption" class="cap">{{ item.caption }}</p>
+      <p v-if="item.caption" class="cap">{{ item.caption }}</p>
 
       <div class="meta">
-        <time :datetime="item.date">{{ frDate(item.date) }}</time>
+        <time v-if="item.postedAt" :datetime="item.postedAt">
+          {{ frDate(item.postedAt.slice(0, 10)) }}
+        </time>
         <a
-          :href="('url' in item && item.url) || SITE.instagram.url"
+          :href="item.permalink ?? item.url ?? site?.instagram_public.url"
           target="_blank"
           rel="noopener"
         >
-          {{ SITE.instagram.handle }}
+          {{ site?.instagram_public.handle }}
         </a>
       </div>
 
-      <p v-if="article" class="endnote">
+      <p v-if="rattache" class="endnote">
         Tiré de
-        <NuxtLink :to="`/article/${article.id}`">« {{ article.title }} »</NuxtLink>
+        <NuxtLink :to="`/article/${rattache.slug}`">« {{ rattache.title }} »</NuxtLink>
       </p>
     </article>
+
+    <p v-else class="empty">
+      Cette publication n'existe pas. <NuxtLink to="/">Retour à l'accueil</NuxtLink>
+    </p>
   </div>
 </template>

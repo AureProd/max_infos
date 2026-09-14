@@ -1,5 +1,5 @@
-import type { IgMedia } from '#shared/types/content'
-import type { SlideSpec } from '#shared/types/slide'
+import type { IgMedia } from '../../../shared/types/content'
+import type { SlideSpec } from '../../../shared/types/slide'
 
 export interface CarouselPreview {
   id: string

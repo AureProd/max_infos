@@ -1,20 +1,25 @@
 <script setup lang="ts">
-import { SITE } from '~/data/site'
+const { data: site } = await useSite()
+
+/** Seuls les champs dont Max a activé la visibilité sont affichés. */
+const liens = computed(() => site.value?.contact.fields.filter((f) => f.visible) ?? [])
 </script>
 
 <template>
   <footer class="foot">
     <div class="wrap foot-in">
-      <span>{{ SITE.name }} — {{ SITE.author }}. Sans publicité ni suivi.</span>
+      <span>
+        {{ site?.identity.name }} — {{ site?.identity.author }}. Sans publicité ni suivi.
+      </span>
       <span>
         <a
-          v-for="link in SITE.links"
-          :key="link.label"
-          :href="link.href"
+          v-for="lien in liens"
+          :key="lien.key"
+          :href="lien.href"
           target="_blank"
           rel="noopener"
           style="margin-left: 16px"
-          >{{ link.label }}</a
+          >{{ lien.label }}</a
         >
       </span>
     </div>

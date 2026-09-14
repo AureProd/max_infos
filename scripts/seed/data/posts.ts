@@ -1,4 +1,4 @@
-import type { InstagramPost, LinkedinPost, Post } from '#shared/types/content'
+import type { InstagramPost, LinkedinPost, Post } from '../../../shared/types/content'
 
 /**
  * Déclinaisons courtes d'un article long.

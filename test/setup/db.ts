@@ -72,3 +72,90 @@ export async function refuseParLaContrainte(
   }
   throw new Error(`L'écriture aurait dû être refusée par « ${contrainte} »`)
 }
+
+/**
+ * Remplit la base de test avec un jeu minimal et lisible.
+ *
+ * Volontairement distinct du contenu réel : un test qui dépend des vrais
+ * articles casse dès que Max en publie un.
+ */
+export async function semerJeuDeTest(db: BaseDeTest): Promise<void> {
+  const s = await import('../../server/database/schema')
+
+  const [tagGeo] = await db.insert(s.tag).values({ slug: 'geo', label: 'Géographie' }).returning()
+  const [tagMem] = await db.insert(s.tag).values({ slug: 'mem', label: 'Alpha' }).returning()
+
+  const [img] = await db
+    .insert(s.media)
+    .values({ url: 'https://exemple.test/couverture.png', mime: 'image/png', alt: 'Couverture' })
+    .returning()
+
+  const [publie] = await db
+    .insert(s.article)
+    .values({
+      slug: 'article-publie',
+      title: 'Un article publié',
+      dek: 'Son chapô',
+      bodyMd: 'Le corps contient le mot rarissime zzyzx.',
+      status: 'published',
+      publishedAt: new Date('2026-09-10T12:00:00Z'),
+      coverMediaId: img?.id ?? null,
+      readingMinutes: 4,
+      charCount: 1234,
+    })
+    .returning()
+
+  const [ancien] = await db
+    .insert(s.article)
+    .values({
+      slug: 'article-ancien',
+      title: 'Un article plus ancien',
+      status: 'published',
+      publishedAt: new Date('2026-01-01T12:00:00Z'),
+      readingMinutes: 2,
+      charCount: 500,
+    })
+    .returning()
+
+  await db.insert(s.article).values({
+    slug: 'article-brouillon',
+    title: 'Un brouillon',
+    status: 'draft',
+  })
+
+  if (publie && tagGeo)
+    await db.insert(s.articleTag).values({ articleId: publie.id, tagId: tagGeo.id })
+  if (ancien && tagMem)
+    await db.insert(s.articleTag).values({ articleId: ancien.id, tagId: tagMem.id })
+
+  const [post] = await db
+    .insert(s.socialPost)
+    .values({
+      network: 'instagram',
+      externalId: 'ABC123',
+      shortcode: 'ABC123',
+      mediaType: 'reel',
+      caption: 'Une légende',
+      postedAt: new Date('2026-09-10T12:00:00Z'),
+      source: 'api',
+      // Sert à vérifier que la charge brute de Meta ne sort JAMAIS d'une
+      // réponse d'API. Valeur factice.
+      raw: { secret_meta: 'ne doit jamais sortir' }, // pragma: allowlist secret
+    })
+    .returning()
+
+  await db.insert(s.socialPost).values({
+    network: 'instagram',
+    externalId: 'CACHE1',
+    shortcode: 'CACHE1',
+    hidden: true,
+  })
+
+  if (publie && post)
+    await db.insert(s.articleSocialPost).values({ articleId: publie.id, socialPostId: post.id })
+
+  await db.insert(s.setting).values([
+    { key: 'identity', value: { name: 'Site de test' }, scope: 'public' },
+    { key: 'instagram', value: { compte: 'privé' }, scope: 'tech' },
+  ])
+}

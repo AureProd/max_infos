@@ -39,6 +39,18 @@ services:
       dockerfile: Dockerfile
       target: migrate
     image: unmaxdinfo-migrate:${INSTANCE_NAME}
+    # Les migrations et le schéma sont montés, et non figés dans l'image :
+    # sans cela, il faudrait reconstruire l'image à CHAQUE `pnpm db:generate`,
+    # et on appliquerait sans s'en apercevoir un jeu de migrations périmé —
+    # la commande répondant « migrations applied successfully » puisqu'elle
+    # aurait bien appliqué tout ce qu'elle connaît.
+    #
+    # En production l'image reste autonome : c'est justement ce qu'on veut
+    # déployer, un artefact figé et vérifiable.
+    volumes:
+      - ./drizzle:/app/drizzle:ro
+      - ./server/database:/app/server/database:ro
+      - ./drizzle.config.ts:/app/drizzle.config.ts:ro
 
   # Base jetable réservée aux tests, publiée sur la boucle locale pour que
   # `pnpm test` tourne depuis l'hôte. Celle de développement, elle, ne
