@@ -22,10 +22,9 @@ useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
 <template>
   <div class="wrap">
     <section class="admin-page">
-      <div class="admin-bar">
-        <h1>Technique</h1>
-        <NuxtLink class="btn" to="/redaction">← Rédaction</NuxtLink>
-      </div>
+      <AdminNav />
+
+      <h1>Technique</h1>
 
       <p v-if="!voitLaTechnique" class="empty">
         Cet écran est réservé au rôle technique.

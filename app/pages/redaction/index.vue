@@ -3,11 +3,6 @@ import { frDate } from '#shared/utils/format'
 
 definePageMeta({ middleware: 'redaction' })
 
-const { utilisateur, peut, deconnecter } = useUtilisateur()
-// Ce qui relève de l'infrastructure n'apparaît pas dans le menu de Max.
-// Ce masquage est du confort : la sécurité est le refus du serveur.
-const voitLaTechnique = peut('tech')
-
 const { data: articles, refresh } = await useFetch('/api/admin/articles', { key: 'admin-liste' })
 
 async function creer(): Promise<void> {
@@ -30,17 +25,11 @@ useSeoMeta({ title: 'Rédaction', robots: 'noindex, nofollow' })
 <template>
   <div class="wrap">
     <section class="admin-page">
-      <div class="admin-bar">
-        <h1>Rédaction</h1>
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
-          <span class="pill">{{ utilisateur?.name ?? utilisateur?.email }}</span>
-          <NuxtLink v-if="voitLaTechnique" class="btn" to="/redaction/technique">
-            Technique
-          </NuxtLink>
-          <button class="btn btn-primary" type="button" @click="creer">Nouvel article</button>
-          <button class="btn" type="button" @click="deconnecter">Se déconnecter</button>
-        </div>
-      </div>
+      <AdminNav>
+        <button class="btn btn-primary" type="button" @click="creer">Nouvel article</button>
+      </AdminNav>
+
+      <h1>Articles</h1>
 
       <p v-if="!articles?.length" class="empty">
         Aucun article pour l'instant. Commence par en créer un.

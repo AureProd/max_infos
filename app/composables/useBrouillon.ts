@@ -39,7 +39,7 @@ export function useBrouillon(slug: Ref<string | null>) {
       substackUrl: string | null
       coverMediaId: number | null
       tags: { slug: string; label: string }[]
-    }>(`/api/admin/articles/${slug.value}`)
+    }>(`/api/admin/articles/${slug.value}`, { headers: enTetesDeSession() })
 
     brouillon.value = {
       title: a.title,
@@ -62,6 +62,7 @@ export function useBrouillon(slug: Ref<string | null>) {
     apercu.value = await $fetch<Apercu>('/api/admin/preview', {
       method: 'POST',
       body: { bodyMd: brouillon.value.bodyMd },
+      headers: enTetesDeSession(),
     })
   }
 

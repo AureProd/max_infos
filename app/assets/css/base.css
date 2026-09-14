@@ -1688,3 +1688,75 @@ button {
 .pub:hover .pub-media {
   border-color: rgba(255, 255, 255, 0.18);
 }
+
+/* ---------------------------------------------------------------------------
+   Back-office (lots 5 à 8)
+
+   Le back-office n'a pas à être joli — il a à être lisible et à ne pas
+   tromper. D'où des règles minimales, qui réutilisent les variables du site.
+--------------------------------------------------------------------------- */
+.cnav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.cnav a {
+  padding: 6px 12px;
+  border-radius: 3px;
+  font-size: 14px;
+  text-decoration: none;
+  color: var(--muted, #949ba4);
+}
+
+.cnav a:hover {
+  color: var(--text, #dbdee1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.cnav a.router-link-active {
+  color: var(--text, #dbdee1);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cluster {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Un message d'erreur doit se voir sans être lu : la couleur fait la moitié
+   du travail, notamment pour l'avertissement sur les données personnelles. */
+.err {
+  color: #e4604f;
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+
+.hint {
+  color: var(--muted, #949ba4);
+  font-size: 14px;
+}
+
+.admin-page .pill input[type="checkbox"] {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.admin-page select,
+.admin-page input[type="color"] {
+  background: var(--surface, #1b222a);
+  color: var(--text, #dbdee1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  padding: 6px 8px;
+  font: inherit;
+}
+
+.admin-page input[type="color"] {
+  width: 44px;
+  height: 34px;
+  padding: 2px;
+  cursor: pointer;
+}
