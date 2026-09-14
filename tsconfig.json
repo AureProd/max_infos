@@ -1,0 +1,10 @@
+{
+  "//": "Nuxt génère quatre configurations dans .nuxt/ (app, server, shared, node). Ce fichier ne fait que les référencer : `pnpm typecheck` les vérifie toutes.",
+  "files": [],
+  "references": [
+    { "path": "./.nuxt/tsconfig.app.json" },
+    { "path": "./.nuxt/tsconfig.server.json" },
+    { "path": "./.nuxt/tsconfig.shared.json" },
+    { "path": "./.nuxt/tsconfig.node.json" }
+  ]
+}

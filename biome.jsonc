@@ -1,0 +1,65 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
+  "files": {
+    "includes": [
+      "**",
+      "!.nuxt",
+      "!.output",
+      "!node_modules",
+      "!coverage",
+      // Migrations SQL générées par drizzle-kit : relues à la main, jamais reformatées.
+      "!drizzle",
+      "!mockup",
+      // Reliquat de la maquette, converti au fil de l'eau puis supprimé.
+      "!frontend",
+      "!pnpm-lock.yaml"
+    ]
+  },
+  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": { "quoteStyle": "single", "semicolons": "asNeeded" }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "suspicious": { "noExplicitAny": "error" },
+      "style": { "useConst": "error" }
+    }
+  },
+  "overrides": [
+    {
+      // Nuxt impose ces noms : le routage par fichiers veut `index.vue`, et
+      // le layout par defaut s'appelle `default.vue`. La regle des noms en
+      // plusieurs mots ne s'applique donc pas ici.
+      "includes": ["app/pages/**", "app/layouts/**", "app/app.vue", "app/error.vue"],
+      "linter": { "rules": { "style": { "useVueMultiWordComponentNames": "off" } } }
+    },
+    {
+      // base.css porte tout le design (1618 lignes). Le reformater noierait
+      // chaque revue future dans du bruit.
+      "includes": ["app/assets/css/base.css"],
+      "formatter": { "enabled": false },
+      "linter": { "enabled": false }
+    },
+    {
+      // Le support Vue de Biome est expérimental : il analyse le <script>
+      // SANS lire le <template>. Tout ce qui ne sert que dans le template est
+      // donc signalé à tort comme inutilisé, ce qui toucherait chaque
+      // composant du projet. vue-tsc (`pnpm typecheck`) comprend les
+      // templates : c'est lui le filet de sécurité réel sur ce point.
+      "includes": ["**/*.vue"],
+      "linter": {
+        "rules": {
+          "correctness": { "noUnusedImports": "off", "noUnusedVariables": "off" }
+        }
+      }
+    }
+  ]
+}

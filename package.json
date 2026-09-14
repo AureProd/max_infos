@@ -1,0 +1,49 @@
+{
+  "name": "unmaxdinfo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Site et back-office de unmaxdinfo.fr",
+  "packageManager": "pnpm@12.4.1",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "start": "node .output/server/index.mjs",
+    "postinstall": "nuxt prepare",
+    "lint": "biome check .",
+    "check": "biome check --write .",
+    "format": "biome format --write .",
+    "typecheck": "nuxt typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:check": "drizzle-kit check",
+    "db:studio": "drizzle-kit studio",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "nuxt": "^4.5.2",
+    "postgres": "^3.4.9",
+    "vue": "^3.5.40",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.13",
+    "@nuxt/test-utils": "^4.3.2",
+    "@types/node": "^26.5.1",
+    "@vitest/coverage-v8": "^5.0.0",
+    "@vue/test-utils": "^2.5.0",
+    "drizzle-kit": "^0.31.10",
+    "jsdom": "^30.0.1",
+    "typescript": "^5.7.0",
+    "vitest": "^5.0.0",
+    "vue-tsc": "^3.1.0"
+  }
+}

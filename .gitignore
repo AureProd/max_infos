@@ -35,3 +35,9 @@ frontend/dist/
 .DS_Store
 *.swp
 /tmp/
+
+# --- Nuxt
+.nuxt/
+.output/
+.data/
+*.tsbuildinfo
