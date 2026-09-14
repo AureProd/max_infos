@@ -51,6 +51,33 @@ export default defineNuxtConfig({
     typeCheck: false,
   },
 
+  /**
+   * Cache de rendu côté serveur.
+   *
+   * `swr` sert la dernière version rendue pendant qu'il en prépare une
+   * nouvelle. Deux gains : les pages publiques ne refont pas leurs requêtes
+   * à chaque visiteur, et — c'est le point important — une base momentanément
+   * indisponible ne fait plus tomber le site, qui continue de servir ce
+   * qu'il a en cache.
+   *
+   * Le back-office et l'API en sont exclus : Max doit voir ses
+   * modifications tout de suite, et une réponse d'API mise en cache
+   * mentirait sur l'état réel.
+   */
+  routeRules: {
+    '/': { swr: 300 },
+    '/article/**': { swr: 600 },
+    '/a-propos': { swr: 3600 },
+    '/publication/**': { swr: 600 },
+    '/rss.xml': { swr: 900 },
+    '/sitemap.xml': { swr: 3600 },
+    // En-tête HTTP plutôt que balise : un robot qui n'exécute pas le
+    // JavaScript, ou qui récupère une réponse non HTML, le voit quand même.
+    '/redaction/**': { swr: false, headers: { 'x-robots-tag': 'noindex, nofollow' } },
+    '/connexion': { swr: false, headers: { 'x-robots-tag': 'noindex, nofollow' } },
+    '/api/**': { swr: false },
+  },
+
   nitro: {
     preset: 'node-server',
     compressPublicAssets: true,

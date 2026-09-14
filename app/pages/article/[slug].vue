@@ -22,6 +22,51 @@ useSeoMeta({
   articleAuthor: () => [site.value?.identity.author ?? ''],
 })
 
+/**
+ * JSON-LD Article.
+ *
+ * Ce que lisent Google et les agrégateurs pour comprendre qu'il s'agit d'un
+ * article, de qui et de quand — là où les balises Open Graph ne servent
+ * qu'à l'aperçu de partage. Les deux sont nécessaires, ils ne s'adressent
+ * pas aux mêmes lecteurs.
+ */
+// Lu ICI et non dans la fonction ci-dessous : useRuntimeConfig doit être
+// appelé dans le contexte du composant, pas au moment du rendu de l'entête.
+const baseUrl = useRuntimeConfig().public.baseUrl.replace(/\/+$/, '')
+
+useHead({
+  script: () => {
+    const a = article.value
+    if (!a) return []
+    return [
+      {
+        type: 'application/ld+json',
+        innerHTML: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: a.title,
+          description: a.dek ?? undefined,
+          image: a.coverUrl ?? undefined,
+          datePublished: a.publishedAt ?? undefined,
+          dateModified: a.publishedAt ?? undefined,
+          author: {
+            '@type': 'Person',
+            name: site.value?.identity.author,
+          },
+          publisher: {
+            '@type': 'Organization',
+            name: site.value?.identity.name,
+          },
+          mainEntityOfPage: `${baseUrl}/article/${slug.value}`,
+          keywords: a.tags.map((t) => t.label).join(', '),
+          wordCount: Math.round(a.charCount / 6),
+          inLanguage: 'fr',
+        }),
+      },
+    ]
+  },
+})
+
 // Compteur de vues : anonyme, sans cookie ni adresse IP. Uniquement côté
 // navigateur, sinon chaque rendu serveur — y compris ceux des robots —
 // gonflerait le compteur.
