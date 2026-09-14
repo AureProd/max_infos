@@ -1,15 +1,4 @@
 import type { IgMedia } from '../../../shared/types/content'
-import type { SlideSpec } from '../../../shared/types/slide'
-
-export interface CarouselPreview {
-  id: string
-  type: 'carousel'
-  preview: true
-  articleId: string
-  date: string
-  caption: string
-  slides: SlideSpec[]
-}
 
 /**
  * Intégration Instagram.
@@ -48,51 +37,4 @@ export const IG_MEDIA: IgMedia[] = [
   },
 ]
 
-/**
- * Carrousels : format prévu, pas encore publié.
- * Cette maquette de démonstration montre le rendu qui attend tes vrais
- * carrousels — dès que tu en publies un, colle son identifiant dans
- * IG_MEDIA ci-dessus et l'embed officiel prend sa place.
- */
-export const IG_CAROUSEL_PREVIEW: CarouselPreview = {
-  id: 'apercu-carrousel',
-  type: 'carousel',
-  preview: true,
-  articleId: 'controler-lia',
-  date: '2026-09-11',
-  caption:
-    "L'Europe répète le mot « souveraineté » pendant que ses calculs tournent ailleurs. Cinq volets, article complet en lien.",
-  slides: [
-    {
-      type: 'cover',
-      title: "Contrôler l'IA, contrôler le Monde",
-      kicker: 'Souveraineté numérique',
-    },
-    {
-      type: 'stat',
-      figure: '900 M',
-      label: "de personnes utilisent l'IA chaque semaine en 2026",
-      source: "Chiffre cité dans l'article",
-    },
-    {
-      type: 'stat',
-      figure: '581 Md$',
-      label: "le marché de l'IA en 2025, contre 222 milliards en 2020",
-      source: 'Source : Stanford HAI',
-    },
-    {
-      type: 'quote',
-      text: "Celui qui deviendra le leader de l'IA sera le maître du monde.",
-      attribution: 'Vladimir Poutine, 2017',
-    },
-    {
-      type: 'outro',
-      title: 'La suite en version longue',
-      body: 'Mistral, ASML, Commission européenne : ce que recouvre vraiment le mot souveraineté.',
-      cta: "Lire l'article",
-    },
-  ],
-}
-
-export const findMedia = (id: string): IgMedia | CarouselPreview | undefined =>
-  id === IG_CAROUSEL_PREVIEW.id ? IG_CAROUSEL_PREVIEW : IG_MEDIA.find((m) => m.id === id)
+export const findMedia = (id: string): IgMedia | undefined => IG_MEDIA.find((m) => m.id === id)
