@@ -1,6 +1,5 @@
-import { eq } from 'drizzle-orm'
-import { useBase } from '~~/server/database/client'
-import { setting } from '~~/server/database/schema'
+import { SETTING_KEYS, SETTING_SCOPE } from '#shared/schemas/settings'
+import { lireReglage } from '~~/server/utils/reglages'
 
 /**
  * Tous les réglages de portée PUBLIQUE.
@@ -12,12 +11,13 @@ import { setting } from '~~/server/database/schema'
  * techniques.
  */
 export default defineEventHandler(async () => {
-  const db = useBase()
+  // La liste des clés publiques vient de SETTING_SCOPE, pas de ce qui se
+  // trouve en base : un réglage jamais enregistré renvoie sa valeur par
+  // défaut au lieu d'être absent, et le site s'affiche dès la première
+  // installation.
+  const publiques = SETTING_KEYS.filter((cle) => SETTING_SCOPE[cle] === 'public')
 
-  const lignes = await db
-    .select({ key: setting.key, value: setting.value })
-    .from(setting)
-    .where(eq(setting.scope, 'public'))
-
-  return Object.fromEntries(lignes.map((l) => [l.key, l.value]))
+  const sortie: Record<string, unknown> = {}
+  for (const cle of publiques) sortie[cle] = await lireReglage(cle)
+  return sortie
 })

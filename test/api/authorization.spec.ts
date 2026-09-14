@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { fetch, setup } from '@nuxt/test-utils/e2e'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { SETTING_DEFAULTS, SETTING_SCOPE, type SettingKey } from '#shared/schemas/settings'
 import { appUser } from '../../server/database/schema'
 import { type BaseDeTest, base, connexion, migrer } from '../setup/db'
 
@@ -111,6 +112,23 @@ const ATTENDU: Record<string, Attente> = {
   'GET /api/admin/articles/[slug]/declinaisons': { anonyme: 401, editor: 200, tech: 200 },
 
   // --- Réservé au rôle technique -------------------------------------------
+  'GET /api/admin/settings': { anonyme: 401, editor: 200, tech: 200 },
+  // Un seul chemin, mais un rôle exigé qui DÉPEND DE LA CLÉ. La matrice
+  // couvre ici le cas d'une clé publique ; l'autre portée est vérifiée par
+  // le bloc « réglages par portée », qui énumère SETTING_SCOPE.
+  'PUT /api/admin/settings/[cle]': {
+    anonyme: 401,
+    editor: 200,
+    tech: 200,
+    corps: {
+      name: 'Un Max d’info',
+      author: 'Maximilien Huet',
+      byline: 'Max',
+      tagline: '',
+      pitch: '',
+    },
+  },
+
   'GET /api/admin/users': { anonyme: 401, editor: 403, tech: 200 },
   'GET /api/admin/instagram/status': { anonyme: 401, editor: 403, tech: 200 },
   // 409 et non 200 : Instagram n'est pas connecté dans les tests. Ce qui
@@ -201,7 +219,10 @@ describe('matrice route × rôle', () => {
     const slug = methode === 'DELETE' ? SLUG_ABSENT : SLUG_EXISTANT
     // [id] vise volontairement une publication inexistante : la matrice
     // vérifie l'autorisation, pas la manipulation.
-    const chemin = gabarit.replace('[slug]', slug).replace('[id]', '999999')
+    const chemin = gabarit
+      .replace('[slug]', slug)
+      .replace('[id]', '999999')
+      .replace('[cle]', 'identity')
     const cookie = qui === 'anonyme' ? '' : await sessionPour(qui)
     const corps = ATTENDU[route]?.corps
 
@@ -214,6 +235,50 @@ describe('matrice route × rôle', () => {
       ...(corps ? { body: JSON.stringify(corps) } : {}),
     })
     expect(r.status).toBe(attendu)
+  })
+})
+
+describe('réglages par portée', () => {
+  /**
+   * La frontière entre ce que Max règle et ce que seul JB voit.
+   *
+   * On ÉNUMÈRE SETTING_SCOPE au lieu de recopier la liste : un réglage
+   * technique ajouté demain est couvert sans que personne n'y pense.
+   */
+  const cles = Object.keys(SETTING_SCOPE) as SettingKey[]
+
+  it('il y a bien des réglages des deux portées', () => {
+    expect(cles.filter((c) => SETTING_SCOPE[c] === 'tech').length).toBeGreaterThan(0)
+    expect(cles.filter((c) => SETTING_SCOPE[c] === 'public').length).toBeGreaterThan(0)
+  })
+
+  it.each(cles)('PUT settings/%s — editor', async (cle) => {
+    const attendu = SETTING_SCOPE[cle] === 'tech' ? 403 : 200
+    const r = await fetch(`/api/admin/settings/${cle}`, {
+      method: 'PUT',
+      headers: { cookie: await sessionPour('editor'), 'content-type': 'application/json' },
+      // Le schéma valide du réglage : un 400 masquerait le code qu'on teste.
+      body: JSON.stringify(SETTING_DEFAULTS[cle]),
+    })
+    expect(r.status).toBe(attendu)
+  })
+
+  it('GET settings ne renvoie AUCUN réglage technique à un editor', async () => {
+    const r = await fetch('/api/admin/settings', {
+      headers: { cookie: await sessionPour('editor') },
+    })
+    const recus = Object.keys((await r.json()) as Record<string, unknown>)
+    for (const cle of cles.filter((c) => SETTING_SCOPE[c] === 'tech')) {
+      expect(recus, `${cle} ne doit pas être renvoyé à un editor`).not.toContain(cle)
+    }
+  })
+
+  it('GET settings renvoie TOUT à un tech', async () => {
+    const r = await fetch('/api/admin/settings', {
+      headers: { cookie: await sessionPour('tech') },
+    })
+    const recus = Object.keys((await r.json()) as Record<string, unknown>)
+    for (const cle of cles) expect(recus).toContain(cle)
   })
 })
 

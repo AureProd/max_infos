@@ -155,7 +155,18 @@ export async function semerJeuDeTest(db: BaseDeTest): Promise<void> {
     await db.insert(s.articleSocialPost).values({ articleId: publie.id, socialPostId: post.id })
 
   await db.insert(s.setting).values([
-    { key: 'identity', value: { name: 'Site de test' }, scope: 'public' },
-    { key: 'instagram', value: { compte: 'privé' }, scope: 'tech' },
+    {
+      key: 'identity',
+      value: {
+        name: 'Site de test',
+        author: 'Autrice de test',
+        byline: 'AT',
+        tagline: '',
+        pitch: '',
+      },
+      scope: 'public',
+    },
+    // Réglage TECHNIQUE : sert à vérifier qu'il ne sort jamais de /api/site.
+    { key: 'instagram', value: { accountId: 'compte-prive-123' }, scope: 'tech' },
   ])
 }

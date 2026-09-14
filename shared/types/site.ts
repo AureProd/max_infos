@@ -1,26 +1,12 @@
-/** Les réglages de portée publique, tels que les renvoie `GET /api/site`. */
+import type { SettingKey, SettingValue } from '#shared/schemas/settings'
 
-export interface Identity {
-  name: string
-  author: string
-  byline: string
-  tagline: string
-  pitch: string
-}
-
-export interface ContactField {
-  key: string
-  label: string
-  value: string
-  href: string
-  visible: boolean
-}
-
-export interface SitePublic {
-  identity: Identity
-  contact: { fields: ContactField[] }
-  cv: { skills: { group: string; items: string[] }[] }
-  seo: { title: string; description: string }
-  home: { sections: string[] }
-  instagram_public: { handle: string; url: string }
+/**
+ * Ce que renvoie `GET /api/site` : les réglages de portée publique.
+ *
+ * Le type est DÉDUIT des schémas, il n'est pas recopié. Ajouter un réglage
+ * public le rend disponible côté navigateur sans rien écrire de plus, et
+ * renommer un champ fait échouer `pnpm typecheck` là où il est lu.
+ */
+export type SitePublic = {
+  [K in SettingKey]: SettingValue<K>
 }

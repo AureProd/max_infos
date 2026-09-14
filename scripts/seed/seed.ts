@@ -19,7 +19,9 @@ import { eq, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from '../../server/database/schema'
+import { GABARITS_PAR_DEFAUT } from '../../server/utils/gabarits'
 import { rendreMarkdown } from '../../server/utils/markdown'
+import { SETTING_SCOPE, type SettingKey } from '../../shared/schemas/settings'
 import { slugify } from '../../shared/utils/slug'
 import { ARTICLES } from './data/articles'
 import { IG_MEDIA } from './data/instagram'
@@ -180,26 +182,44 @@ async function main(): Promise<void> {
       pitch: SITE.pitch,
     },
     contact: {
-      // Chaque champ porte son propre interrupteur de visibilité, comme le
-      // prévoit le plan. Tout ce qui vient de la maquette est déjà public.
+      // Chaque champ porte SON PROPRE interrupteur de visibilité. Ceux qui
+      // viennent de la maquette sont des liens publics par nature ; les
+      // données personnelles du CV (téléphone, adresse, date de naissance)
+      // arriveront masquées, comme le prévoit le plan.
       fields: SITE.links.map((l) => ({
         key: l.label.toLowerCase(),
         label: l.label,
         value: l.value,
         href: l.href,
         visible: true,
+        sensible: false,
       })),
     },
-    cv: { skills: SITE.skills },
-    seo: { title: SITE.name, description: SITE.tagline },
-    home: { sections: ['hero', 'front', 'marquee', 'articles', 'instagram', 'all'] },
-    instagram_public: { handle: SITE.instagram.handle, url: SITE.instagram.url },
+    cv: { skills: SITE.skills, interests: [], languages: [], certifications: [] },
+    seo: { title: SITE.name, description: SITE.tagline, imageMediaId: null },
+    home: {
+      sections: ['hero', 'front', 'marquee', 'articles', 'instagram', 'all'],
+      featured: [],
+    },
+    theme: { variables: {} },
+    templates: GABARITS_PAR_DEFAUT,
+    instagram_public: {
+      handle: SITE.instagram.handle,
+      url: SITE.instagram.url,
+      name: null,
+      biography: null,
+      avatar: null,
+      followers: null,
+      posts: null,
+      syncAt: null,
+    },
   }
 
   for (const [key, value] of Object.entries(reglages)) {
     await db
       .insert(schema.setting)
-      .values({ key, value, scope: 'public' })
+      // La portée vient de la table, jamais d'une valeur écrite ici.
+      .values({ key, value, scope: SETTING_SCOPE[key as SettingKey] ?? 'public' })
       .onConflictDoUpdate({ target: schema.setting.key, set: { value, updatedAt: sql`now()` } })
   }
   console.log(`▸ ${Object.keys(reglages).length} réglages publics`)

@@ -1,6 +1,7 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { SETTING_SCOPE, type SettingKey } from '#shared/schemas/settings'
 import { type BaseDeTest, base, connexion, migrer, semerJeuDeTest } from '../setup/db'
 
 /**
@@ -142,16 +143,35 @@ describe('GET /api/social-posts', () => {
 
 describe('GET /api/site', () => {
   it('renvoie les réglages publics', async () => {
+    const site = await $fetch<Record<string, { name?: string }>>('/api/site')
+    expect(site.identity?.name).toBe('Site de test')
+  })
+
+  it('renvoie une valeur par défaut pour un réglage jamais enregistré', async () => {
+    // Un site dont le CV n'est pas rempli doit s'afficher, pas échouer.
     const site = await $fetch<Record<string, unknown>>('/api/site')
-    expect(site.identity).toEqual({ name: 'Site de test' })
+    expect(site.cv).toBeDefined()
+    expect(site.theme).toBeDefined()
   })
 
   it('ne laisse JAMAIS fuiter un réglage technique', async () => {
     // Le pire risque du projet selon le plan : que Max — ou n'importe qui —
     // voie ce qui relève de l'infrastructure.
-    const brut = await (await fetch('/api/site')).text()
-    expect(brut).not.toContain('instagram')
-    expect(brut).not.toContain('privé')
+    //
+    // On ÉNUMÈRE SETTING_SCOPE plutôt que de chercher une sous-chaîne : la
+    // version précédente cherchait « instagram », qui apparaît légitimement
+    // dans la clé PUBLIQUE instagram_public. Un test qui se trompe de cible
+    // finit par être désactivé plutôt que corrigé.
+    const site = await $fetch<Record<string, unknown>>('/api/site')
+    const techniques = (Object.keys(SETTING_SCOPE) as SettingKey[]).filter(
+      (c) => SETTING_SCOPE[c] === 'tech',
+    )
+    expect(techniques.length).toBeGreaterThan(0)
+    for (const cle of techniques) {
+      expect(Object.keys(site), `${cle} ne doit pas être public`).not.toContain(cle)
+    }
+    // Et la valeur elle-même n'apparaît nulle part dans la réponse.
+    expect(await (await fetch('/api/site')).text()).not.toContain('compte-prive-123')
   })
 })
 
