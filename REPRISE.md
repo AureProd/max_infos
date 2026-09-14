@@ -1,6 +1,6 @@
 # Où on en est — reprise du chantier
 
-> Dernière séance : **lundi 14 septembre 2026**.
+> Dernière séance : **lundi 14 septembre 2026**. Lots 1 à 4 terminés.
 > Pour reprendre : lancer `claude` dans `~/Documents/perso/max_infos` et dire
 > « reprends le chantier, lis REPRISE.md ».
 
@@ -44,8 +44,10 @@ Le dépôt sera **public** (le plan disait privé).
 |---|---|
 | **1 — Dépôt, structure, outillage qualité, CI** | ✅ refait en TypeScript |
 | **2 — Nuxt + Postgres + Drizzle + modèles + `./setup` + Traefik de dev** | ✅ **terminé** |
-| **3 — API publique en lecture + migration du contenu** | ⏭ **à faire, prochaine étape** |
-| 4 → 11 | à faire, voir `docs/PLAN.md` |
+| **3 — API publique en lecture + migration du contenu** | ✅ terminé |
+| **4 — OAuth Google, rôles, sessions** | ✅ terminé |
+| **5 — Admin : articles, médias (R2), tags** | ⏭ **à faire, prochaine étape** |
+| 6 → 11 | à faire, voir `docs/PLAN.md` |
 
 ### Ce qui tourne, vérifié
 
@@ -75,22 +77,33 @@ curl http://unmaxdinfo.localhost:8080/api/health/ready  # {"database":"ok",…}
    `javascript:` s'exécutait. Sans conséquence tant que seul Max écrit — mais
    l'**import Substack du lot 3** y fera passer du texte qu'il n'a pas écrit.
 
-### Prochaine étape : le lot 3
+### Prochaine étape : le lot 5
 
-API publique en lecture, puis migration du contenu en dur vers la base.
-Le contenu attend dans `app/data/*.ts` et `scripts/seed/content/*.md`.
+Back-office réel : écrire et publier un article, téléverser une image vers R2,
+gérer les tags. C'est là que le moteur Markdown maison laisse place à `marked`
++ assainissement **côté serveur**, avec le résultat stocké dans
+`article.body_html` — et que les deux dérogations `v-html` inscrites dans
+`scripts/hooks/check-v-html.sh` doivent être retirées.
 
-Deux points à trancher au moment de la migration, signalés par l'exploration :
+Prévoir un **test d'or** au moment de la bascule : rendre les cinq articles
+existants par les deux moteurs et comparer, pour découvrir ce que le CSS
+`.prose` devra rattraper.
 
-- `article.ratio` n'existe pas dans le modèle de données : soit le dériver des
-  dimensions du média, soit ajouter la colonne.
-- `article.chars` sert de **graine au visuel de repli** (`chars % 97`) :
-  recalculer la valeur à l'import changerait le visuel des cinq articles
-  existants. Reprendre les valeurs du fichier pour ceux-là, recalculer pour les
-  nouveaux.
-- Les identifiants `ig-1` et `ig-2` de `instagram.ts` et `posts.ts` se
-  chevauchent en pointant vers des articles **différents** : incohérence de
-  maquette à arbitrer.
+Il faut d'abord créer le bucket Cloudflare R2 et ses clés.
+
+### Dettes identifiées, à traiter quand l'occasion se présente
+
+- **Une base indisponible fait tomber le site entier**, y compris les pages qui
+  pourraient s'en passer. Les `routeRules` de Nitro (cache SWR) permettraient de
+  continuer à servir la dernière version rendue. Consigné dans
+  `server/api/health/ready.get.ts`.
+- **`docker compose watch`** remplacerait la liste de montages par une règle
+  unique et **rebâtirait l'image quand `pnpm-lock.yaml` change** — le piège
+  rencontré deux fois (tsx, puis nuxt-auth-utils absents de l'image).
+  Contrepartie : `docker compose up --watch` tourne au premier plan.
+- **HTTPS en local** (mkcert) avant d'aller plus loin sur l'authentification :
+  les cookies `Secure` ne sont pas posés en clair, et Google exige des URI de
+  redirection HTTPS hors localhost.
 
 ## Détails d'implémentation à connaître
 
@@ -130,6 +143,12 @@ Deux points à trancher au moment de la migration, signalés par l'exploration :
   *Secret scanning*, *Push protection*, CodeQL et Dependabot
 - Relire `docs/PLAN.md` avant publication : ses exemples JSON contiennent des
   données personnelles de Max (CV, téléphone)
+- **Créer les identifiants OAuth dans la console Google** et déclarer l'URI de
+  redirection `http://unmaxdinfo.localhost:8080/api/auth/google`, puis
+  renseigner `NUXT_OAUTH_GOOGLE_CLIENT_ID` et `NUXT_OAUTH_GOOGLE_CLIENT_SECRET`
+  dans `.env.dev`. Renseigner aussi `NUXT_BOOTSTRAP_TECH_EMAIL` avec ton adresse :
+  c'est le seul moyen d'avoir un premier compte sur une base vierge, personne ne
+  pouvant se créer de compte.
 - Créer l'app Meta et connecter le compte Instagram (@unmaxdinfo_ est déjà en
   Pro) — nécessaire au lot 6
 - Acheter `unmaxdinfo.fr` chez Infomaniak et déléguer le DNS à Cloudflare —
