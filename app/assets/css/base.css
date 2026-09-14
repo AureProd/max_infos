@@ -1616,3 +1616,75 @@ button {
     min-height: 280px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Cartes de publication sociale (lot 6)
+
+   Remplacent les embeds officiels d'Instagram, servis en thème clair sans
+   moyen de le changer. Dessinées avec les variables du site, elles
+   s'intègrent au thème sombre au lieu d'y percer des trous blancs.
+--------------------------------------------------------------------------- */
+.pubs {
+  list-style: none;
+  padding: 0;
+  margin: 24px 0 0;
+  display: grid;
+  gap: 18px;
+  /* Rythme distinct de celui des articles longs : plus dense, plus carré. */
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.pub {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.pub-media {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--surface, #1b222a);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.pub-media img,
+.pub-media .plate {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pub-type {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(4px);
+  color: #fff;
+}
+
+.pub-legende {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text, #dbdee1);
+  /* Trois lignes au plus : au-delà, la grille perd son rythme. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pub:hover .pub-media {
+  border-color: rgba(255, 255, 255, 0.18);
+}

@@ -43,14 +43,15 @@ const { data: liste } = await useFetch('/api/articles', { key: 'ig-block-article
       </a>
     </div>
 
-    <ul class="ig-live">
+    <!--
+      Cartes maison plutôt que l'embed officiel : Instagram le sert en thème
+      CLAIR, sans moyen de le changer, ce qui produisait des blocs blancs au
+      milieu d'un site sombre. La carte est dessinée avec le CSS du site à
+      partir des données de l'API.
+    -->
+    <ul class="pubs">
       <li v-for="item in posts ?? []" :key="item.id">
-        <InstagramEmbed
-          v-if="item.shortcode"
-          :shortcode="item.shortcode"
-          :kind="item.mediaType === 'reel' ? 'reel' : 'p'"
-        />
-        <NuxtLink class="ig-src" :to="`/publication/${item.id}`">Ouvrir la publication</NuxtLink>
+        <PublicationCard :publication="item" />
       </li>
     </ul>
   </section>

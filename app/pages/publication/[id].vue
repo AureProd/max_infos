@@ -28,12 +28,9 @@ useSeoMeta({
     <article v-if="item" class="notepage">
       <NuxtLink class="back" to="/">← Retour</NuxtLink>
 
-      <InstagramEmbed
-        v-if="item.shortcode"
-        :shortcode="item.shortcode"
-        :kind="item.mediaType === 'reel' ? 'reel' : 'p'"
-        style="max-width: 400px"
-      />
+      <div style="max-width: 400px">
+        <PublicationCard :publication="item" />
+      </div>
 
       <p v-if="item.caption" class="cap">{{ item.caption }}</p>
 

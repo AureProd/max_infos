@@ -86,7 +86,14 @@ const ATTENDU: Record<string, Attente> = {
     corps: { filename: 'photo.png', contentType: 'image/png', bytes: 1024 },
   },
   'GET /api/admin/tags': { anonyme: 401, editor: 200, tech: 200 },
+  'GET /api/admin/social-posts': { anonyme: 401, editor: 200, tech: 200 },
+
+  // --- Réservé au rôle technique -------------------------------------------
   'GET /api/admin/users': { anonyme: 401, editor: 403, tech: 200 },
+  'GET /api/admin/instagram/status': { anonyme: 401, editor: 403, tech: 200 },
+  // 409 et non 200 : Instagram n'est pas connecté dans les tests. Ce qui
+  // compte ici est qu'un `editor` reçoive 403 AVANT d'en arriver là.
+  'POST /api/admin/instagram/sync': { anonyme: 401, editor: 403, tech: 409 },
 }
 
 /**
