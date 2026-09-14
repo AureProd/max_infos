@@ -98,20 +98,14 @@ export const templatesSchema = z.object({
   reel: z.string().max(8000),
 })
 
-export const instagramPublicSchema = z.object({
-  handle: z.string().max(120).default(''),
-  url: z.string().max(600).default(''),
-  name: z.string().nullable().default(null),
-  biography: z.string().nullable().default(null),
-  avatar: z.string().nullable().default(null),
-  followers: z.number().nullable().default(null),
-  posts: z.number().nullable().default(null),
-  syncAt: z.string().nullable().default(null),
-})
-
-/** Réglages TECHNIQUES : jamais renvoyés par /api/site. */
+/**
+ * Réglages TECHNIQUES d'Instagram : jamais renvoyés par /api/site.
+ *
+ * Le profil public a quitté les réglages : il vit dans `social_account`,
+ * une ligne par compte, alimentée par la synchronisation. Un réglage unique
+ * ne pouvait décrire qu'un seul compte.
+ */
 export const instagramSchema = z.object({
-  accountId: z.string().max(120).default(''),
   syncIntervalMinutes: z.number().int().min(5).default(60),
   lastSyncAt: z.string().nullable().default(null),
 })
@@ -129,7 +123,6 @@ export const SETTING_SCHEMAS = {
   theme: themeSchema,
   seo: seoSchema,
   templates: templatesSchema,
-  instagram_public: instagramPublicSchema,
   instagram: instagramSchema,
   storage: storageSchema,
 } as const
@@ -150,7 +143,6 @@ export const SETTING_SCOPE: Record<SettingKey, 'public' | 'tech'> = {
   theme: 'public',
   seo: 'public',
   templates: 'public',
-  instagram_public: 'public',
   instagram: 'tech',
   storage: 'tech',
 }
@@ -182,7 +174,6 @@ export const SETTING_DEFAULTS: { [K in SettingKey]: SettingValue<K> } = {
   theme: themeSchema.parse({}),
   seo: seoSchema.parse({}),
   templates: { linkedin: '', reel: '' },
-  instagram_public: instagramPublicSchema.parse({}),
   instagram: instagramSchema.parse({}),
   storage: storageSchema.parse({}),
 }

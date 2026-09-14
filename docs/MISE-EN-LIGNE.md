@@ -172,9 +172,14 @@ NUXT_SCHEDULER_ENABLED=true
 ```
 
 Le **jeton ne se met pas dans le `.env`** : il s'obtient depuis le site.
-Rédaction → **Technique** → *Connecter Instagram*. Le jeton revient
+Rédaction → **Réseaux** → *Connecter un compte*. Le jeton revient
 d'Instagram, est échangé contre un jeton de 60 jours, puis chiffré en base
-(AES-256-GCM). L'écran affiche son âge et alerte avant l'expiration.
+(AES-256-GCM) sous une clé propre au compte. L'écran affiche son âge et
+alerte avant l'expiration.
+
+L'opération se répète pour **chaque compte** à afficher : chacun aura sa
+section sur l'accueil, dans l'ordre et au nombre de publications réglés
+depuis ce même écran.
 
 > `NUXT_SCHEDULER_ENABLED=true` sur **une seule** instance. Le
 > dédoublonnage des tâches Nitro est *par instance* : deux répliques à
@@ -291,7 +296,7 @@ Puis, dans le navigateur :
 
 1. `https://unmaxdinfo.fr/connexion` → se connecter avec l'adresse de
    `NUXT_BOOTSTRAP_TECH_EMAIL`.
-2. **Technique** → *Connecter Instagram*, puis *Synchroniser maintenant*.
+2. **Réseaux** → *Connecter un compte*, puis *Tout synchroniser*.
 3. **Technique** → créer le compte de Max avec le rôle `editor`, et lui
    demander de se connecter une fois.
 4. **À propos** → téléverser la photo et le CV en PDF (vérifie R2).
@@ -313,6 +318,6 @@ Puis, dans le navigateur :
 | Connexion Google → retour à `/connexion` | Adresse absente de la liste blanche, ou hors des *Test users*. |
 | `redirect_uri_mismatch` | L'URI déclarée chez Google diffère d'un caractère. Elle inclut le schéma, le port et le chemin. |
 | Téléversement refusé, erreur CORS | Le `PUT` depuis l'origine du site n'est pas autorisé sur le bucket R2. |
-| Instagram : « le jeton ne se rafraîchit plus » | Passé 60 jours, il est mort. Refaire *Connecter Instagram*. |
+| Instagram : « le jeton ne se rafraîchit plus » | Passé 60 jours, il est mort. Refaire *Connecter un compte* pour le même compte : il retombe sur sa ligne, ordre et réglages préservés. |
 | Cookie de session jamais posé | SSL en *Flexible* chez Cloudflare, ou site servi en clair. |
 | Le déploiement ne part pas | L'environnement `production` n'existe pas dans les Settings du dépôt. |

@@ -4,10 +4,6 @@ definePageMeta({ middleware: 'redaction' })
 const { peut } = useUtilisateur()
 const voitLaTechnique = peut('tech')
 
-const route = useRoute()
-/** Message de retour du flux OAuth Instagram, porté par l'URL. */
-const retourInstagram = computed(() => route.query.instagram as string | undefined)
-
 // Le serveur refuse de toute façon : cet appel échouerait en 403 pour un
 // compte `editor`. La garde ci-dessous évite seulement d'afficher une page
 // d'erreur à quelqu'un qui n'a rien demandé.
@@ -19,36 +15,6 @@ const { data: comptes, error } = await useFetch('/api/admin/users', {
 watchEffect(() => {
   if (voitLaTechnique.value && !comptes.value && !error.value) refreshNuxtData('admin-users')
 })
-
-const { data: instagram, refresh: rafraichirInstagram } = await useFetch(
-  '/api/admin/instagram/status',
-  { key: 'ig-status', immediate: false },
-)
-
-watchEffect(() => {
-  if (voitLaTechnique.value && !instagram.value) refreshNuxtData('ig-status')
-})
-
-const synchro = ref<'repos' | 'en cours' | 'échec'>('repos')
-const messageSynchro = ref('')
-
-async function synchroniser(): Promise<void> {
-  synchro.value = 'en cours'
-  messageSynchro.value = ''
-  try {
-    // Pas de type explicite : celui de Nitro est déduit du handler, si
-    // bien qu'un champ renommé côté serveur fait échouer `pnpm typecheck`
-    // ici. Un type écrit à la main aurait accepté n'importe quoi.
-    const bilan = await $fetch('/api/admin/instagram/sync', { method: 'POST' })
-    messageSynchro.value = `${bilan.vues} publication(s) vue(s), ${bilan.nouvelles} nouvelle(s).`
-    synchro.value = 'repos'
-    await rafraichirInstagram()
-  } catch (e) {
-    synchro.value = 'échec'
-    messageSynchro.value =
-      (e as { statusMessage?: string }).statusMessage ?? 'Synchronisation impossible'
-  }
-}
 
 const importEtat = ref<'repos' | 'en cours' | 'échec'>('repos')
 const importMessage = ref('')
@@ -98,41 +64,11 @@ useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
       </p>
 
       <template v-else>
-        <h2>Instagram</h2>
-        <p v-if="retourInstagram === 'ok'" class="ok">Instagram est connecté.</p>
-        <p v-else-if="retourInstagram === 'refus'" class="err">
-          L'autorisation a été refusée côté Instagram.
-        </p>
-
-        <p v-if="!instagram?.connecte" class="hint">
-          Aucun jeton enregistré. La découverte des publications est à l'arrêt.
-        </p>
-        <p v-else class="hint">
-          Jeton enregistré il y a {{ instagram.jetonAgeJours }} jour(s).
-          <strong v-if="instagram.jetonAlerte">
-            À renouveler : passé 60 jours, il ne se rafraîchit plus et il faut tout refaire.
-          </strong>
-          Dernière synchronisation :
-          {{ instagram.derniereSync ? instagram.derniereSync.slice(0, 10) : 'jamais' }}.
-        </p>
-
-        <div class="cluster">
-          <a class="btn btn-primary" href="/api/admin/instagram/connect">
-            {{ instagram?.connecte ? 'Reconnecter Instagram' : 'Connecter Instagram' }}
-          </a>
-          <button
-            class="btn"
-            type="button"
-            :disabled="!instagram?.connecte || synchro === 'en cours'"
-            @click="synchroniser"
-          >
-            {{ synchro === 'en cours' ? 'Synchronisation…' : 'Synchroniser maintenant' }}
-          </button>
-        </div>
-        <p v-if="messageSynchro" :class="synchro === 'échec' ? 'err' : 'hint'">
-          {{ messageSynchro }}
-        </p>
-
+        <!--
+          Instagram n'est plus ici : les comptes appartiennent à Max, et se
+          règlent dans l'écran Réseaux. Ne restent au technique que les
+          secrets de l'infrastructure et les comptes autorisés.
+        -->
         <h2>Sauvegarde</h2>
         <p class="hint">
           L'export est une archive zip : les données en JSON, les articles en Markdown lisibles

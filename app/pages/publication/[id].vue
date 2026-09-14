@@ -45,11 +45,16 @@ useSeoMeta({
           {{ frDate(item.postedAt.slice(0, 10)) }}
         </time>
         <a
-          :href="item.permalink ?? item.url ?? site?.instagram_public.url"
+          v-if="item.permalink ?? item.url ?? item.accountUsername"
+          :href="
+            item.permalink ??
+            item.url ??
+            `https://www.instagram.com/${item.accountUsername}`
+          "
           target="_blank"
           rel="noopener"
         >
-          {{ site?.instagram_public.handle }}
+          {{ item.accountUsername ? `@${item.accountUsername}` : 'Voir la publication ↗' }}
         </a>
       </div>
 

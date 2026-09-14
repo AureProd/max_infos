@@ -11,30 +11,37 @@ const { data: liees } = await useFetch('/api/social-posts', { key: 'publications
 
 /** Les publications découvertes et non encore rattachées : le travail à faire. */
 const aRattacher = computed(
-  () => (publications.value ?? []).filter((p) => !p.hidden && !rattachements.value[p.id]).length,
+  () => (publications.value ?? []).filter((p) => !p.hidden && !p.articleSlug).length,
 )
 
-/** Quel article porte chaque publication, pour l'afficher sans requête de plus. */
-const rattachements = ref<Record<number, string>>({})
+/**
+ * Le filtre par compte.
+ *
+ * Purement local : la liste est déjà chargée, et la trier côté serveur
+ * coûterait une requête par clic.
+ */
+const compteFiltre = ref('')
 
-async function chargerRattachements(): Promise<void> {
-  const table: Record<number, string> = {}
-  for (const a of articles.value ?? []) {
-    const detail = await $fetch<{ declinaisons: { id: number }[] }>(
-      `/api/articles/${a.slug}`,
-    ).catch(() => null)
-    for (const d of detail?.declinaisons ?? []) table[d.id] = a.slug
+const comptes = computed(() => {
+  const vus = new Map<number, string>()
+  for (const p of publications.value ?? []) {
+    if (p.accountId && p.accountUsername) vus.set(p.accountId, p.accountUsername)
   }
-  rattachements.value = table
-}
-await chargerRattachements()
+  return [...vus].map(([id, username]) => ({ id, username }))
+})
+
+const visibles = computed(() =>
+  compteFiltre.value === ''
+    ? (publications.value ?? [])
+    : (publications.value ?? []).filter((p) => String(p.accountId ?? '') === compteFiltre.value),
+)
 
 async function rattacher(id: number, slug: string): Promise<void> {
   await $fetch(`/api/admin/social-posts/${id}/article`, {
     method: 'PUT',
     body: { articleSlug: slug || null },
   })
-  await chargerRattachements()
+  await refresh()
 }
 
 async function basculerVisibilite(id: number, hidden: boolean): Promise<void> {
@@ -100,10 +107,18 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
         <p v-if="erreurSaisie" class="err">{{ erreurSaisie }}</p>
       </form>
 
+      <div v-if="comptes.length > 1" class="field" style="margin-bottom: 16px">
+        <label for="p-compte">Compte</label>
+        <select id="p-compte" v-model="compteFiltre">
+          <option value="">— tous les comptes —</option>
+          <option v-for="c in comptes" :key="c.id" :value="String(c.id)">@{{ c.username }}</option>
+        </select>
+      </div>
+
       <p v-if="!publications?.length" class="empty">Aucune publication pour l'instant.</p>
 
       <ul v-else class="list">
-        <li v-for="p in publications" :key="p.id">
+        <li v-for="p in visibles" :key="p.id">
           <div class="entry">
             <div>
               <h3>
@@ -114,6 +129,7 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
               </h3>
               <div class="meta">
                 <span class="pill">{{ p.network }}</span>
+                <span v-if="p.accountUsername">@{{ p.accountUsername }}</span>
                 <span v-if="p.mediaType">{{ p.mediaType }}</span>
                 <span class="pill">{{ p.source === 'api' ? 'découverte' : 'saisie' }}</span>
                 <time v-if="p.postedAt" :datetime="p.postedAt">
@@ -125,7 +141,7 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
 
             <div class="cluster">
               <select
-                :value="rattachements[p.id] ?? ''"
+                :value="p.articleSlug ?? ''"
                 aria-label="Article rattaché"
                 @change="rattacher(p.id, ($event.target as HTMLSelectElement).value)"
               >

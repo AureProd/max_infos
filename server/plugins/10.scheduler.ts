@@ -1,6 +1,7 @@
 import {
+  comptesInstagram,
+  enregistrerCompte,
   enregistrerJeton,
-  enregistrerProfil,
   lireJeton,
   lireMedias,
   lireProfil,
@@ -31,38 +32,51 @@ export default defineNitroPlugin(() => {
     `[planificateur] actif — synchronisation Instagram toutes les ${intervalle / 60_000} min`,
   )
 
+  /**
+   * Chaque compte est traité SÉPARÉMENT, échec compris.
+   *
+   * Un jeton expiré sur un compte ne doit pas priver les autres de leur
+   * synchronisation : l'erreur est journalisée, la boucle continue.
+   */
   const synchro = async (): Promise<void> => {
-    try {
-      const jeton = await lireJeton()
-      if (!jeton) return
-      const bilan = await synchroniser(await lireMedias(jeton))
-      if (bilan.nouvelles > 0) {
-        console.info(`[instagram] ${bilan.nouvelles} nouvelle(s) publication(s)`)
+    for (const compte of await comptesInstagram()) {
+      try {
+        const jeton = await lireJeton(compte.id)
+        if (!jeton) continue
+        const bilan = await synchroniser(await lireMedias(jeton), compte.id)
+        if (bilan.nouvelles > 0) {
+          console.info(`[instagram] @${compte.username} : ${bilan.nouvelles} nouvelle(s)`)
+        }
+        await enregistrerCompte(await lireProfil(jeton))
+      } catch (e) {
+        // Une synchronisation en échec ne doit pas arrêter le serveur : la
+        // suivante retentera dans une heure.
+        console.error(`[instagram] @${compte.username} en échec :`, (e as Error).message)
       }
-      await enregistrerProfil(await lireProfil(jeton))
-    } catch (e) {
-      // Une synchronisation en échec ne doit pas arrêter le serveur : la
-      // suivante retentera dans une heure.
-      console.error('[instagram] synchronisation en échec :', (e as Error).message)
     }
   }
 
   /**
-   * Rafraîchissement quotidien du jeton.
+   * Rafraîchissement quotidien des jetons.
    *
    * À faire AVANT l'expiration : passé les 60 jours, un jeton ne se
    * rafraîchit plus et il faut refaire l'OAuth à la main. Quotidien laisse
    * donc soixante occasions de réussir.
    */
   const rafraichir = async (): Promise<void> => {
-    try {
-      const jeton = await lireJeton()
-      if (!jeton) return
-      const { access_token } = await rafraichirJeton(jeton)
-      await enregistrerJeton(access_token)
-      console.info('[instagram] jeton rafraîchi')
-    } catch (e) {
-      console.error('[instagram] rafraîchissement du jeton en échec :', (e as Error).message)
+    for (const compte of await comptesInstagram()) {
+      try {
+        const jeton = await lireJeton(compte.id)
+        if (!jeton) continue
+        const { access_token } = await rafraichirJeton(jeton)
+        await enregistrerJeton(compte.id, access_token)
+        console.info(`[instagram] jeton de @${compte.username} rafraîchi`)
+      } catch (e) {
+        console.error(
+          `[instagram] rafraîchissement de @${compte.username} en échec :`,
+          (e as Error).message,
+        )
+      }
     }
   }
 

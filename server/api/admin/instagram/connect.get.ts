@@ -2,9 +2,16 @@ import { randomBytes } from 'node:crypto'
 import { exigerRole } from '~~/server/utils/auth'
 import { urlAutorisation, urlDeRedirection } from '~~/server/utils/instagram'
 
-/** Envoie vers Instagram pour autoriser l'application. Rôle `tech`. */
+/**
+ * Envoie vers Instagram pour autoriser un compte. Rôle `editor`.
+ *
+ * Ouvrir l'OAuth à Max n'expose aucun secret : `instagramAppId` et
+ * `instagramAppSecret` restent dans la configuration du serveur, et le jeton
+ * obtenu repart chiffré en base. Ce qui se décide ici — quels comptes le site
+ * affiche — est son travail, pas celui de JB.
+ */
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'tech')
+  await exigerRole(event, 'editor')
   const config = useRuntimeConfig(event)
 
   if (!config.instagramAppId || !config.instagramAppSecret) {

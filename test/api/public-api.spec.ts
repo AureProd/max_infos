@@ -119,7 +119,9 @@ describe('GET /api/tags', () => {
 describe('GET /api/social-posts', () => {
   it('masque les publications cachées', async () => {
     const posts = await $fetch('/api/social-posts')
-    expect(posts.map((p) => p.shortcode)).toEqual(['ABC123'])
+    // MASQ1 est là : elle appartient à un compte masqué, ce qui la retire de
+    // l'ACCUEIL, pas de la liste générale. Les deux notions sont distinctes.
+    expect(posts.map((p) => p.shortcode)).toEqual(['ABC123', 'DEF456', 'MASQ1'])
   })
 
   it('n’expose JAMAIS la charge brute de Meta', async () => {
@@ -138,6 +140,44 @@ describe('GET /api/social-posts', () => {
 
   it('refuse un réseau inconnu', async () => {
     expect((await fetch('/api/social-posts?network=mastodon')).status).toBe(400)
+  })
+})
+
+describe('GET /api/social-accounts', () => {
+  it('ne renvoie que les comptes affichés sur l’accueil', async () => {
+    const comptes = await $fetch('/api/social-accounts')
+    expect(comptes.map((c) => c.username)).toEqual(['maxinfo'])
+  })
+
+  it('reprend l’identité du compte, telle qu’Instagram la donne', async () => {
+    // C'est la décision de conception : le libellé et la photo de la section
+    // viennent du compte connecté, ils ne se saisissent pas.
+    const [compte] = await $fetch('/api/social-accounts')
+    expect(compte?.displayName).toBe('Un Max d’info')
+    expect(compte?.avatarUrl).toBe('https://exemple.test/avatar.png')
+    expect(compte?.url).toBe('https://www.instagram.com/maxinfo')
+    expect(compte?.followers).toBe(120)
+  })
+
+  it('tronque au nombre de publications choisi, les plus récentes d’abord', async () => {
+    const [compte] = await $fetch('/api/social-accounts')
+    // postsOnHome vaut 1 dans le jeu de test : DEF456, plus ancienne, reste
+    // dehors.
+    expect(compte?.publications.map((p) => p.shortcode)).toEqual(['ABC123'])
+  })
+
+  it('ne montre ni publication masquée ni publication d’un compte masqué', async () => {
+    const brut = await (await fetch('/api/social-accounts')).text()
+    expect(brut).not.toContain('CACHE1')
+    expect(brut).not.toContain('MASQ1')
+    expect(brut).not.toContain('archives')
+  })
+
+  it('n’expose ni la charge brute de Meta ni le moindre jeton', async () => {
+    const brut = await (await fetch('/api/social-accounts')).text()
+    expect(brut).not.toContain('secret_meta')
+    expect(brut).not.toContain('ciphertext')
+    expect(brut).not.toContain('access_token')
   })
 })
 

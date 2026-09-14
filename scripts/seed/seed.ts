@@ -132,6 +132,27 @@ async function main(): Promise<void> {
   }
   console.log(`▸ ${ARTICLES.length} articles`)
 
+  // --- Le compte Instagram de la maquette ---------------------------------
+  //
+  // `externalId` porte une valeur repère plutôt que NULL : sous PostgreSQL
+  // deux NULL sont DISTINCTS, et un semis rejoué créerait un second compte
+  // au lieu de retrouver le premier. La première connexion réelle le
+  // remplacera par l'identifiant Meta.
+  const [compte] = await db
+    .insert(schema.socialAccount)
+    .values({
+      network: 'instagram',
+      externalId: 'maquette',
+      username: SITE.instagram.handle.replace(/^@/, ''),
+      followers: SITE.instagram.followers,
+      mediaCount: SITE.instagram.posts,
+    })
+    .onConflictDoUpdate({
+      target: [schema.socialAccount.network, schema.socialAccount.externalId],
+      set: { username: SITE.instagram.handle.replace(/^@/, '') },
+    })
+    .returning({ id: schema.socialAccount.id })
+
   // --- Publications Instagram réelles -------------------------------------
   let liees = 0
   for (const [i, m] of IG_MEDIA.entries()) {
@@ -139,6 +160,7 @@ async function main(): Promise<void> {
       .insert(schema.socialPost)
       .values({
         network: 'instagram',
+        accountId: compte?.id ?? null,
         externalId: m.shortcode,
         shortcode: m.shortcode,
         url: m.url,
@@ -152,7 +174,7 @@ async function main(): Promise<void> {
       })
       .onConflictDoUpdate({
         target: [schema.socialPost.network, schema.socialPost.externalId],
-        set: { url: m.url, permalink: m.url },
+        set: { url: m.url, permalink: m.url, accountId: compte?.id ?? null },
       })
       .returning({ id: schema.socialPost.id })
 
@@ -203,16 +225,6 @@ async function main(): Promise<void> {
     },
     theme: { variables: {} },
     templates: GABARITS_PAR_DEFAUT,
-    instagram_public: {
-      handle: SITE.instagram.handle,
-      url: SITE.instagram.url,
-      name: null,
-      biography: null,
-      avatar: null,
-      followers: null,
-      posts: null,
-      syncAt: null,
-    },
   }
 
   for (const [key, value] of Object.entries(reglages)) {

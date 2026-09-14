@@ -2,19 +2,21 @@ import { exigerRole } from '~~/server/utils/auth'
 import {
   allongerJeton,
   echangerCode,
+  enregistrerCompte,
   enregistrerJeton,
+  lireProfil,
   urlDeRedirection,
 } from '~~/server/utils/instagram'
 
 /**
  * Retour d'Instagram : échange le code contre un jeton long, chiffré en base.
  *
- * Rôle `tech` exigé ici AUSSI, et pas seulement à l'aller : sans cela,
+ * Le rôle est exigé ici AUSSI, et pas seulement à l'aller : sans cela,
  * n'importe qui connaissant l'URL pourrait y faire aboutir un code et
- * remplacer le jeton du site.
+ * remplacer le jeton d'un compte.
  */
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'tech')
+  await exigerRole(event, 'editor')
   const config = useRuntimeConfig(event)
   const q = getQuery(event)
 
@@ -22,7 +24,7 @@ export default defineEventHandler(async (event) => {
   deleteCookie(event, 'ig_oauth_state')
 
   if (q.error) {
-    return sendRedirect(event, `/redaction/technique?instagram=refus`)
+    return sendRedirect(event, `/redaction/reseaux?instagram=refus`)
   }
   if (!attendu || q.state !== attendu) {
     throw createError({
@@ -40,7 +42,14 @@ export default defineEventHandler(async (event) => {
     config.instagramAppSecret,
     urlDeRedirection(config.public.baseUrl),
   )
-  await enregistrerJeton(await allongerJeton(court, config.instagramAppSecret))
+  const jeton = await allongerJeton(court, config.instagramAppSecret)
 
-  return sendRedirect(event, '/redaction/technique?instagram=ok')
+  // Lire le profil AVANT d'enregistrer le jeton : c'est lui qui dit QUEL
+  // compte vient d'être autorisé. Sans cette lecture, on saurait qu'un
+  // compte a été connecté sans savoir lequel — et reconnecter un compte
+  // connu en créerait un doublon.
+  const compte = await enregistrerCompte(await lireProfil(jeton))
+  await enregistrerJeton(compte, jeton)
+
+  return sendRedirect(event, '/redaction/reseaux?instagram=ok')
 })

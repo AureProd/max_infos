@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import * as s from '../../server/database/schema'
@@ -29,12 +29,12 @@ afterAll(async () => {
 beforeEach(async () => {
   await sqlClient.unsafe(`truncate table
     article_view, article_social_post, article_tag, social_post,
-    article, tag, media, setting, secret, app_user
+    article, tag, media, setting, secret, app_user, social_account
     restart identity cascade`)
 })
 
 describe('schéma', () => {
-  it('crée les dix tables du plan', async () => {
+  it('crée les onze tables du plan', async () => {
     const lignes = await sqlClient<{ tablename: string }[]>`
       select tablename from pg_tables where schemaname = 'public' order by tablename`
     expect(lignes.map((l) => l.tablename)).toEqual([
@@ -46,6 +46,7 @@ describe('schéma', () => {
       'media',
       'secret',
       'setting',
+      'social_account',
       'social_post',
       'tag',
     ])
@@ -174,5 +175,45 @@ describe('schéma', () => {
         sqlClient.unsafe(`insert into setting (key, value, scope) values ('x', '{}', 'secret')`),
       'setting_scope',
     )
+  })
+
+  it('refuse deux comptes du même réseau pour un même identifiant externe', async () => {
+    // C'est la contrainte qui rend la reconnexion idempotente : sans elle,
+    // réautoriser un compte déjà connecté en créerait un second, et l'ordre
+    // comme la visibilité choisis par Max seraient perdus.
+    await db.insert(s.socialAccount).values({ network: 'instagram', externalId: 'IG-9' })
+    await refuseParLaContrainte(
+      () => db.insert(s.socialAccount).values({ network: 'instagram', externalId: 'IG-9' }),
+      'uq_social_account_network_external_id',
+    )
+  })
+
+  it('déconnecter un compte emporte ses publications ET leurs rattachements', async () => {
+    // La décision est assumée : déconnecter, c'est effacer. Le test existe
+    // parce qu'une cascade qu'on n'a jamais vue s'exécuter n'est qu'une
+    // intention.
+    const [compte] = await db
+      .insert(s.socialAccount)
+      .values({ network: 'instagram', externalId: 'IG-A' })
+      .returning()
+    const [autre] = await db
+      .insert(s.socialAccount)
+      .values({ network: 'instagram', externalId: 'IG-B' })
+      .returning()
+    const [art] = await db.insert(s.article).values({ slug: 'c', title: 'C' }).returning()
+    const [pub] = await db
+      .insert(s.socialPost)
+      .values({ network: 'instagram', externalId: 'P-A', accountId: compte!.id })
+      .returning()
+    await db
+      .insert(s.socialPost)
+      .values({ network: 'instagram', externalId: 'P-B', accountId: autre!.id })
+    await db.insert(s.articleSocialPost).values({ articleId: art!.id, socialPostId: pub!.id })
+
+    await db.delete(s.socialAccount).where(eq(s.socialAccount.id, compte!.id))
+
+    const restantes = await db.select().from(s.socialPost)
+    expect(restantes.map((p) => p.externalId)).toEqual(['P-B'])
+    expect(await db.select().from(s.articleSocialPost)).toEqual([])
   })
 })

@@ -128,10 +128,43 @@ export async function semerJeuDeTest(db: BaseDeTest): Promise<void> {
   if (ancien && tagMem)
     await db.insert(s.articleTag).values({ articleId: ancien.id, tagId: tagMem.id })
 
+  // Deux comptes Instagram : un affiché, un masqué. C'est le minimum pour
+  // que « une section par compte » se vérifie, et pour qu'un test de fuite
+  // ait quelque chose à ne PAS laisser passer.
+  const [compte] = await db
+    .insert(s.socialAccount)
+    .values({
+      network: 'instagram',
+      externalId: 'IG-1',
+      username: 'maxinfo',
+      displayName: 'Un Max d’info',
+      biography: 'La bio venue d’Instagram',
+      avatarUrl: 'https://exemple.test/avatar.png',
+      followers: 120,
+      mediaCount: 7,
+      visible: true,
+      position: 0,
+      // Volontairement à 1 : la troncature doit se voir.
+      postsOnHome: 1,
+    })
+    .returning()
+
+  const [masque] = await db
+    .insert(s.socialAccount)
+    .values({
+      network: 'instagram',
+      externalId: 'IG-2',
+      username: 'archives',
+      visible: false,
+      position: 1,
+    })
+    .returning()
+
   const [post] = await db
     .insert(s.socialPost)
     .values({
       network: 'instagram',
+      accountId: compte?.id ?? null,
       externalId: 'ABC123',
       shortcode: 'ABC123',
       mediaType: 'reel',
@@ -146,9 +179,30 @@ export async function semerJeuDeTest(db: BaseDeTest): Promise<void> {
 
   await db.insert(s.socialPost).values({
     network: 'instagram',
+    accountId: compte?.id ?? null,
     externalId: 'CACHE1',
     shortcode: 'CACHE1',
     hidden: true,
+  })
+
+  // Plus ancienne que ABC123 : c'est elle que la troncature à une
+  // publication doit laisser de côté.
+  await db.insert(s.socialPost).values({
+    network: 'instagram',
+    accountId: compte?.id ?? null,
+    externalId: 'DEF456',
+    shortcode: 'DEF456',
+    postedAt: new Date('2026-01-01T12:00:00Z'),
+  })
+
+  // Visible en soi, mais rattachée au compte MASQUÉ : elle ne doit pas
+  // paraître sur l'accueil.
+  await db.insert(s.socialPost).values({
+    network: 'instagram',
+    accountId: masque?.id ?? null,
+    externalId: 'MASQ1',
+    shortcode: 'MASQ1',
+    postedAt: new Date('2025-06-01T12:00:00Z'),
   })
 
   if (publie && post)

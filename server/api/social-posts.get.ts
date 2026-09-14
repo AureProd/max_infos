@@ -1,7 +1,7 @@
 import { and, desc, eq } from 'drizzle-orm'
 import { listeSocialQuery } from '#shared/schemas/api'
 import { useBase } from '~~/server/database/client'
-import { article, articleSocialPost, socialPost } from '~~/server/database/schema'
+import { article, articleSocialPost, socialAccount, socialPost } from '~~/server/database/schema'
 import { iso } from '~~/server/utils/serialize'
 
 /**
@@ -28,8 +28,12 @@ export default defineEventHandler(async (event) => {
       thumbnailUrl: socialPost.thumbnailUrl,
       permalink: socialPost.permalink,
       postedAt: socialPost.postedAt,
+      // Le compte d'origine, pour que la page d'une publication sache sous
+      // quel @ la signer. Le nom d'utilisateur est public par nature.
+      accountUsername: socialAccount.username,
     })
     .from(socialPost)
+    .leftJoin(socialAccount, eq(socialAccount.id, socialPost.accountId))
 
   const lignes = slug
     ? await base

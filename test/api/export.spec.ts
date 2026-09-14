@@ -80,7 +80,7 @@ describe('export', () => {
   it('porte une version de schéma et des comptages', async () => {
     const fichiers = await telechargerArchive()
     const manifeste = JSON.parse(fichiers['manifest.json'] ?? '{}')
-    expect(manifeste.version).toBe(1)
+    expect(manifeste.version).toBe(2)
     expect(manifeste.comptages.articles).toBeGreaterThan(0)
   })
 
@@ -162,6 +162,7 @@ async function archiveEnObjet(): Promise<Record<string, unknown>> {
     liaisonsTags: liens.tags,
     liaisonsSocial: liens.social,
     media: lire('media/manifest.json'),
+    socialAccounts: lire('data/social_accounts.json'),
     socialPosts: lire('data/social_posts.json'),
     settings: lire('data/settings.json'),
     users: lire('data/users.json'),
@@ -170,6 +171,15 @@ async function archiveEnObjet(): Promise<Record<string, unknown>> {
 }
 
 describe('aller-retour complet', () => {
+  it('emporte les comptes sociaux — sinon les publications seraient orphelines', async () => {
+    // `social_post.account_id` pointe vers `social_account` : une archive
+    // qui oublierait les comptes rendrait la restauration impossible sur
+    // une base vierge, la clé étrangère refusant chaque publication.
+    const archive = await archiveEnObjet()
+    const comptes = archive.socialAccounts as { username: string }[]
+    expect(comptes.map((c) => c.username)).toContain('maxinfo')
+  })
+
   it('exporter, vider, réimporter : les données sont identiques', async () => {
     const avant = await archiveEnObjet()
 
@@ -192,6 +202,7 @@ describe('aller-retour complet', () => {
       'tags',
       'liaisonsTags',
       'media',
+      'socialAccounts',
       'socialPosts',
       'liaisonsSocial',
       'settings',

@@ -1,6 +1,7 @@
 import { exigerRole } from '~~/server/utils/auth'
 import {
-  enregistrerProfil,
+  comptesInstagram,
+  enregistrerCompte,
   lireJeton,
   lireMedias,
   lireProfil,
@@ -8,34 +9,53 @@ import {
 } from '~~/server/utils/instagram'
 
 /**
- * Synchronise les publications Instagram. Rôle `tech` EXIGÉ.
+ * Synchronise les publications Instagram. Rôle `editor`.
  *
- * Relève du technique parce qu'elle consomme le quota de l'API Meta et
- * manipule le jeton. Max voit le RÉSULTAT — les publications découvertes —
- * dans son écran Publications ; il n'a pas à déclencher la synchronisation.
+ * Elle relevait du technique quand la connexion elle-même en relevait. Les
+ * comptes appartiennent désormais à Max : il les connecte, il les affiche,
+ * il les resynchronise. Les secrets de l'application Meta, eux, ne quittent
+ * toujours pas le serveur.
+ *
+ * Un compte en échec — jeton expiré, quota atteint — est SIGNALÉ, il
+ * n'interrompt pas les autres.
  */
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'tech')
+  await exigerRole(event, 'editor')
 
-  const jeton = await lireJeton()
-  if (!jeton) {
+  const demande = Number(getQuery(event).compte)
+  const tous = await comptesInstagram()
+  const comptes =
+    Number.isFinite(demande) && demande > 0 ? tous.filter((c) => c.id === demande) : tous
+
+  if (comptes.length === 0) {
     throw createError({
       statusCode: 409,
-      statusMessage: "Instagram n'est pas connecté. Passer par « Connecter Instagram ».",
+      statusMessage: 'Aucun compte Instagram connecté. Passer par « Connecter un compte ».',
     })
   }
 
-  const medias = await lireMedias(jeton)
-  const bilan = await synchroniser(medias)
-
-  // Le profil aussi : fin des chiffres inventés de la maquette.
-  try {
-    await enregistrerProfil(await lireProfil(jeton))
-  } catch (e) {
-    // Un profil illisible ne doit pas annuler une synchronisation réussie.
-    console.warn('[instagram] profil illisible :', (e as Error).message)
+  const bilans = []
+  for (const compte of comptes) {
+    try {
+      const jeton = await lireJeton(compte.id)
+      if (!jeton) {
+        bilans.push({ ...compte, vues: 0, nouvelles: 0, erreur: 'Jeton absent — reconnecter' })
+        continue
+      }
+      const bilan = await synchroniser(await lireMedias(jeton), compte.id)
+      // Le profil aussi : c'est lui qui porte le libellé et la photo de la
+      // section, et il change sans prévenir.
+      await enregistrerCompte(await lireProfil(jeton))
+      bilans.push({ ...compte, ...bilan, erreur: null })
+    } catch (e) {
+      bilans.push({ ...compte, vues: 0, nouvelles: 0, erreur: (e as Error).message })
+    }
   }
 
   setResponseStatus(event, 202)
-  return bilan
+  return {
+    vues: bilans.reduce((n, b) => n + b.vues, 0),
+    nouvelles: bilans.reduce((n, b) => n + b.nouvelles, 0),
+    comptes: bilans,
+  }
 })

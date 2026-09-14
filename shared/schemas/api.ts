@@ -113,6 +113,22 @@ export const visibilitePublication = z.object({
 })
 
 /**
+ * L'affichage d'un compte sur l'accueil.
+ *
+ * Tout est facultatif : l'écran envoie le seul champ qu'on vient de toucher
+ * — une flèche ↑, un interrupteur — plutôt que de renvoyer l'état entier et
+ * risquer d'écraser un réglage modifié entre-temps.
+ *
+ * L'identité du compte (nom, photo, bio) n'est PAS ici : elle vient
+ * d'Instagram et ne se saisit pas.
+ */
+export const affichageCompte = z.object({
+  visible: z.boolean().optional(),
+  position: z.number().int().min(0).max(100).optional(),
+  postsOnHome: z.number().int().min(1).max(50).optional(),
+})
+
+/**
  * Gabarits de déclinaison, éditables par Max.
  *
  * Les variables sont résolues à partir de l'article : {{titre}}, {{chapo}},

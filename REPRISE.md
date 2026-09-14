@@ -24,18 +24,42 @@
 | 4 — OAuth Google, rôles, sessions | ✅ |
 | 5 — Back-office : articles, médias, tags | ✅ |
 | 6 — Instagram : jeton chiffré, synchronisation, cartes maison | ✅ |
+| 6 bis — Plusieurs comptes Instagram, réglés depuis l'écran Réseaux | ✅ |
 | 7 — Rattachement, LinkedIn manuel, gabarits | ✅ |
 | 8 — Réglages : accueil, CV, contact, apparence | ✅ |
 | 9 — Référencement : flux, plan du site, JSON-LD, cache | ✅ |
 | 10 — Export / import avec aller-retour vérifié | ✅ |
 | 11 — CI, compose de production, déploiement | ✅ écrit, **pas encore exécuté** |
 
-**304 tests.** `pnpm verify` et `pre-commit run --all-files` passent.
+**337 tests.** `pnpm verify` et `pre-commit run --all-files` passent.
 
 Le back-office est complet : tableau de bord, articles avec couverture et
-panneau Décliner, publications, accueil, CV illustré (photo + PDF),
-apparence, et un écran Technique qui connecte Instagram, synchronise et
-sauvegarde.
+panneau Décliner, publications, **Réseaux**, accueil, CV illustré (photo +
+PDF), apparence, et un écran Technique qui garde la sauvegarde et les comptes
+autorisés.
+
+### Plusieurs comptes Instagram
+
+Le compte Instagram était un jeton unique dans `secret` et un profil figé dans
+le réglage `instagram_public`. C'est désormais une table, `social_account` :
+une ligne par compte, un jeton par compte (`instagram_access_token:<id>`), et
+`social_post.account_id` qui dit d'où vient chaque publication.
+
+- **L'accueil affiche une section par compte**, dans l'ordre et au nombre de
+  publications choisis. Le nom, la photo et la bio viennent du profil Meta à
+  chaque synchronisation : rien ne se saisit à la main.
+- **`/redaction/reseaux`**, ouvert au rôle `editor` : connecter un compte,
+  l'ordonner, le masquer, le resynchroniser, le déconnecter. Instagram a
+  quitté l'écran Technique — les secrets de l'application Meta, eux, ne
+  quittent pas le serveur.
+- **Déconnecter efface** le compte, ses publications et leurs rattachements
+  (cascade SQL vérifiée par un test). L'écran annonce le nombre de
+  publications concernées avant de le faire.
+- L'archive d'export passe en **version 2** : elle emporte `social_account`,
+  sans quoi une restauration sur base vierge échouerait sur la clé étrangère.
+- Le réglage `instagram_public` a disparu des schémas. La migration `0004` ne
+  supprime ni son enregistrement ni l'ancienne clé de jeton : l'ancien
+  conteneur les lit encore pendant le déploiement.
 
 ## ⚠ Ce qui t'attend, et qui bloque la mise en ligne
 

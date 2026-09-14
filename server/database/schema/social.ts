@@ -22,11 +22,64 @@ import {
   uneValeurParmi,
 } from './enums'
 
+/**
+ * Un compte de réseau social connecté.
+ *
+ * Il n'existait pas tant qu'il n'y en avait qu'un : le « compte Instagram »
+ * se réduisait alors à un jeton dans `secret` et à un profil figé dans
+ * `setting`. Plusieurs comptes en font une entité — c'est elle qui porte le
+ * jeton (par sa clé), l'identité affichée et la façon dont sa section paraît
+ * sur l'accueil.
+ *
+ * L'identité affichée (`username`, `displayName`, `biography`, `avatarUrl`,
+ * les compteurs) est TOUJOURS reprise du profil Meta à la synchronisation :
+ * elle ne se saisit pas à la main, et une correction faite sur Instagram
+ * arrive ici toute seule.
+ */
+export const socialAccount = pgTable(
+  'social_account',
+  {
+    id: integer().generatedByDefaultAsIdentity().primaryKey(),
+    network: text().$type<SocialNetwork>().notNull(),
+    // L'identifiant du compte chez Meta. Nullable : la reprise de l'unique
+    // compte d'avant peut ne pas le connaître, la première synchronisation
+    // le renseigne.
+    externalId: text(),
+    username: text(),
+    displayName: text(),
+    biography: text(),
+    avatarUrl: text(),
+    followers: integer(),
+    mediaCount: integer(),
+    /** L'interrupteur de Max : le compte est connecté, mais paraît-il ? */
+    visible: boolean().notNull().default(true),
+    /** L'ordre des sections sur l'accueil. */
+    position: integer().notNull().default(0),
+    /** Combien de publications la section montre. */
+    postsOnHome: integer().notNull().default(6),
+    lastSyncAt: timestamp({ withTimezone: true, mode: 'date' }),
+    ...horodatage,
+  },
+  (t) => [
+    // La cible de l'onConflictDoUpdate de la connexion et de la synchro :
+    // reconnecter un compte déjà connu doit retomber sur SA ligne, et donc
+    // préserver l'ordre, la visibilité et le nombre de publications que Max
+    // a choisis. Sans contrainte d'unicité, l'upsert échouerait seulement à
+    // l'exécution.
+    uniqueIndex('uq_social_account_network_external_id').on(t.network, t.externalId),
+    check('social_account_network', uneValeurParmi(t.network, SOCIAL_NETWORK)),
+  ],
+)
+
 export const socialPost = pgTable(
   'social_post',
   {
     id: integer().generatedByDefaultAsIdentity().primaryKey(),
     network: text().$type<SocialNetwork>().notNull(),
+    // De quel compte vient la publication. Nul pour LinkedIn et pour les
+    // saisies manuelles, qui n'en ont pas. En cascade : déconnecter un
+    // compte emporte ses publications, c'est ce qui a été décidé.
+    accountId: integer().references(() => socialAccount.id, { onDelete: 'cascade' }),
     // Nul pour les publications LinkedIn saisies à la main : leur
     // découverte automatique est impossible (le scope r_member_social est
     // fermé aux nouvelles applications).

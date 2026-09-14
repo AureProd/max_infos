@@ -50,6 +50,7 @@ export default defineEventHandler(async (event) => {
     tags: archive.liaisonsTags,
     social: archive.liaisonsSocial,
   })
+  ajouter('data/social_accounts.json', archive.socialAccounts)
   ajouter('data/social_posts.json', archive.socialPosts)
   ajouter('data/settings.json', archive.settings)
   ajouter('data/users.json', archive.users)

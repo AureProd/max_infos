@@ -2,7 +2,7 @@ import { relations } from 'drizzle-orm'
 import { articleView } from './analytics'
 import { article, articleTag, tag } from './article'
 import { media } from './media'
-import { articleSocialPost, socialPost } from './social'
+import { articleSocialPost, socialAccount, socialPost } from './social'
 import { appUser } from './user'
 
 /**
@@ -30,7 +30,15 @@ export const mediaRelations = relations(media, ({ one }) => ({
   uploader: one(appUser, { fields: [media.uploadedBy], references: [appUser.id] }),
 }))
 
-export const socialPostRelations = relations(socialPost, ({ many }) => ({
+export const socialAccountRelations = relations(socialAccount, ({ many }) => ({
+  publications: many(socialPost),
+}))
+
+export const socialPostRelations = relations(socialPost, ({ one, many }) => ({
+  compte: one(socialAccount, {
+    fields: [socialPost.accountId],
+    references: [socialAccount.id],
+  }),
   articles: many(articleSocialPost),
 }))
 

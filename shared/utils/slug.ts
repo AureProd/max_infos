@@ -42,5 +42,6 @@ export const SLUGS_RESERVES = [
   'apropos',
   'articles',
   'publications',
+  'reseaux',
   'technique',
 ] as const

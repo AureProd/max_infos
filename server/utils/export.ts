@@ -8,6 +8,7 @@ import {
   articleView,
   media,
   setting,
+  socialAccount,
   socialPost,
   tag,
 } from '~~/server/database/schema'
@@ -26,7 +27,12 @@ import {
  * Version de schéma en tête : un import saura dire qu'il ne sait pas lire
  * une archive plus récente, au lieu d'écrire n'importe quoi.
  */
-export const VERSION_SCHEMA = 1
+/**
+ * 2 : l'archive emporte désormais `social_account`. Sans elle, une
+ * restauration sur base vierge échouerait, `social_post.account_id`
+ * pointant vers des comptes inexistants.
+ */
+export const VERSION_SCHEMA = 2
 
 export interface Archive {
   manifest: {
@@ -38,6 +44,7 @@ export interface Archive {
   tags: unknown[]
   liaisonsTags: unknown[]
   media: unknown[]
+  socialAccounts: unknown[]
   socialPosts: unknown[]
   liaisonsSocial: unknown[]
   settings: unknown[]
@@ -53,6 +60,7 @@ export async function construireExport(): Promise<Archive> {
     sujets,
     liaisonsTags,
     medias,
+    comptesSociaux,
     publications,
     liaisonsSocial,
     reglages,
@@ -63,6 +71,7 @@ export async function construireExport(): Promise<Archive> {
     db.select().from(tag).orderBy(asc(tag.slug)),
     db.select().from(articleTag),
     db.select().from(media).orderBy(asc(media.id)),
+    db.select().from(socialAccount).orderBy(asc(socialAccount.id)),
     db.select().from(socialPost).orderBy(asc(socialPost.id)),
     db.select().from(articleSocialPost),
     db.select().from(setting).orderBy(asc(setting.key)),
@@ -88,6 +97,7 @@ export async function construireExport(): Promise<Archive> {
         articles: articles.length,
         tags: sujets.length,
         media: medias.length,
+        socialAccounts: comptesSociaux.length,
         socialPosts: publications.length,
         settings: reglages.length,
         users: comptes.length,
@@ -98,6 +108,7 @@ export async function construireExport(): Promise<Archive> {
     tags: sujets,
     liaisonsTags,
     media: medias,
+    socialAccounts: comptesSociaux,
     socialPosts: publications,
     liaisonsSocial,
     settings: reglages,
@@ -147,7 +158,7 @@ export async function appliquerImport(
     // doit pas pouvoir effacer les jetons d'accès aux comptes tiers.
     await db.execute(sql`truncate table
       article_view, article_social_post, article_tag, social_post,
-      article, tag, media, setting, app_user
+      social_account, article, tag, media, setting, app_user
       restart identity cascade`)
   }
 
@@ -156,7 +167,14 @@ export async function appliquerImport(
    * objets Date. Sans cette conversion, l'insertion échoue sur chaque
    * horodatage.
    */
-  const CHAMPS_DATE = new Set(['createdAt', 'updatedAt', 'publishedAt', 'postedAt', 'lastLoginAt'])
+  const CHAMPS_DATE = new Set([
+    'createdAt',
+    'updatedAt',
+    'publishedAt',
+    'postedAt',
+    'lastLoginAt',
+    'lastSyncAt',
+  ])
 
   const revivre = <T>(lignes: T[]): T[] =>
     (lignes ?? []).map((ligne) => {
@@ -186,6 +204,8 @@ export async function appliquerImport(
   await inserer('media', media as never, archive.media as never[])
   await inserer('tags', tag as never, archive.tags as never[])
   await inserer('articles', article as never, archive.articles as never[])
+  // Les comptes AVANT les publications : celles-ci les référencent.
+  await inserer('socialAccounts', socialAccount as never, archive.socialAccounts as never[])
   await inserer('socialPosts', socialPost as never, archive.socialPosts as never[])
   await inserer('liaisonsTags', articleTag as never, archive.liaisonsTags as never[])
   await inserer('liaisonsSocial', articleSocialPost as never, archive.liaisonsSocial as never[])
@@ -200,7 +220,7 @@ export async function appliquerImport(
    * qu'au premier article écrit APRÈS l'import, donc longtemps après qu'on
    * ait cru l'opération réussie.
    */
-  for (const table of ['article', 'tag', 'media', 'social_post', 'app_user']) {
+  for (const table of ['article', 'tag', 'media', 'social_account', 'social_post', 'app_user']) {
     await db.execute(
       sql`select setval(
         pg_get_serial_sequence(${table}, 'id'),

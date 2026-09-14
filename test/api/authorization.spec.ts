@@ -112,6 +112,26 @@ const ATTENDU: Record<string, Attente> = {
   },
   'GET /api/admin/articles/[slug]/declinaisons': { anonyme: 401, editor: 200, tech: 200 },
 
+  // Les comptes sociaux appartiennent à Max : il les connecte, les ordonne,
+  // les masque et les déconnecte. Les secrets de l'application Meta, eux,
+  // ne quittent pas le serveur.
+  'GET /api/admin/social-accounts': { anonyme: 401, editor: 200, tech: 200 },
+  'PUT /api/admin/social-accounts/[id]': {
+    anonyme: 401,
+    editor: 404,
+    tech: 404,
+    corps: { visible: true },
+  },
+  'DELETE /api/admin/social-accounts/[id]': { anonyme: 401, editor: 404, tech: 404 },
+  // 409 : aucun compte connecté dans les tests. Ce qui compte est qu'un
+  // `editor` ne soit plus refusé.
+  'POST /api/admin/instagram/sync': { anonyme: 401, editor: 409, tech: 409 },
+  // 409 également : sans NUXT_INSTAGRAM_APP_ID, il n'y a nulle part où
+  // envoyer Max.
+  'GET /api/admin/instagram/connect': { anonyme: 401, editor: 409, tech: 409 },
+  // 400 : ni code ni état dans la requête de la matrice.
+  'GET /api/admin/instagram/callback': { anonyme: 401, editor: 400, tech: 400 },
+
   // --- Réservé au rôle technique -------------------------------------------
   'GET /api/admin/settings': { anonyme: 401, editor: 200, tech: 200 },
   // Un seul chemin, mais un rôle exigé qui DÉPEND DE LA CLÉ. La matrice
@@ -131,7 +151,6 @@ const ATTENDU: Record<string, Attente> = {
   },
 
   'GET /api/admin/users': { anonyme: 401, editor: 403, tech: 200 },
-  'GET /api/admin/instagram/status': { anonyme: 401, editor: 403, tech: 200 },
   'GET /api/admin/export': { anonyme: 401, editor: 403, tech: 200 },
   'POST /api/admin/import': {
     anonyme: 401,
@@ -140,16 +159,6 @@ const ATTENDU: Record<string, Attente> = {
     // Simulation : n'écrit rien, ce qui laisse la matrice sans effet de bord.
     corps: { archive: { manifest: { version: 1 } }, simulation: true },
   },
-  // 409 et non 200 : Instagram n'est pas connecté dans les tests. Ce qui
-  // compte ici est qu'un `editor` reçoive 403 AVANT d'en arriver là.
-  'POST /api/admin/instagram/sync': { anonyme: 401, editor: 403, tech: 409 },
-  // 409 également : sans NUXT_INSTAGRAM_APP_ID, il n'y a nulle part où
-  // envoyer Max. Le point vérifié reste le 403 de l'`editor`.
-  'GET /api/admin/instagram/connect': { anonyme: 401, editor: 403, tech: 409 },
-  // 400 : ni code ni état dans la requête de la matrice. Un `editor` doit
-  // être refusé AVANT ce contrôle — sans quoi n'importe qui pourrait faire
-  // aboutir un code et remplacer le jeton du site.
-  'GET /api/admin/instagram/callback': { anonyme: 401, editor: 403, tech: 400 },
 }
 
 /**

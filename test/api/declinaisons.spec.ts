@@ -85,6 +85,23 @@ describe('saisie manuelle', () => {
 })
 
 describe('rattachement', () => {
+  it('dit dans la LISTE à quel article chaque publication est rattachée', async () => {
+    // Sans cela, l'écran devait interroger chaque article un par un pour
+    // reconstituer la table — une requête par article, pour une information
+    // que la liste peut porter.
+    const liste = await $fetch('/api/admin/social-posts', { headers: auth() })
+    const id = liste[0]?.id as number
+    await $fetch(`/api/admin/social-posts/${id}/article`, {
+      method: 'PUT',
+      headers: auth(),
+      body: { articleSlug: 'un-article' },
+    })
+
+    const apres = await $fetch('/api/admin/social-posts', { headers: auth() })
+    expect(apres.find((p) => p.id === id)?.articleSlug).toBe('un-article')
+    expect(apres.find((p) => p.id !== id)?.articleSlug).toBeNull()
+  })
+
   it('rattache puis détache une publication', async () => {
     const liste = await $fetch('/api/admin/social-posts', { headers: auth() })
     const id = liste[0]?.id as number

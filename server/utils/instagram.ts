@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useBase } from '~~/server/database/client'
-import { secret, setting, socialPost } from '~~/server/database/schema'
+import { secret, socialAccount, socialPost } from '~~/server/database/schema'
 import { chiffrer, dechiffrer } from './crypto'
 
 /**
@@ -17,7 +17,16 @@ import { chiffrer, dechiffrer } from './crypto'
  */
 
 const BASE = 'https://graph.instagram.com'
-const CLE_JETON = 'instagram_access_token'
+
+/**
+ * La clé du jeton, DÉRIVÉE DU COMPTE.
+ *
+ * Il n'y avait qu'une clé tant qu'il n'y avait qu'un compte. Avec plusieurs,
+ * une clé unique ferait que le dernier compte connecté écraserait le jeton du
+ * précédent — sans erreur, sans trace, et l'ancien compte cesserait de se
+ * synchroniser.
+ */
+export const cleJeton = (compteId: number): string => `instagram_access_token:${compteId}`
 
 /**
  * Le client HTTP, injectable.
@@ -75,21 +84,28 @@ export function shortcodeDe(permalink: string): string | null {
   return permalink.match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/)?.[1] ?? null
 }
 
-export async function lireJeton(): Promise<string | null> {
+export async function lireJeton(compteId: number): Promise<string | null> {
   const [ligne] = await useBase()
     .select({ ciphertext: secret.ciphertext })
     .from(secret)
-    .where(eq(secret.key, CLE_JETON))
+    .where(eq(secret.key, cleJeton(compteId)))
     .limit(1)
   return ligne ? dechiffrer(ligne.ciphertext) : null
 }
 
-export async function enregistrerJeton(jeton: string): Promise<void> {
+export async function enregistrerJeton(compteId: number, jeton: string): Promise<void> {
   const ciphertext = chiffrer(jeton)
   await useBase()
     .insert(secret)
-    .values({ key: CLE_JETON, ciphertext })
+    .values({ key: cleJeton(compteId), ciphertext })
     .onConflictDoUpdate({ target: secret.key, set: { ciphertext, updatedAt: new Date() } })
+}
+
+/** Déconnecter un compte, c'est d'abord oublier son jeton. */
+export async function supprimerJeton(compteId: number): Promise<void> {
+  await useBase()
+    .delete(secret)
+    .where(eq(secret.key, cleJeton(compteId)))
 }
 
 /**
@@ -168,6 +184,7 @@ export async function lireMedias(
  */
 export async function synchroniser(
   medias: MediaInstagram[],
+  compteId: number,
 ): Promise<{ vues: number; nouvelles: number }> {
   const db = useBase()
   let nouvelles = 0
@@ -183,6 +200,7 @@ export async function synchroniser(
       .insert(socialPost)
       .values({
         network: 'instagram',
+        accountId: compteId,
         externalId: m.id,
         shortcode: shortcodeDe(m.permalink),
         url: m.permalink,
@@ -197,6 +215,9 @@ export async function synchroniser(
       .onConflictDoUpdate({
         target: [socialPost.network, socialPost.externalId],
         set: {
+          // accountId est repris : une publication déjà connue qui
+          // réapparaît sous un autre compte se range là où elle est.
+          accountId: compteId,
           caption: m.caption ?? null,
           thumbnailUrl: m.thumbnail_url ?? m.media_url ?? null,
           permalink: m.permalink,
@@ -212,22 +233,56 @@ export async function synchroniser(
   return { vues: medias.length, nouvelles }
 }
 
-/** Enregistre le profil dans `setting`, portée publique. Fin des chiffres inventés. */
-export async function enregistrerProfil(profil: ProfilInstagram): Promise<void> {
-  const valeur = {
-    handle: `@${profil.username}`,
-    url: `https://www.instagram.com/${profil.username}`,
-    name: profil.name ?? null,
+/**
+ * Enregistre le compte à partir du profil Meta, et renvoie son identifiant.
+ *
+ * L'identité affichée vient TOUJOURS d'ici : Max ne la saisit pas, et une
+ * correction faite sur Instagram remonte d'elle-même. En revanche `visible`,
+ * `position` et `postsOnHome` ne sont PAS touchés — ce sont ses décisions, et
+ * une synchronisation n'a pas à les défaire, exactement comme `hidden` et
+ * `position` sur les publications.
+ */
+export async function enregistrerCompte(profil: ProfilInstagram): Promise<number> {
+  const identite = {
+    username: profil.username,
+    displayName: profil.name ?? null,
     biography: profil.biography ?? null,
-    avatar: profil.profile_picture_url ?? null,
+    avatarUrl: profil.profile_picture_url ?? null,
     followers: profil.followers_count ?? null,
-    posts: profil.media_count ?? null,
-    syncAt: new Date().toISOString(),
+    mediaCount: profil.media_count ?? null,
+    lastSyncAt: new Date(),
   }
-  await useBase()
-    .insert(setting)
-    .values({ key: 'instagram_public', value: valeur, scope: 'public' })
-    .onConflictDoUpdate({ target: setting.key, set: { value: valeur, updatedAt: new Date() } })
+
+  const [ligne] = await useBase()
+    .insert(socialAccount)
+    .values({ network: 'instagram', externalId: profil.id, ...identite })
+    .onConflictDoUpdate({
+      target: [socialAccount.network, socialAccount.externalId],
+      set: { ...identite, updatedAt: new Date() },
+    })
+    .returning({ id: socialAccount.id })
+
+  if (!ligne) throw new Error("Le compte Instagram n'a pas pu être enregistré")
+  return ligne.id
+}
+
+/**
+ * Les comptes à synchroniser — masqués COMPRIS.
+ *
+ * Masquer un compte est une décision d'affichage, pas une rupture de la
+ * connexion : le réafficher doit montrer des publications à jour, pas un trou
+ * correspondant à la durée du masquage.
+ */
+export async function comptesInstagram() {
+  return await useBase()
+    .select({
+      id: socialAccount.id,
+      externalId: socialAccount.externalId,
+      username: socialAccount.username,
+    })
+    .from(socialAccount)
+    .where(eq(socialAccount.network, 'instagram'))
+    .orderBy(socialAccount.position, socialAccount.id)
 }
 
 /**

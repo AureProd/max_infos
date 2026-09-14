@@ -16,6 +16,7 @@ const ecrans = computed(() =>
     { to: '/redaction', libelle: 'Tableau de bord', tech: false },
     { to: '/redaction/articles', libelle: 'Articles', tech: false },
     { to: '/redaction/publications', libelle: 'Publications', tech: false },
+    { to: '/redaction/reseaux', libelle: 'Réseaux', tech: false },
     { to: '/redaction/accueil', libelle: 'Accueil', tech: false },
     { to: '/redaction/apropos', libelle: 'À propos', tech: false },
     { to: '/redaction/apparence', libelle: 'Apparence', tech: false },
