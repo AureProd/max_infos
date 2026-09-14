@@ -82,6 +82,34 @@ Ou, mieux, laisser tourner `docker compose watch` : il reconstruit tout seul
 dès que `package.json` ou `pnpm-lock.yaml` changent. Contrepartie : la
 commande occupe le terminal.
 
+### Travailler en HTTPS
+
+Par défaut le site est servi en clair. Pour passer en HTTPS, poser dans
+`.env.dev` :
+
+```
+URL_SCHEME=https
+NUXT_PUBLIC_BASE_URL=https://unmaxdinfo.localhost:8080
+```
+
+puis `./setup && docker compose up -d --force-recreate rp app`.
+
+**Pourquoi s'en soucier en développement** : un navigateur refuse les cookies
+`Secure` en clair, `SameSite` ne se comporte pas pareil, et Google exige des
+URI de redirection HTTPS. Déboguer l'authentification *et* le protocole en
+même temps est le meilleur moyen de ne comprendre ni l'un ni l'autre.
+
+`./setup` génère le certificat. Avec **mkcert** installé, il produit un
+certificat que le navigateur accepte — à condition d'avoir fait une fois :
+
+```bash
+mkcert -install     # ajoute l'autorité au magasin du système
+```
+
+Sans mkcert, il produit un certificat auto-signé : la plomberie fonctionne,
+mais le navigateur affiche un avertissement. Pour basculer ensuite, supprimer
+`deploy/certs/` et relancer `./setup`.
+
 ### Faire tourner plusieurs copies du dépôt
 
 ```bash

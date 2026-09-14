@@ -8,8 +8,18 @@
 entryPoints:
   web:
     address: ":80"
+${BLOC_REDIRECTION}
+  websecure:
+    address: ":443"
 
 providers:
+  # Les certificats du développement, relus à chaud. Le fichier n'existe
+  # qu'en HTTPS ; `directory` tolère son absence, là où `filename` ferait
+  # échouer le démarrage.
+  file:
+    directory: /dynamic
+    watch: true
+
   docker:
     exposedByDefault: false
     # Compose nomme le réseau d'après le projet, et Traefik n'applique pas

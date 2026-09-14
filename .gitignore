@@ -10,6 +10,8 @@
 /docker-compose.yml
 /.setup-state
 /deploy/config/traefik-dev.yml
+/deploy/dynamic/
+/deploy/certs/
 
 # --- Python
 __pycache__/

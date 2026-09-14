@@ -22,10 +22,17 @@ services:
       # Lecture seule : Traefik n'a besoin que d'énumérer les conteneurs.
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./deploy/config/traefik-dev.yml:/traefik.yml:ro
+      # Configuration dynamique : relue à chaud, contrairement à la
+      # statique. Vide en HTTP, elle porte les certificats en HTTPS.
+      - ./deploy/dynamic:/dynamic:ro
+      - ./deploy/certs:/certs:ro
     ports:
       # 127.0.0.1 et jamais 0.0.0.0 : la pile de développement n'est pas
       # exposée au réseau local.
-      - 127.0.0.1:${URL_PORT:-8080}:80
+      # En HTTPS, le port public pointe sur l'entrée TLS. C'est ./setup qui
+      # règle PORT_INTERNE selon URL_SCHEME, pour que l'adresse annoncée et
+      # le port publié ne puissent pas diverger.
+      - 127.0.0.1:${URL_PORT:-8080}:${PORT_INTERNE:-80}
       # Calculé par ./setup : 18080 + (URL_PORT - 8080), et non un « 1 »
       # collé devant URL_PORT, qui cesse d'être un port au-delà de quatre
       # chiffres.

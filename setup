@@ -144,6 +144,8 @@ export INSTANCE_NAME
 # --------------------------------------------------------------------------
 # L'environnement choisit l'override applicatif.
 LOCAL_CONFIG="-f ./deploy/docker-compose-local-override.yml"
+[ "${URL_SCHEME}" = "https" ] &&
+  LOCAL_CONFIG="${LOCAL_CONFIG} -f ./deploy/docker-compose-https-override.yml"
 case "${APP_ENV}" in
   dev)     APP_OVERRIDE="./deploy/docker-compose-dev-override.yml" ;;
   preview) APP_OVERRIDE="./deploy/docker-compose-preview-override.yml" ;;
@@ -182,9 +184,62 @@ export APP_IMAGE="${APP_IMAGE:-unmaxdinfo:${INSTANCE_NAME}}"
 export MIGRATE_IMAGE="${MIGRATE_IMAGE:-unmaxdinfo-migrate:${INSTANCE_NAME}}"
 
 # --------------------------------------------------------------------------
+# --------------------------------------------------------------------------
+# HTTPS local, activé par URL_SCHEME=https dans le fichier d'environnement.
+#
+# Pourquoi s'en soucier en développement : les cookies `Secure` ne sont pas
+# posés en clair, `SameSite` ne se comporte pas pareil, et Google exige des
+# URI de redirection HTTPS hors localhost. Déboguer l'authentification ET le
+# protocole en même temps est le meilleur moyen de ne comprendre ni l'un ni
+# l'autre.
+export URL_SCHEME="${URL_SCHEME:-http}"
+PORT_INTERNE=80
+BLOC_REDIRECTION=""
+CERTS_DIR="./deploy/certs"
+
+if [ "${URL_SCHEME}" = "https" ]; then
+  mkdir -p "${CERTS_DIR}"
+  if [ ! -f "${CERTS_DIR}/local.pem" ]; then
+    if command -v mkcert >/dev/null 2>&1; then
+      # mkcert produit un certificat que le navigateur ACCEPTE, à condition
+      # que son autorité soit installée — `mkcert -install`, une seule fois.
+      mkcert -cert-file "${CERTS_DIR}/local.pem" -key-file "${CERTS_DIR}/local-key.pem" \
+        "${URL_HOST:-unmaxdinfo.localhost}" localhost 127.0.0.1 >/dev/null 2>&1
+      echo "▸ Certificat mkcert généré pour ${URL_HOST:-unmaxdinfo.localhost}"
+    else
+      # Repli auto-signé : la plomberie fonctionne, mais le navigateur
+      # affichera un avertissement. Suffisant pour vérifier le comportement
+      # des cookies, insuffisant pour travailler au quotidien.
+      openssl req -x509 -newkey rsa:2048 -sha256 -days 825 -nodes \
+        -keyout "${CERTS_DIR}/local-key.pem" -out "${CERTS_DIR}/local.pem" \
+        -subj "/CN=${URL_HOST:-unmaxdinfo.localhost}" \
+        -addext "subjectAltName=DNS:${URL_HOST:-unmaxdinfo.localhost},DNS:localhost,IP:127.0.0.1" \
+        >/dev/null 2>&1
+      echo "▸ Certificat AUTO-SIGNÉ généré (le navigateur avertira)."
+      echo "  Pour un certificat accepté : installer mkcert, faire 'mkcert -install',"
+      echo "  supprimer ${CERTS_DIR}/ puis relancer ./setup."
+    fi
+  fi
+  # Tout le trafic en clair est redirigé : sinon on teste par inadvertance
+  # en HTTP et on ne voit pas les problèmes qu'on cherchait justement.
+  PORT_INTERNE=443
+  BLOC_REDIRECTION="    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https"
+fi
+export BLOC_REDIRECTION PORT_INTERNE
+
 AVANT_TRAEFIK=""
 [ -f ./deploy/config/traefik-dev.yml ] && AVANT_TRAEFIK="$(cat ./deploy/config/traefik-dev.yml)"
 envsubst < ./deploy/config/traefik-dev.yml.tpl > ./deploy/config/traefik-dev.yml
+mkdir -p ./deploy/dynamic
+if [ "${URL_SCHEME}" = "https" ]; then
+  envsubst < ./deploy/config/traefik-tls.yml.tpl > ./deploy/dynamic/tls.yml
+else
+  rm -f ./deploy/dynamic/tls.yml
+fi
 
 # Traefik ne lit sa configuration STATIQUE qu'au démarrage. Régénérer le
 # fichier sous un conteneur déjà lancé ne change rien, et `up -d` ne le
@@ -282,7 +337,8 @@ SETUP_APP_ENV=${APP_ENV}
 SETUP_URL_PORT=${URL_PORT}
 SETUP_DASHBOARD_PORT=${DASHBOARD_PORT:-}
 SETUP_DB_TEST_PORT=${DB_TEST_PORT:-}
-SETUP_PUBLIC_URL=http://${URL_HOST}:${URL_PORT}
+SETUP_PUBLIC_URL=${URL_SCHEME}://${URL_HOST}:${URL_PORT}
+SETUP_URL_SCHEME=${URL_SCHEME}
 SETUP_UPDATED_AT=$(date -Iseconds)
 EOF
 
@@ -292,8 +348,8 @@ echo "-------------------------------------------------------"
 echo "Environnement : ${APP_ENV}"
 echo "Fichier env   : ${ENV_FILE}"
 echo "Port          : ${URL_PORT} (${URL_PORT_SOURCE})"
-echo "Site          : http://${URL_HOST}:${URL_PORT}"
-echo "Sonde         : http://${URL_HOST}:${URL_PORT}/api/health"
+echo "Site          : ${URL_SCHEME}://${URL_HOST}:${URL_PORT}"
+echo "Sonde         : ${URL_SCHEME}://${URL_HOST}:${URL_PORT}/api/health"
 [ "${APP_ENV}" != "prod" ] && echo "Traefik       : http://localhost:${DASHBOARD_PORT}"
 [ "${APP_ENV}" = "dev" ] && echo "Base de test  : 127.0.0.1:${DB_TEST_PORT}"
 echo "-------------------------------------------------------"
