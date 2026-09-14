@@ -9,6 +9,11 @@
 //   2. Les seules exceptions sont les réglages du serveur de développement
 //      ci-dessous : ils ne servent qu'en dev, où il n'y a pas de build.
 
+// La version est une constante de BUILD, contrairement aux secrets : la
+// figer dans l'image est exactement ce qu'on veut, pour que /api/health
+// dise quelle image tourne.
+import { version } from './package.json'
+
 const urlHost = process.env.URL_HOST ?? 'unmaxdinfo.localhost'
 const urlPort = Number(process.env.URL_PORT ?? 8080)
 
@@ -76,6 +81,7 @@ export default defineNuxtConfig({
     schedulerEnabled: false,
     // `public` est le seul bloc qui part au navigateur.
     public: {
+      version,
       appEnv: 'dev',
       baseUrl: 'http://unmaxdinfo.localhost:8080',
       r2BaseUrl: '',
@@ -95,7 +101,8 @@ export default defineNuxtConfig({
       // Explicite quand même, pour le jour où URL_HOST devient un vrai
       // domaine de préproduction.
       allowedHosts: [urlHost],
-      hmr: {
+      // Vite 8 : server.hmr.* est déprécié au profit de server.ws.*.
+      ws: {
         // Nuxt lance Vite en middlewareMode : Vite ouvre alors SON PROPRE
         // serveur WebSocket, sur un port distinct du 3000. Sans ce réglage
         // et sans le routeur Traefik correspondant (voir
