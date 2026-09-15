@@ -59,6 +59,10 @@ jobs:
       NUXT_PUBLIC_APP_ENV: dev
       DATABASE_URL: postgres://unmaxdinfo:test@localhost:5432/unmaxdinfo_test
       NUXT_DATABASE_URL: postgres://unmaxdinfo:test@localhost:5432/unmaxdinfo_test
+      # The only one vitest actually reads: its `api` project OVERRIDES
+      # NUXT_DATABASE_URL, and test/setup/db.ts otherwise falls back to the
+      # db-test of the development compose (port 15000), absent from the runner.
+      TEST_DATABASE_URL: postgres://unmaxdinfo:test@localhost:5432/unmaxdinfo_test
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
