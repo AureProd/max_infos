@@ -104,3 +104,22 @@ describe('article editor', () => {
     expect(await r.text()).toContain('Un article publié')
   })
 })
+
+/**
+ * The sign-in failure banner.
+ *
+ * The page reads a query parameter that the OAuth handler writes. Two
+ * places, one name: nothing forces them to agree, and a rename broke the
+ * match once — the banner then existed without ever being able to show.
+ */
+describe('sign-in failure', () => {
+  it('shows the banner when the OAuth handler sends one back', async () => {
+    const html = await (await fetch('/login?signin=failed')).text()
+    expect(html).toContain('La connexion a échoué')
+  })
+
+  it('shows nothing without the parameter', async () => {
+    const html = await (await fetch('/login')).text()
+    expect(html).not.toContain('La connexion a échoué')
+  })
+})

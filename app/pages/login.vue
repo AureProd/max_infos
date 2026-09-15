@@ -2,7 +2,7 @@
 const route = useRoute()
 const { data: site } = await useSite()
 
-const failure = computed(() => route.query.connection === 'echec')
+const failure = computed(() => route.query.signin === 'failed')
 
 useSeoMeta({ title: 'Connexion', robots: 'noindex, nofollow' })
 </script>

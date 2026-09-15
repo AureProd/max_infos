@@ -32,6 +32,9 @@ export default defineOAuthGoogleEventHandler({
 
   onError(event, error) {
     console.error('[auth] échec de la connexion Google :', error.message)
-    return sendRedirect(event, '/?connexion=echec')
+    // To /login and not to /: the banner announcing the failure lives on
+    // the sign-in page. Sent to the home page, it could never show — which
+    // was the case until a test looked.
+    return sendRedirect(event, '/login?signin=failed')
   },
 })

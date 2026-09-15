@@ -209,7 +209,7 @@ describe('full round trip', () => {
       'users',
       'views',
     ] as const) {
-      expect(after[key], `${key} doit être identique après l'aller-retour`).toEqual(before[key])
+      expect(after[key], `${key} must be identical after the round trip`).toEqual(before[key])
     }
   })
 
