@@ -14,6 +14,11 @@ const alias = {
 // fastest. Only the « nuxt » project goes through defineVitestProject.
 export default defineConfig(async () => ({
   test: {
+    // Transforming the modules is the bulk of the « unit » project's runtime,
+    // and it is redone identically on every run. Cached on disk, it is paid
+    // once; the cache keys on the file contents, so a stale entry cannot be
+    // served.
+    fsModuleCache: true,
     projects: [
       {
         resolve: { alias },
@@ -83,7 +88,7 @@ export default defineConfig(async () => ({
       // PROVISIONAL rung, lowered to the level actually measured on the
       // narrowed scope so that CI stops blocking the deployment. Each batch of
       // tests raises it again; the target remains 80 everywhere.
-      thresholds: { lines: 44, statements: 43, functions: 45, branches: 39 },
+      thresholds: { lines: 62, statements: 62, functions: 64, branches: 58 },
     },
   },
 }))

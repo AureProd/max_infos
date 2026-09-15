@@ -177,5 +177,8 @@ export const SETTING_DEFAULTS: { [K in SettingKey]: SettingValue<K> } = {
   storage: storageSchema.parse({}),
 }
 
+// `hasOwn` rather than `in`: `in` walks the prototype chain, so 'toString'
+// and 'constructor' would pass the guard and index SETTING_SCHEMAS onto a
+// function instead of a schema.
 export const isSettingKey = (v: unknown): v is SettingKey =>
-  typeof v === 'string' && v in SETTING_SCHEMAS
+  typeof v === 'string' && Object.hasOwn(SETTING_SCHEMAS, v)

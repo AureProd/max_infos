@@ -65,3 +65,49 @@ describe('Substack feed', () => {
     expect(articles[1]?.publishedAt).toBeNull()
   })
 })
+
+describe('an entry without a date', () => {
+  it('comes out published at null rather than at the epoch', () => {
+    // No <pubDate> at all, which is what a Substack draft produces. The
+    // « unreadable date » case is covered above; this one takes the other
+    // branch, and an article dated 1970 would sit at the bottom of the
+    // listing for good.
+    const [article] = parseSubstackFeed(`<rss><channel>
+      <item>
+        <title>Sans date</title>
+        <link>https://unmaxdinfo.substack.com/p/sans-date</link>
+      </item>
+    </channel></rss>`)
+    expect(article?.publishedAt).toBeNull()
+  })
+})
+
+describe('the dek, which must be plain text', () => {
+  it('leaves no tag behind, even one hidden inside another', () => {
+    // A single pass of /<[^>]+>/g rebuilds what it strips: removing <b>
+    // from « <scr<b>ipt> » leaves « <script> ». The stripping has to run
+    // until the text stops changing.
+    const [article] = parseSubstackFeed(`<rss><channel>
+      <item>
+        <title>Chapô piégé</title>
+        <link>https://unmaxdinfo.substack.com/p/x</link>
+        <description>&lt;scr&lt;b&gt;ipt&gt;alert(1)&lt;/scr&lt;b&gt;ipt&gt;Le vrai chapô.</description>
+      </item>
+    </channel></rss>`)
+
+    expect(article?.dek).not.toContain('<')
+    expect(article?.dek).not.toContain('>')
+    expect(article?.dek).toContain('Le vrai chapô.')
+  })
+
+  it('keeps the text of an ordinary formatted dek', () => {
+    const [article] = parseSubstackFeed(`<rss><channel>
+      <item>
+        <title>Chapô normal</title>
+        <link>https://unmaxdinfo.substack.com/p/y</link>
+        <description>&lt;p&gt;Une &lt;em&gt;enquête&lt;/em&gt; sur la mémoire.&lt;/p&gt;</description>
+      </item>
+    </channel></rss>`)
+    expect(article?.dek).toBe('Une enquête sur la mémoire.')
+  })
+})

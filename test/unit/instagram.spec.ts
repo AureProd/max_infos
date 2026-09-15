@@ -4,7 +4,9 @@ vi.stubGlobal('$fetch', vi.fn())
 vi.stubGlobal('useRuntimeConfig', () => ({ secretEncryptionKey: '' }))
 vi.stubGlobal('createError', (o: { statusMessage?: string }) => new Error(o.statusMessage ?? 'err'))
 
-const { readMedia, shortcodeOf, mediaType } = await import('../../server/utils/instagram')
+const { readMedia, shortcodeOf, mediaType, refreshToken, readProfile } = await import(
+  '../../server/utils/instagram'
+)
 type HttpClient = Parameters<typeof readMedia>[1]
 
 /**
@@ -112,5 +114,56 @@ describe('pagination', () => {
       throw new Error('OAuthException: token expired')
     }) as unknown as HttpClient
     await expect(readMedia('jeton', http)).rejects.toThrow(/token expired/)
+  })
+})
+
+describe('the calls made to Meta', () => {
+  it('refreshes a long-lived token with the grant Meta expects', async () => {
+    // `ig_refresh_token` and nothing else: with the wrong grant, Meta answers
+    // 400 and the integration dies at the end of the token's sixty days.
+    const http = vi.fn(async () => ({ access_token: 'neuf', expires_in: 5_184_000 }))
+    const r = await refreshToken('ancien', http as never)
+
+    expect(r.access_token).toBe('neuf')
+    const [url, options] = http.mock.calls[0] as unknown as [
+      string,
+      { query: Record<string, string> },
+    ]
+    expect(url).toContain('/refresh_access_token')
+    expect(options.query).toEqual({ grant_type: 'ig_refresh_token', access_token: 'ancien' })
+  })
+
+  it('asks the profile for exactly the fields the site displays', async () => {
+    const http = vi.fn(async () => ({ id: '1', username: 'unmaxdinfo' }))
+    await readProfile('jeton', http as never)
+
+    const [url, options] = http.mock.calls[0] as unknown as [
+      string,
+      { query: Record<string, string> },
+    ]
+    expect(url).toContain('/me')
+    expect(options.query.access_token).toBe('jeton')
+    expect(options.query.fields?.split(',')).toEqual([
+      'id',
+      'username',
+      'name',
+      'biography',
+      'profile_picture_url',
+      'followers_count',
+      'media_count',
+    ])
+  })
+
+  it('falls back on $fetch when no client is injected', async () => {
+    // The default client is what production uses; leaving it unexercised
+    // would let a typo in the URL through.
+    const fetchStub = vi.mocked(globalThis.$fetch as unknown as ReturnType<typeof vi.fn>)
+    fetchStub.mockResolvedValueOnce({ data: [] })
+
+    expect(await readMedia('jeton')).toEqual([])
+    expect(fetchStub).toHaveBeenCalledWith(
+      expect.stringContaining('/me/media'),
+      expect.objectContaining({ query: expect.objectContaining({ access_token: 'jeton' }) }),
+    )
   })
 })

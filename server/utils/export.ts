@@ -119,7 +119,13 @@ export async function buildExport(): Promise<Archive> {
 
 /** An article's YAML front matter, for the archive's readability. */
 export function articleToMarkdown(a: Record<string, unknown>, tags: string[]): string {
-  const escaped = (v: unknown): string => `"${String(v ?? '').replace(/"/g, '\\"')}"`
+  // The BACKSLASH first, then the quote: doing it the other way round would
+  // double the backslashes just added, and a title ending in one would
+  // escape the closing quote and swallow the following line of front matter.
+  const escaped = (v: unknown): string =>
+    `"${String(v ?? '')
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')}"`
   return `---
 slug: ${escaped(a.slug)}
 title: ${escaped(a.title)}

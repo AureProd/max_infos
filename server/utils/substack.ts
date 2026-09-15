@@ -73,6 +73,26 @@ function dateIso(raw: string): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString()
 }
 
+/**
+ * Strips the tags, until the text stops changing.
+ *
+ * ONE pass is not enough: it rebuilds what it removes. Stripping `<b>` out
+ * of `<scr<b>ipt>` leaves `<script>` — the sanitisation hands back exactly
+ * what it was meant to take away. The loop is bounded by the fact that
+ * every pass strictly shortens the text.
+ */
+function stripTags(html: string): string {
+  let text = html
+  let previous: string
+  do {
+    previous = text
+    text = text.replace(/<[^>]*>/g, '')
+  } while (text !== previous)
+  // A truncated tag leaves its delimiters behind: the dek is plain text,
+  // so neither of them has anything to do here.
+  return text.replace(/[<>]/g, '').trim()
+}
+
 export function parseSubstackFeed(xml: string): ArticleSubstack[] {
   const items = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? []
   return items
@@ -84,9 +104,7 @@ export function parseSubstackFeed(xml: string): ArticleSubstack[] {
         title: tagName(item, 'title'),
         link: tagName(item, 'link'),
         publishedAt: dateIso(tagName(item, 'pubDate')),
-        dek: tagName(item, 'description')
-          .replace(/<[^>]+>/g, '')
-          .trim(),
+        dek: stripTags(tagName(item, 'description')),
         bodyHtml,
         cover: coverOf(item, bodyHtml),
       }

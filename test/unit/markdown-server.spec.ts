@@ -131,3 +131,54 @@ describe('the five real articles', () => {
     expect([...tagNames].sort()).toEqual(['a', 'em', 'h2', 'li', 'p', 'ul'])
   })
 })
+
+describe('links and images', () => {
+  it('protects an outgoing link opened in a new tab', () => {
+    // Without rel, the target page gets window.opener and can rewrite the
+    // tab it came from.
+    const html = renderMarkdown('[Substack](https://unmaxdinfo.substack.com/p/x)')
+    expect(html).toContain('target="_blank"')
+    expect(html).toContain('rel="noopener noreferrer"')
+  })
+
+  it('leaves an internal link in the same tab', () => {
+    // An article pointing at another article must not open a window.
+    for (const source of ['[ici](/article/ben-mhidi)', '[écrire](mailto:max@exemple.test)']) {
+      const html = renderMarkdown(source)
+      expect(html).not.toContain('target=')
+      expect(html).not.toContain('rel=')
+    }
+  })
+
+  it('does not choke on an anchor without href', () => {
+    // sanitize-html hands the transform an empty attribute set; reading
+    // href straight off it would compare undefined against the pattern.
+    expect(() => renderMarkdown('<a>sans lien</a>')).not.toThrow()
+    expect(renderMarkdown('<a>sans lien</a>')).toContain('sans lien')
+  })
+
+  it('defers image loading', () => {
+    // The images sit far down the article: loading them all up front would
+    // pay for the whole page before the first paragraph.
+    expect(renderMarkdown('![légende](https://media.exemple.test/a.png)')).toContain(
+      'loading="lazy"',
+    )
+  })
+})
+
+describe('counting an absent text', () => {
+  it('treats it as empty rather than failing the save', () => {
+    // These three are called on every write: an article whose body is null
+    // must save, not 500.
+    expect(renderMarkdown(undefined as never)).toBe('')
+    expect(countCharacters(undefined as never)).toBe(0)
+    expect(countCharacters('  deux   mots  ')).toBe(9)
+  })
+
+  it('never announces less than a minute of reading', () => {
+    expect(readingMinutes('')).toBe(1)
+    expect(readingMinutes('a')).toBe(1)
+    expect(readingMinutes('a'.repeat(1400))).toBe(1)
+    expect(readingMinutes('a'.repeat(1401))).toBe(2)
+  })
+})
