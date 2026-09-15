@@ -51,15 +51,15 @@ afterAll(async () => {
 
 await setup({ server: true, browser: false })
 
-describe('balises de partage, dans la réponse HTTP', () => {
-  it('l’article porte ses balises Open Graph', async () => {
+describe('sharing tags, in the HTTP response', () => {
+  it('the article carries its Open Graph tags', async () => {
     const html = await $fetch<string>('/article/article-seo')
     expect(html).toContain('property="og:title"')
     expect(html).toContain('property="og:description"')
     expect(html).toContain('property="og:type" content="article"')
   })
 
-  it('le CORPS de l’article est dans la réponse, sans JavaScript', async () => {
+  it('the article BODY is in the response, without JavaScript', async () => {
     // That is the whole point: the plan's app/render/ module never had to
     // exist because Nuxt does it natively.
     const html = await $fetch<string>('/article/article-seo')
@@ -67,7 +67,7 @@ describe('balises de partage, dans la réponse HTTP', () => {
     expect(html).toContain('<h2>Section</h2>')
   })
 
-  it('le JSON-LD décrit l’article', async () => {
+  it('the JSON-LD describes the article', async () => {
     const html = await $fetch<string>('/article/article-seo')
     expect(html).toContain('application/ld+json')
     expect(html).toContain('"@type":"Article"')
@@ -75,25 +75,25 @@ describe('balises de partage, dans la réponse HTTP', () => {
   })
 })
 
-describe('codes de réponse', () => {
-  it('un article inexistant répond 404, pas 200', async () => {
+describe('response codes', () => {
+  it('a non-existent article answers 404, not 200', async () => {
     // useFetch files the API's 404 under `error` and renders the page
     // anyway: without explicit propagation, robots would index an empty
     // page as valid.
     expect((await fetch('/article/jamais-existe')).status).toBe(404)
   })
 
-  it('un BROUILLON répond 404 sur le site public', async () => {
+  it('a DRAFT answers 404 on the public site', async () => {
     expect((await fetch('/article/brouillon-seo')).status).toBe(404)
   })
 
-  it('un article publié répond bien 200', async () => {
+  it('a published article does answer 200', async () => {
     expect((await fetch('/article/article-seo')).status).toBe(200)
   })
 })
 
-describe('flux RSS', () => {
-  it('est bien du XML, et se déclare comme tel', async () => {
+describe('RSS feed', () => {
+  it('is XML indeed, and declares itself as such', async () => {
     const r = await fetch('/rss.xml')
     expect(r.headers.get('content-type')).toContain('application/rss+xml')
     const xml = await r.text()
@@ -101,7 +101,7 @@ describe('flux RSS', () => {
     expect(xml).toContain('<rss version="2.0"')
   })
 
-  it('ÉCHAPPE les caractères qui casseraient le flux', async () => {
+  it('ESCAPES the characters that would break the feed', async () => {
     // A title containing « & » produces invalid XML without escaping, and
     // the W3C validator refuses it.
     const xml = await (await fetch('/rss.xml')).text()
@@ -109,25 +109,25 @@ describe('flux RSS', () => {
     expect(xml).not.toMatch(/<title>[^<]*[^&]& /)
   })
 
-  it('ne contient AUCUN brouillon', async () => {
+  it('contains NO draft', async () => {
     const xml = await (await fetch('/rss.xml')).text()
     expect(xml).not.toContain('brouillon-seo')
   })
 
-  it('porte un lien atom:self, exigé par le validateur', async () => {
+  it('carries an atom:self link, required by the validator', async () => {
     const xml = await (await fetch('/rss.xml')).text()
     expect(xml).toContain('rel="self"')
   })
 })
 
-describe('plan du site', () => {
-  it('liste les articles publiés et pas les brouillons', async () => {
+describe('sitemap', () => {
+  it('lists the published articles and not the drafts', async () => {
     const xml = await (await fetch('/sitemap.xml')).text()
     expect(xml).toContain('/article/article-seo')
     expect(xml).not.toContain('brouillon-seo')
   })
 
-  it('n’indique PAS où se trouve le back-office', async () => {
+  it('does NOT point at where the back-office is', async () => {
     // Listing /admin would amount to pointing at where to knock.
     const xml = await (await fetch('/sitemap.xml')).text()
     expect(xml).not.toContain('/admin')
@@ -136,15 +136,15 @@ describe('plan du site', () => {
 })
 
 describe('robots.txt', () => {
-  it('interdit tout hors production', async () => {
+  it('disallows everything outside production', async () => {
     // An indexed staging environment duplicates production and hurts it.
     const txt = await (await fetch('/robots.txt')).text()
     expect(txt).toContain('Disallow: /')
   })
 })
 
-describe('en-têtes', () => {
-  it('le back-office porte x-robots-tag, même sans HTML lu', async () => {
+describe('headers', () => {
+  it('the back-office carries x-robots-tag, even with no HTML read', async () => {
     const r = await fetch('/login')
     expect(r.headers.get('x-robots-tag')).toContain('noindex')
   })

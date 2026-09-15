@@ -30,7 +30,7 @@ afterAll(async () => {
 await setup({ server: true, browser: false })
 
 describe('GET /api/articles', () => {
-  it('ne renvoie que les articles publiés', async () => {
+  it('returns only the published articles', async () => {
     const r = await $fetch('/api/articles')
     expect(r.total).toBe(2)
     // The draft must appear nowhere: it is not « forbidden », it does not
@@ -38,34 +38,34 @@ describe('GET /api/articles', () => {
     expect(r.items.map((i) => i.slug)).not.toContain('article-brouillon')
   })
 
-  it('trie du plus récent au plus ancien', async () => {
+  it('sorts newest first', async () => {
     const r = await $fetch('/api/articles')
     expect(r.items.map((i) => i.slug)).toEqual(['article-publie', 'article-ancien'])
   })
 
-  it('rend la date en jour seul, sans heure ni fuseau', async () => {
+  it('renders the date as a day only, without time or zone', async () => {
     const r = await $fetch('/api/articles')
     expect(r.items[0]?.publishedAt).toBe('2026-09-10')
   })
 
-  it('joint la cover et les sujets', async () => {
+  it('joins the cover and the tags', async () => {
     const r = await $fetch('/api/articles')
     expect(r.items[0]?.coverUrl).toContain('cover.png')
     expect(r.items[0]?.tags).toEqual([{ slug: 'geo', label: 'Géographie' }])
   })
 
-  it('filtre par tag sans fausser le total', async () => {
+  it('filters by tag without skewing the total', async () => {
     const r = await $fetch('/api/articles', { query: { tag: 'geo' } })
     expect(r.total).toBe(1)
     expect(r.items[0]?.slug).toBe('article-publie')
   })
 
-  it('cherche dans le corps, pas seulement dans le titre', async () => {
+  it('searches the body, not only the title', async () => {
     const r = await $fetch('/api/articles', { query: { q: 'zzyzx' } })
     expect(r.items.map((i) => i.slug)).toEqual(['article-publie'])
   })
 
-  it('pagine', async () => {
+  it('paginates', async () => {
     const p1 = await $fetch('/api/articles', { query: { size: 1, page: 1 } })
     const p2 = await $fetch('/api/articles', { query: { size: 1, page: 2 } })
     expect(p1.items).toHaveLength(1)
@@ -75,7 +75,7 @@ describe('GET /api/articles', () => {
     expect(p1.total).toBe(2)
   })
 
-  it('refuse une requête hors bornes avec 400, pas 500', async () => {
+  it('refuses an out-of-bounds query with 400, not 500', async () => {
     for (const q of ['?size=500', '?page=0', '?q=']) {
       expect((await fetch(`/api/articles${q}`)).status).toBe(400)
     }
@@ -83,23 +83,23 @@ describe('GET /api/articles', () => {
 })
 
 describe('GET /api/articles/[slug]', () => {
-  it('renvoie l’article, ses sujets et ses déclinaisons', async () => {
+  it('returns the article, its tags and its variants', async () => {
     const a = await $fetch('/api/articles/article-publie')
     expect(a.title).toBe('Un article publié')
     expect(a.tags.map((t) => t.slug)).toEqual(['geo'])
     expect(a.variants.map((d) => d.shortcode)).toEqual(['ABC123'])
   })
 
-  it('répond 404 sur un brouillon, et non 403', async () => {
+  it('answers 404 on a draft, not 403', async () => {
     // A 403 would confirm the draft's existence.
     expect((await fetch('/api/articles/article-brouillon')).status).toBe(404)
   })
 
-  it('répond 404 sur un article inconnu', async () => {
+  it('answers 404 on an unknown article', async () => {
     expect((await fetch('/api/articles/jamais-vu')).status).toBe(404)
   })
 
-  it('répond 400 sur un slug malformé, et non 500', async () => {
+  it('answers 400 on a malformed slug, not 500', async () => {
     for (const s of ['Majuscule', '..%2Fetc%2Fpasswd', 'deux--tirets']) {
       expect((await fetch(`/api/articles/${s}`)).status).toBe(400)
     }
@@ -107,7 +107,7 @@ describe('GET /api/articles/[slug]', () => {
 })
 
 describe('GET /api/tags', () => {
-  it('compte les articles publiés et trie à la française', async () => {
+  it('counts the published articles and sorts the French way', async () => {
     const tags = await $fetch('/api/tags')
     // « Alpha » before « Géographie »: that is the localeCompare sort, run
     // in JavaScript so as not to depend on the PostgreSQL image's locales.
@@ -117,7 +117,7 @@ describe('GET /api/tags', () => {
 })
 
 describe('GET /api/social-posts', () => {
-  it('masque les publications cachées', async () => {
+  it('hides the hidden posts', async () => {
     const posts = await $fetch('/api/social-posts')
     // MASQ1 is there: it belongs to a hidden account, which removes it from
     // the HOME PAGE, not from the general list. The two notions are
@@ -125,13 +125,13 @@ describe('GET /api/social-posts', () => {
     expect(posts.map((p) => p.shortcode)).toEqual(['ABC123', 'DEF456', 'MASQ1'])
   })
 
-  it('n’expose JAMAIS la charge brute de Meta', async () => {
+  it("NEVER exposes Meta's payload", async () => {
     const raw = await (await fetch('/api/social-posts')).text()
     expect(raw).not.toContain('raw')
     expect(raw).not.toContain('secret_meta')
   })
 
-  it('filtre par article', async () => {
+  it('filters by article', async () => {
     const posts = await $fetch('/api/social-posts', { query: { article: 'article-publie' } })
     expect(posts).toHaveLength(1)
     expect(
@@ -139,18 +139,18 @@ describe('GET /api/social-posts', () => {
     ).toBe(0)
   })
 
-  it('refuse un réseau inconnu', async () => {
+  it('refuses an unknown network', async () => {
     expect((await fetch('/api/social-posts?network=mastodon')).status).toBe(400)
   })
 })
 
 describe('GET /api/social-accounts', () => {
-  it('ne renvoie que les comptes affichés sur l’accueil', async () => {
+  it('returns only the accounts shown on the home page', async () => {
     const accounts = await $fetch('/api/social-accounts')
     expect(accounts.map((c) => c.username)).toEqual(['maxinfo'])
   })
 
-  it('reprend l’identité du compte, telle qu’Instagram la donne', async () => {
+  it('takes the account identity as Instagram gives it', async () => {
     // That is the design decision: the section's label and picture come
     // from the connected account, they are not typed in.
     const [account] = await $fetch('/api/social-accounts')
@@ -160,20 +160,20 @@ describe('GET /api/social-accounts', () => {
     expect(account?.followers).toBe(120)
   })
 
-  it('tronque au nombre de publications choisi, les plus récentes d’abord', async () => {
+  it('truncates to the chosen post count, newest first', async () => {
     const [account] = await $fetch('/api/social-accounts')
     // postsOnHome is 1 in the test data: DEF456, being older, stays out.
     expect(account?.publications.map((p) => p.shortcode)).toEqual(['ABC123'])
   })
 
-  it('ne montre ni publication masquée ni publication d’un compte masqué', async () => {
+  it('shows neither a hidden post nor a post of a hidden account', async () => {
     const raw = await (await fetch('/api/social-accounts')).text()
     expect(raw).not.toContain('CACHE1')
     expect(raw).not.toContain('MASQ1')
     expect(raw).not.toContain('archives')
   })
 
-  it('n’expose ni la charge brute de Meta ni le moindre jeton', async () => {
+  it("exposes neither Meta's payload nor any token", async () => {
     const raw = await (await fetch('/api/social-accounts')).text()
     expect(raw).not.toContain('secret_meta')
     expect(raw).not.toContain('ciphertext')
@@ -182,19 +182,19 @@ describe('GET /api/social-accounts', () => {
 })
 
 describe('GET /api/site', () => {
-  it('renvoie les réglages publics', async () => {
+  it('returns the public settings', async () => {
     const site = await $fetch<Record<string, { name?: string }>>('/api/site')
     expect(site.identity?.name).toBe('Site de test')
   })
 
-  it('renvoie une valeur par défaut pour un réglage jamais enregistré', async () => {
+  it('returns a default for a setting never saved', async () => {
     // A site whose CV is not filled in must render, not fail.
     const site = await $fetch<Record<string, unknown>>('/api/site')
     expect(site.cv).toBeDefined()
     expect(site.theme).toBeDefined()
   })
 
-  it('ne laisse JAMAIS fuiter un réglage technique', async () => {
+  it('NEVER leaks a technical setting', async () => {
     // The worst risk of the project according to the plan: that Max — or
     // anyone — sees what belongs to the infrastructure.
     //
@@ -216,7 +216,7 @@ describe('GET /api/site', () => {
 })
 
 describe('POST /api/articles/[slug]/view', () => {
-  it('incrémente sans lire avant d’écrire', async () => {
+  it('increments without reading before writing', async () => {
     for (let i = 0; i < 3; i++) {
       const r = await fetch('/api/articles/article-publie/view', { method: 'POST' })
       expect(r.status).toBe(202)
@@ -228,7 +228,7 @@ describe('POST /api/articles/[slug]/view', () => {
     expect(vue?.count).toBe(3)
   })
 
-  it('répond 404 sur un article inconnu', async () => {
+  it('answers 404 on an unknown article', async () => {
     expect((await fetch('/api/articles/jamais-vu/view', { method: 'POST' })).status).toBe(404)
   })
 })

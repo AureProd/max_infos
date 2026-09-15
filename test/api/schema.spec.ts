@@ -33,8 +33,8 @@ beforeEach(async () => {
     restart identity cascade`)
 })
 
-describe('schéma', () => {
-  it('crée les onze tables du plan', async () => {
+describe('schema', () => {
+  it('creates the eleven tables of the plan', async () => {
     const lines = await sqlClient<{ tablename: string }[]>`
       select tablename from pg_tables where schemaname = 'public' order by tablename`
     expect(lines.map((l) => l.tablename)).toEqual([
@@ -52,7 +52,7 @@ describe('schéma', () => {
     ])
   })
 
-  it('refuse un statut hors de la liste', async () => {
+  it('refuses a status outside the list', async () => {
     await rejectedByConstraint(
       () =>
         sqlClient.unsafe(
@@ -62,7 +62,7 @@ describe('schéma', () => {
     )
   })
 
-  it('refuse un article publié sans date de publication', async () => {
+  it('refuses a published article without a publication date', async () => {
     // The inconsistency nothing else would catch: neither the RSS feed, nor
     // the ordering, nor the sitemap would know what to do with it.
     await rejectedByConstraint(
@@ -74,7 +74,7 @@ describe('schéma', () => {
     )
   })
 
-  it('accepte un article publié daté', async () => {
+  it('accepts a published article with a date', async () => {
     const [a] = await db
       .insert(s.article)
       .values({ slug: 'fifa', title: 'FIFA', status: 'published', publishedAt: new Date() })
@@ -82,7 +82,7 @@ describe('schéma', () => {
     expect(a?.slug).toBe('fifa')
   })
 
-  it('impose un slug unique', async () => {
+  it('enforces a unique slug', async () => {
     await db.insert(s.article).values({ slug: 'doublon', title: 'A' })
     await rejectedByConstraint(
       () => db.insert(s.article).values({ slug: 'doublon', title: 'B' }),
@@ -90,7 +90,7 @@ describe('schéma', () => {
     )
   })
 
-  it('rend la liste blanche insensible à la casse', async () => {
+  it('makes the allow list case-insensitive', async () => {
     // Google returns addresses with varying case: without an expression
     // index, « Max@… » would create a second account.
     await db.insert(s.appUser).values({ email: 'max@exemple.fr', role: 'editor' })
@@ -100,7 +100,7 @@ describe('schéma', () => {
     )
   })
 
-  it('supprime les liaisons en cascade, jamais les publications', async () => {
+  it('deletes the links on cascade, never the posts', async () => {
     const [a] = await db.insert(s.article).values({ slug: 'a', title: 'A' }).returning()
     const [p] = await db
       .insert(s.socialPost)
@@ -116,7 +116,7 @@ describe('schéma', () => {
     expect(await db.select().from(s.socialPost)).toHaveLength(1)
   })
 
-  it('rend la synchronisation Instagram idempotente', async () => {
+  it('makes the Instagram sync idempotent', async () => {
     // This is the constraint that lets the worker replay a sync without
     // duplicating: second pass = update, not insert.
     const values = { network: 'instagram' as const, externalId: '1770', source: 'api' as const }
@@ -134,7 +134,7 @@ describe('schéma', () => {
     expect(all[0]?.caption).toBe('légende corrigée')
   })
 
-  it('laisse coexister plusieurs LinkedIn sans identifiant externe', async () => {
+  it('lets several LinkedIn posts without an external identifier coexist', async () => {
     // Automatic LinkedIn discovery being impossible, these posts are
     // entered by hand and have no external identifier. NULLs being distinct
     // under PostgreSQL, the unique index does not block them.
@@ -143,7 +143,7 @@ describe('schéma', () => {
     expect(await db.select().from(s.socialPost)).toHaveLength(2)
   })
 
-  it('compte les vues par jour sans jamais lire avant d’écrire', async () => {
+  it('counts views per day without ever reading before writing', async () => {
     const [a] = await db.insert(s.article).values({ slug: 'v', title: 'V' }).returning()
     const day = '2026-09-14'
     for (let i = 0; i < 3; i++) {
@@ -159,7 +159,7 @@ describe('schéma', () => {
     expect(vue?.count).toBe(3)
   })
 
-  it('tient updated_at à jour même sur un UPDATE brut en SQL', async () => {
+  it('keeps updated_at current even on a raw SQL UPDATE', async () => {
     // Drizzle's $onUpdate is application-level: an import script writing
     // raw SQL would not trigger it. Hence the moddatetime trigger.
     const [a] = await db.insert(s.article).values({ slug: 'u', title: 'U' }).returning()
@@ -169,7 +169,7 @@ describe('schéma', () => {
     expect(after!.updatedAt.getTime()).toBeGreaterThan(before.getTime())
   })
 
-  it('refuse une portée de réglage inconnue', async () => {
+  it('refuses an unknown setting scope', async () => {
     await rejectedByConstraint(
       () =>
         sqlClient.unsafe(`insert into setting (key, value, scope) values ('x', '{}', 'secret')`),
@@ -177,7 +177,7 @@ describe('schéma', () => {
     )
   })
 
-  it('refuse deux comptes du même réseau pour un même identifiant externe', async () => {
+  it('refuses two accounts of the same network for one external identifier', async () => {
     // This is the constraint that makes reconnecting idempotent: without
     // it, re-authorizing an already connected account would create a second
     // one, and the order and visibility Max chose would be lost.
@@ -188,7 +188,7 @@ describe('schéma', () => {
     )
   })
 
-  it('déconnecter un compte emporte ses publications ET leurs rattachements', async () => {
+  it('disconnecting an account takes its posts AND their attachments', async () => {
     // The decision is deliberate: disconnecting means erasing. The test
     // exists because a cascade nobody has ever seen run is only an
     // intention.

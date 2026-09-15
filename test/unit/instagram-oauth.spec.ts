@@ -6,8 +6,8 @@ import {
   redirectUrl,
 } from '../../server/utils/instagram'
 
-describe('URI de redirection', () => {
-  it('se déduit de l’URL publique, sans double barre', () => {
+describe('redirect URI', () => {
+  it('is derived from the public URL, without a double slash', () => {
     // One slash of difference from what is declared at Meta is enough to
     // fail the exchange, on a message that does not say why.
     expect(redirectUrl('https://unmaxdinfo.fr')).toBe(
@@ -19,24 +19,24 @@ describe('URI de redirection', () => {
   })
 })
 
-describe('URL d’autorisation', () => {
+describe('authorization URL', () => {
   const url = new URL(authorizationUrl('123', 'https://unmaxdinfo.fr/cb', 'etat-xyz'))
 
-  it('ne demande QUE la lecture', () => {
+  it('asks ONLY for read access', () => {
     // Le site ne published jamais : il ne doit donc jamais demander la
     // permission to publish. That is a project decision, and it is checked
     // here, at the place where the permission is asked for.
     expect(url.searchParams.get('scope')).toBe('instagram_business_basic')
   })
 
-  it('porte l’état, qui protège du détournement', () => {
+  it('carries the state, which guards against hijacking', () => {
     expect(url.searchParams.get('state')).toBe('etat-xyz')
     expect(url.searchParams.get('response_type')).toBe('code')
   })
 })
 
-describe('échange du code', () => {
-  it('envoie un formulaire, pas du JSON', async () => {
+describe('code exchange', () => {
+  it('sends a form, not JSON', async () => {
     // This Meta endpoint refuses application/json, and says so only
     // par un 400 sans explication.
     const http = vi.fn(async (_url: string, init?: RequestInit) => {
@@ -47,14 +47,14 @@ describe('échange du code', () => {
     expect(token).toBe('court')
   })
 
-  it('échoue clairement quand Instagram refuse', async () => {
+  it('fails plainly when Instagram refuses', async () => {
     const http = vi.fn(async () => new Response('non', { status: 400 }))
     await expect(exchangeCode('c', 'i', 's', 'u', http as never)).rejects.toThrow(/400/)
   })
 })
 
-describe('allongement du jeton', () => {
-  it('demande bien un jeton LONG', async () => {
+describe('token extension', () => {
+  it('does ask for a LONG-lived token', async () => {
     // Forgetting this second exchange gives an integration that works for
     // an hour then dies: the short-lived token cannot be refreshed.
     const http = vi.fn(async (_u: string, o?: { query?: Record<string, string> }) => {

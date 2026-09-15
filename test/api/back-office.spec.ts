@@ -54,7 +54,7 @@ const EDITOR_SCREENS = [
   '/admin/appearance',
 ]
 
-describe('accès', () => {
+describe('access', () => {
   it.each([...EDITOR_SCREENS, '/admin/tech'])(
     '%s redirige vers la connexion sans session',
     async (path) => {
@@ -65,7 +65,7 @@ describe('accès', () => {
   )
 })
 
-describe('affichage pour un editor', () => {
+describe('rendering for an editor', () => {
   it.each(EDITOR_SCREENS)('%s s’affiche', async (path) => {
     const r = await fetch(path, { headers: { cookie: cookies.editor } })
     expect(r.status).toBe(200)
@@ -76,7 +76,7 @@ describe('affichage pour un editor', () => {
     expect(html).toContain('admin-page')
   })
 
-  it('le menu ne propose PAS l’écran technique', async () => {
+  it('the menu does NOT offer the tech screen', async () => {
     // Comfort hiding: security remains the server's refusal, checked by
     // test/api/authorization.spec.ts.
     const html = await (await fetch('/admin', { headers: { cookie: cookies.editor } })).text()
@@ -84,21 +84,21 @@ describe('affichage pour un editor', () => {
   })
 })
 
-describe('affichage pour un tech', () => {
-  it('l’écran technique s’affiche', async () => {
+describe('rendering for a tech', () => {
+  it('the tech screen renders', async () => {
     const r = await fetch('/admin/tech', { headers: { cookie: cookies.tech } })
     expect(r.status).toBe(200)
     expect(await r.text()).toContain('admin-page')
   })
 
-  it('le menu propose l’écran technique', async () => {
+  it('the menu offers the tech screen', async () => {
     const html = await (await fetch('/admin', { headers: { cookie: cookies.tech } })).text()
     expect(html).toContain('/admin/tech')
   })
 })
 
-describe('éditeur d’article', () => {
-  it('s’affiche sur un article existant', async () => {
+describe('article editor', () => {
+  it('renders on an existing article', async () => {
     const r = await fetch('/admin/article-publie', { headers: { cookie: cookies.editor } })
     expect(r.status).toBe(200)
     expect(await r.text()).toContain('Un article publié')

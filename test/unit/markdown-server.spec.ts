@@ -3,8 +3,8 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { countCharacters, readingMinutes, renderMarkdown } from '../../server/utils/markdown'
 
-describe('rendu Markdown de référence', () => {
-  it('rend les blocs usuels', () => {
+describe('reference Markdown rendering', () => {
+  it('renders the usual blocks', () => {
     expect(renderMarkdown('## Titre')).toContain('<h2>Titre</h2>')
     expect(renderMarkdown('- a\n- b')).toContain('<li>a</li>')
     expect(renderMarkdown('> cité')).toContain('<blockquote>')
@@ -12,20 +12,20 @@ describe('rendu Markdown de référence', () => {
     expect(renderMarkdown('_ital_')).toContain('<em>ital</em>')
   })
 
-  it('rend l’italique avec des tirets bas, ce que le moteur maison ne faisait pas', () => {
+  it('renders italics from underscores, which the home-made engine did not', () => {
     // Les articles existants utilisent _..._ : le engine de la maquette les
     // laissait tels quels, visible dans le text.
     expect(renderMarkdown('un _mot_ souligné')).toContain('<em>mot</em>')
   })
 
-  it('accepte les blocs de code délimités par ~~~', () => {
+  it('accepts code blocks fenced with ~~~', () => {
     // Convention retenue pour rester lisible dans un field de input.
     expect(renderMarkdown('~~~\nconst a = 1\n~~~')).toContain('<pre>')
   })
 })
 
-describe('assainissement', () => {
-  it('retire les balises actives', () => {
+describe('sanitising', () => {
+  it('strips active tags', () => {
     for (const hostile of [
       '<script>alert(1)</script>',
       '<iframe src="https://x"></iframe>',
@@ -37,13 +37,13 @@ describe('assainissement', () => {
     }
   })
 
-  it('retire les gestionnaires d’événements', () => {
+  it('strips event handlers', () => {
     const rendered = renderMarkdown('<p onclick="alert(1)">texte</p>')
     expect(rendered).not.toContain('onclick')
     expect(rendered).toContain('texte')
   })
 
-  it('neutralise les cibles de lien dangereuses', () => {
+  it('neutralises dangerous link targets', () => {
     for (const wrong of ['javascript:alert(1)', 'data:text/html,<script>x</script>']) {
       const rendered = renderMarkdown(`[clic](${wrong})`)
       expect(rendered).not.toContain('javascript:')
@@ -51,12 +51,12 @@ describe('assainissement', () => {
     }
   })
 
-  it('laisse passer les liens légitimes', () => {
+  it('lets legitimate links through', () => {
     const rendered = renderMarkdown('[Substack](https://unmaxdinfo.substack.com/)')
     expect(rendered).toContain('href="https://unmaxdinfo.substack.com/"')
   })
 
-  it('pose rel="noopener" sur les liens sortants', () => {
+  it('sets rel="noopener" on outgoing links', () => {
     // Without it, the target page reaches window.opener and can redirect
     // ours. Set systematically rather than left to vigilance.
     const rendered = renderMarkdown('[x](https://exemple.test)')
@@ -64,27 +64,27 @@ describe('assainissement', () => {
     expect(rendered).toContain('target="_blank"')
   })
 
-  it('ne pose pas target sur un lien interne', () => {
+  it('does not set target on an internal link', () => {
     expect(renderMarkdown('[x](/article/y)')).not.toContain('target="_blank"')
   })
 
-  it('refuse une image en data:', () => {
+  it('refuses a data: image', () => {
     expect(renderMarkdown('![x](data:image/svg+xml;base64,AAAA)')).not.toContain('data:image')
   })
 })
 
-describe('mesures', () => {
-  it('compte les caractères espaces normalisées', () => {
+describe('measurements', () => {
+  it('counts characters with whitespace normalised', () => {
     expect(countCharacters('un   deux\n\ttrois')).toBe('un deux trois'.length)
     expect(countCharacters('  abc  ')).toBe(3)
   })
 
-  it('annonce au moins une minute', () => {
+  it('announces at least one minute', () => {
     expect(readingMinutes('')).toBe(1)
     expect(readingMinutes('court')).toBe(1)
   })
 
-  it('arrondit au-dessus', () => {
+  it('rounds up', () => {
     expect(readingMinutes('x'.repeat(1401))).toBe(2)
     expect(readingMinutes('x'.repeat(1400))).toBe(1)
   })
@@ -98,11 +98,11 @@ describe('mesures', () => {
  * ce que le nouveau produit sur les VRAIS articles, pour que la bascule ne
  * casse rien en silence et qu'on sache ce que le CSS `.prose` doit couvrir.
  */
-describe('les cinq articles réels', () => {
+describe('the five real articles', () => {
   const FOLDER = join(process.cwd(), 'scripts/seed/content')
   const files = readdirSync(FOLDER).filter((f) => f.endsWith('.md'))
 
-  it('il y a bien cinq articles à rendre', () => {
+  it('there really are five articles to render', () => {
     expect(files).toHaveLength(5)
   })
 
@@ -118,7 +118,7 @@ describe('les cinq articles réels', () => {
     expect(rendered).not.toMatch(/\*\*[^*]+\*\*/)
   })
 
-  it('inventorie les balises produites, pour que le CSS les couvre', () => {
+  it('inventories the tags produced, so the CSS covers them', () => {
     const tagNames = new Set<string>()
     for (const f of files) {
       const rendered = renderMarkdown(readFileSync(join(FOLDER, f), 'utf8'))

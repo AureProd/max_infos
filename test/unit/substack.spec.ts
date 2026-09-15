@@ -27,40 +27,40 @@ const FEED = `<?xml version="1.0" encoding="UTF-8"?>
 </channel>
 </rss>`
 
-describe('flux Substack', () => {
+describe('Substack feed', () => {
   const articles = parseSubstackFeed(FEED)
 
-  it('écarte les entrées sans titre ou sans lien', () => {
+  it('discards entries without a title or a link', () => {
     // An incomplete entry would create a ghost article, impossible to
     // attach to anything.
     expect(articles).toHaveLength(2)
   })
 
-  it('sort les CDATA et les apostrophes intactes', () => {
+  it('comes out with CDATA and apostrophes intact', () => {
     expect(articles[0]?.title).toBe("Ben M'hidi, l'homme qu'on n'a pas pu faire taire")
   })
 
-  it('décode les entités sans les décoder deux fois', () => {
+  it('decodes entities without decoding them twice', () => {
     expect(articles[1]?.title).toBe('FIFA & le pouvoir')
     expect(articles[1]?.dek).toBe("Sans cover d'origine.")
   })
 
-  it('ne confond pas le chapô et le corps', () => {
+  it('does not confuse the dek with the body', () => {
     // `description` is truncated by Substack: importing a body from it
     // would give amputated articles, with nothing to report it.
     expect(articles[0]?.dek).toBe('Une enquête sur la mémoire.')
     expect(articles[0]?.bodyHtml).toBe('<p>Le corps complet.</p>')
   })
 
-  it('prend la cover de l’enclosure quand elle existe', () => {
+  it('takes the cover from the enclosure when there is one', () => {
     expect(articles[0]?.cover).toBe('https://substackcdn.com/image/fetch/cover.jpg')
   })
 
-  it('retombe sur la première image du corps sinon', () => {
+  it('falls back to the first image in the body otherwise', () => {
     expect(articles[1]?.cover).toBe('https://substackcdn.com/image/dans-le-corps.png')
   })
 
-  it('normalise la date, et tolère qu’elle soit illisible', () => {
+  it('normalises the date, and tolerates it being unreadable', () => {
     expect(articles[0]?.publishedAt).toBe('2026-03-04T08:00:00.000Z')
     expect(articles[1]?.publishedAt).toBeNull()
   })

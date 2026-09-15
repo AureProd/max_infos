@@ -217,8 +217,8 @@ async function sessionFor(role: 'editor' | 'tech'): Promise<string> {
   return r.headers.get('set-cookie') ?? ''
 }
 
-describe('inventaire des routes', () => {
-  it('la matrice couvre EXACTEMENT les routes admin existantes', () => {
+describe('route inventory', () => {
+  it('the matrix covers EXACTLY the admin routes that exist', () => {
     const existing = routesFromFiles(ADMIN_FOLDER)
     const declared = Object.keys(EXPECTED).sort()
 
@@ -229,13 +229,13 @@ describe('inventaire des routes', () => {
     expect(orphans, `Attente(s) sans route : ${orphans.join(', ')}`).toEqual([])
   })
 
-  it('trouve au moins une route, sinon l’inventaire ne prouve rien', () => {
+  it('finds at least one route, otherwise the inventory proves nothing', () => {
     // An empty inventory would pass the previous test without checking anything.
     expect(routesFromFiles(ADMIN_FOLDER).length).toBeGreaterThan(0)
   })
 })
 
-describe('matrice route × rôle', () => {
+describe('route × role matrix', () => {
   const cas = Object.entries(EXPECTED).flatMap(([route, attentes]) =>
     (['anonyme', 'editor', 'tech'] as const).map((qui) => [route, qui, attentes[qui]] as const),
   )
@@ -264,7 +264,7 @@ describe('matrice route × rôle', () => {
   })
 })
 
-describe('réglages par portée', () => {
+describe('settings by scope', () => {
   /**
    * The border between what Max configures and what only JB sees.
    *
@@ -273,7 +273,7 @@ describe('réglages par portée', () => {
    */
   const keys = Object.keys(SETTING_SCOPE) as SettingKey[]
 
-  it('il y a bien des réglages des deux portées', () => {
+  it('there really are settings of both scopes', () => {
     expect(keys.filter((c) => SETTING_SCOPE[c] === 'tech').length).toBeGreaterThan(0)
     expect(keys.filter((c) => SETTING_SCOPE[c] === 'public').length).toBeGreaterThan(0)
   })
@@ -289,7 +289,7 @@ describe('réglages par portée', () => {
     expect(r.status).toBe(expected)
   })
 
-  it('GET settings ne renvoie AUCUN réglage technique à un editor', async () => {
+  it('GET settings returns NO technical setting to an editor', async () => {
     const r = await fetch('/api/admin/settings', {
       headers: { cookie: await sessionFor('editor') },
     })
@@ -299,7 +299,7 @@ describe('réglages par portée', () => {
     }
   })
 
-  it('GET settings renvoie TOUT à un tech', async () => {
+  it('GET settings returns EVERYTHING to a tech', async () => {
     const r = await fetch('/api/admin/settings', {
       headers: { cookie: await sessionFor('tech') },
     })
@@ -308,8 +308,8 @@ describe('réglages par portée', () => {
   })
 })
 
-describe('invariant du projet', () => {
-  it('editor reçoit 403 sur TOUTES les routes techniques', () => {
+describe('project invariant', () => {
+  it('editor gets 403 on EVERY technical route', () => {
     const technical = Object.entries(EXPECTED).filter(([, a]) => a.tech !== a.editor)
     expect(technical.length).toBeGreaterThan(0)
     for (const [route, a] of technical) {
@@ -317,7 +317,7 @@ describe('invariant du projet', () => {
     }
   })
 
-  it('aucune route admin n’est ouverte aux anonymes', () => {
+  it('no admin route is open to anonymous callers', () => {
     for (const [route, a] of Object.entries(EXPECTED)) {
       expect(a.anonyme, `${route} doit exiger une connexion`).toBe(401)
     }

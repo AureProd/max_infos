@@ -7,14 +7,14 @@ import { useFilters } from '~/composables/useFilters'
  * API tests against a real database.
  */
 describe('useFilters', () => {
-  it('part d’un état vide', () => {
+  it('starts from an empty state', () => {
     const { state, isActive, reset } = useFilters()
     reset()
     expect(state.value).toEqual({ q: '', tag: null })
     expect(isActive.value).toBe(false)
   })
 
-  it('bascule un tag dans les deux sens avec le même appel', () => {
+  it('toggles a tag both ways with the same call', () => {
     const { toggleTag, state, reset } = useFilters()
     reset()
     toggleTag('geopolitique')
@@ -24,7 +24,7 @@ describe('useFilters', () => {
     reset()
   })
 
-  it('signale qu’un filtre est actif', () => {
+  it('reports that a filter is active', () => {
     const { state, isActive, reset } = useFilters()
     reset()
     state.value.q = 'ia'
@@ -33,7 +33,7 @@ describe('useFilters', () => {
     expect(isActive.value).toBe(false)
   })
 
-  it('partage l’état entre deux appels du même contexte', () => {
+  it('shares the state between two calls in the same context', () => {
     // Intended behaviour: filters survive navigation. What must NOT survive
     // is going from one visitor to the next — hence useState rather than
     // module-level state.

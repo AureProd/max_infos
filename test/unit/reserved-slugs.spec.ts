@@ -12,17 +12,17 @@ import { RESERVED_SLUGS, slugify } from '#shared/utils/slug'
  * This test compares the hand-kept list to the REAL contents of the folder:
  * a screen added tomorrow without being listed turns CI red, naming it.
  */
-describe('slugs réservés du back-office', () => {
+describe('back-office reserved slugs', () => {
   const screens = readdirSync(join(process.cwd(), 'app/pages/admin'))
     .filter((f) => f.endsWith('.vue') && !f.startsWith('[') && f !== 'index.vue')
     .map((f) => f.replace(/\.vue$/, ''))
     .sort()
 
-  it('couvre exactement les écrans existants', () => {
+  it('covers exactly the screens that exist', () => {
     expect([...RESERVED_SLUGS].sort()).toEqual(screens)
   })
 
-  it('sont tous des slugs qu’un titre peut produire', () => {
+  it('are all slugs a title can produce', () => {
     // If a screen were called « my_screen », no title would produce that
     // slug and the reservation would be useless — better to know.
     for (const s of RESERVED_SLUGS) expect(slugify(s)).toBe(s)

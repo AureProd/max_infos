@@ -10,34 +10,34 @@ const CONTEXT = {
   characters: 10013,
 }
 
-describe('résolution des gabarits', () => {
-  it('remplace les variables connues', () => {
+describe('template resolution', () => {
+  it('replaces the known variables', () => {
     expect(resolve('{{titre}} — {{minutes}} min', CONTEXT)).toBe("Contrôler l'IA — 7 min")
   })
 
-  it('tolère les espaces dans les accolades', () => {
+  it('tolerates spaces inside the braces', () => {
     expect(resolve('{{ titre }}', CONTEXT)).toBe("Contrôler l'IA")
   })
 
-  it('remplace toutes les occurrences', () => {
+  it('replaces every occurrence', () => {
     expect(resolve('{{titre}} / {{titre}}', CONTEXT)).toBe("Contrôler l'IA / Contrôler l'IA")
   })
 
-  it('LAISSE une variable inconnue telle quelle', () => {
+  it('LEAVES an unknown variable as it is', () => {
     // Erasing would be worse: Max would find a hole in his text without
     // understanding why. Left visible, the mistake gets fixed.
     expect(resolve('{{inexistante}}', CONTEXT)).toBe('{{inexistante}}')
   })
 
-  it('ne touche pas au texte hors accolades', () => {
+  it('does not touch text outside the braces', () => {
     expect(resolve('Rien à remplacer ici.', CONTEXT)).toBe('Rien à remplacer ici.')
   })
 
-  it('gère un gabarit vide', () => {
+  it('handles an empty template', () => {
     expect(resolve('', CONTEXT)).toBe('')
   })
 
-  it('les gabarits par défaut n’utilisent que des variables reconnues', () => {
+  it('the default templates only use recognised variables', () => {
     // A template shipped with an unknown variable would show its braces to
     // Max on first use.
     for (const template of Object.values(DEFAULT_TEMPLATES)) {
@@ -47,7 +47,7 @@ describe('résolution des gabarits', () => {
     }
   })
 
-  it('les gabarits par défaut se résolvent entièrement', () => {
+  it('the default templates resolve entirely', () => {
     for (const template of Object.values(DEFAULT_TEMPLATES)) {
       expect(resolve(template, CONTEXT)).not.toMatch(/\{\{/)
     }

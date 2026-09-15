@@ -43,7 +43,7 @@ async function cookieEditeur(): Promise<string> {
 }
 
 describe('GET /api/admin/social-accounts', () => {
-  it('montre AUSSI les comptes masqués — sinon on ne peut plus les réafficher', async () => {
+  it('ALSO shows the hidden accounts — otherwise they can never be shown again', async () => {
     const accounts = await $fetch('/api/admin/social-accounts', {
       headers: { cookie: await cookieEditeur() },
     })
@@ -51,7 +51,7 @@ describe('GET /api/admin/social-accounts', () => {
     expect(accounts.find((c) => c.username === 'archives')?.visible).toBe(false)
   })
 
-  it('dit combien de publications chaque compte emporterait', async () => {
+  it('says how many posts each account would take with it', async () => {
     // The screen warns before disconnecting: the deletion is final.
     const accounts = await $fetch('/api/admin/social-accounts', {
       headers: { cookie: await cookieEditeur() },
@@ -60,7 +60,7 @@ describe('GET /api/admin/social-accounts', () => {
     expect(accounts.find((c) => c.username === 'archives')?.nbPublications).toBe(1)
   })
 
-  it('signale qu’un compte n’a pas de jeton, sans jamais le montrer', async () => {
+  it('reports that an account has no token, without ever showing it', async () => {
     const r = await fetch('/api/admin/social-accounts', {
       headers: { cookie: await cookieEditeur() },
     })
@@ -71,7 +71,7 @@ describe('GET /api/admin/social-accounts', () => {
 })
 
 describe('PUT /api/admin/social-accounts/[id]', () => {
-  it('change l’ordre des sections de l’accueil', async () => {
+  it('changes the order of the home page sections', async () => {
     const cookie = await cookieEditeur()
     const accounts = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
     const max = accounts.find((c) => c.username === 'maxinfo')
@@ -94,7 +94,7 @@ describe('PUT /api/admin/social-accounts/[id]', () => {
     ])
   })
 
-  it('change le nombre de publications montrées', async () => {
+  it('changes the number of posts shown', async () => {
     const cookie = await cookieEditeur()
     const accounts = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
     const max = accounts.find((c) => c.username === 'maxinfo')
@@ -109,7 +109,7 @@ describe('PUT /api/admin/social-accounts/[id]', () => {
     expect(section?.publications.map((p) => p.shortcode)).toEqual(['ABC123', 'DEF456'])
   })
 
-  it('retire la section de l’accueil quand Max la masque', async () => {
+  it('removes the section from the home page when Max hides it', async () => {
     const cookie = await cookieEditeur()
     const accounts = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
     const archives = accounts.find((c) => c.username === 'archives')
@@ -123,7 +123,7 @@ describe('PUT /api/admin/social-accounts/[id]', () => {
     expect((await $fetch('/api/social-accounts')).map((c) => c.username)).toEqual(['maxinfo'])
   })
 
-  it('refuse un nombre de publications absurde', async () => {
+  it('refuses an absurd post count', async () => {
     const r = await fetch('/api/admin/social-accounts/1', {
       method: 'PUT',
       headers: { cookie: await cookieEditeur(), 'content-type': 'application/json' },
@@ -134,7 +134,7 @@ describe('PUT /api/admin/social-accounts/[id]', () => {
 })
 
 describe('DELETE /api/admin/social-accounts/[id]', () => {
-  it('emporte le compte, ses publications et son jeton', async () => {
+  it('takes the account, its posts and its token', async () => {
     const cookie = await cookieEditeur()
     const accounts = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
     const archives = accounts.find((c) => c.username === 'archives')
@@ -150,7 +150,7 @@ describe('DELETE /api/admin/social-accounts/[id]', () => {
     expect((await $fetch('/api/social-posts')).map((p) => p.shortcode)).not.toContain('MASQ1')
   })
 
-  it('répond 404 sur un compte inconnu, sans rien casser', async () => {
+  it('answers 404 on an unknown account, without breaking anything', async () => {
     const r = await fetch('/api/admin/social-accounts/999999', {
       method: 'DELETE',
       headers: { cookie: await cookieEditeur() },

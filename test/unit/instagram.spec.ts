@@ -22,43 +22,43 @@ const media = (id: string, extra: Record<string, unknown> = {}) => ({
   ...extra,
 })
 
-describe('traduction du vocabulaire de Meta', () => {
-  it('reconnaît un reel à son media_product_type', () => {
+describe("translating Meta's vocabulary", () => {
+  it('recognises a reel by its media_product_type', () => {
     expect(mediaType(media('a', { media_product_type: 'REELS', media_type: 'VIDEO' }))).toBe('reel')
   })
 
-  it('reconnaît un carrousel', () => {
+  it('recognises a carousel', () => {
     expect(mediaType(media('a', { media_type: 'CAROUSEL_ALBUM' }))).toBe('carousel')
   })
 
-  it('reconnaît une image', () => {
+  it('recognises an image', () => {
     expect(mediaType(media('a'))).toBe('image')
   })
 
-  it('retombe sur « post » pour le reste', () => {
+  it('falls back to « post » for the rest', () => {
     expect(mediaType(media('a', { media_type: 'VIDEO' }))).toBe('post')
   })
 })
 
-describe('extraction du code court', () => {
-  it('accepte /p/, /reel/, /reels/ et /tv/', () => {
+describe('shortcode extraction', () => {
+  it('accepts /p/, /reel/, /reels/ and /tv/', () => {
     for (const shape of ['p', 'reel', 'reels', 'tv']) {
       expect(shortcodeOf(`https://www.instagram.com/${shape}/ABC123/`)).toBe('ABC123')
     }
   })
 
-  it('ignore les paramètres', () => {
+  it('ignores the parameters', () => {
     expect(shortcodeOf('https://www.instagram.com/p/ABC123/?igsh=xyz')).toBe('ABC123')
   })
 
-  it('renvoie null sur une adresse qui n’en est pas une', () => {
+  it('returns null on an address that is not one', () => {
     expect(shortcodeOf('https://exemple.test/p/ABC')).toBeNull()
     expect(shortcodeOf('')).toBeNull()
   })
 })
 
 describe('pagination', () => {
-  it('suit les pages jusqu’au bout', async () => {
+  it('follows the pages to the end', async () => {
     const pages = [
       { data: [media('1'), media('2')], paging: { next: 'https://suite/2' } },
       { data: [media('3')], paging: { next: 'https://suite/3' } },
@@ -71,7 +71,7 @@ describe('pagination', () => {
     expect(all.map((m) => m.id)).toEqual(['1', '2', '3', '4'])
   })
 
-  it('ne passe les paramètres qu’au PREMIER appel', async () => {
+  it('only passes the parameters on the FIRST call', async () => {
     // Meta's « next » URL already carries its own: sending them again would
     // produce an invalid request.
     const calls: { url: string; query?: Record<string, string> }[] = []
@@ -87,7 +87,7 @@ describe('pagination', () => {
     expect(calls[1]?.query).toBeUndefined()
   })
 
-  it('S’ARRÊTE, même si la pagination boucle', async () => {
+  it('STOPS, even when the pagination loops', async () => {
     // Unbounded, a pagination that repeats itself would keep the sync
     // running forever, burning the API quota.
     const http = vi.fn(async () => ({
@@ -100,12 +100,12 @@ describe('pagination', () => {
     expect(http).toHaveBeenCalledTimes(5)
   })
 
-  it('supporte une réponse vide', async () => {
+  it('supports an empty response', async () => {
     const http = vi.fn(async () => ({ data: [] })) as unknown as HttpClient
     expect(await readMedia('jeton', http)).toEqual([])
   })
 
-  it('laisse remonter une erreur de l’API', async () => {
+  it('lets an API error bubble up', async () => {
     // An expired token or a reached quota must interrupt the sync, not make
     // it look successful with zero posts.
     const http = vi.fn(async () => {

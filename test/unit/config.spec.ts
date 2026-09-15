@@ -38,26 +38,26 @@ const PROD_SECRETS = {
 }
 
 describe('configuration', () => {
-  it('accepte une configuration vide en développement', () => {
+  it('accepts an empty configuration in development', () => {
     const c = parseConfig(MINIMAL_CONFIG)
     expect(c.public.appEnv).toBe('dev')
     expect(c.secretEncryptionKey).toBe('')
     expect(c.session.password).toBe('')
   })
 
-  it('accepte preview sans secret', () => {
+  it('accepts preview without a secret', () => {
     expect(() =>
       parseConfig({ ...MINIMAL_CONFIG, public: { ...MINIMAL_CONFIG.public, appEnv: 'preview' } }),
     ).not.toThrow()
   })
 
-  it('refuse de démarrer en production sans secret', () => {
+  it('refuses to start in production without a secret', () => {
     expect(() =>
       parseConfig({ ...MINIMAL_CONFIG, public: { ...MINIMAL_CONFIG.public, appEnv: 'prod' } }),
     ).toThrow(/manquantes en production/)
   })
 
-  it('nomme les variables manquantes, triées, sous leur nom d’environnement', () => {
+  it('names the missing variables, sorted, under their environment name', () => {
     let message = ''
     try {
       parseConfig({
@@ -79,7 +79,7 @@ describe('configuration', () => {
     expect(message).not.toContain('NUXT_DATABASE_URL')
   })
 
-  it('démarre en production dès que tous les secrets sont présents', () => {
+  it('starts in production as soon as every secret is present', () => {
     const c = parseConfig({
       ...MINIMAL_CONFIG,
       ...PROD_SECRETS,
@@ -88,13 +88,13 @@ describe('configuration', () => {
     expect(c.public.appEnv).toBe('prod')
   })
 
-  it('refuse un environnement inconnu', () => {
+  it('refuses an unknown environment', () => {
     expect(() =>
       parseConfig({ ...MINIMAL_CONFIG, public: { ...MINIMAL_CONFIG.public, appEnv: 'staging' } }),
     ).toThrow()
   })
 
-  it('traduit une clé de configuration en nom de variable d’environnement', () => {
+  it('turns a configuration key into an environment variable name', () => {
     // Known secrets have an EXPLICIT name, because it cannot be derived
     // from the path: nuxt-auth-utils mandates session.password and
     // oauth.google.*.
@@ -104,7 +104,7 @@ describe('configuration', () => {
     expect(variableName('r2AccessKeyId')).toBe('NUXT_R2_ACCESS_KEY_ID')
   })
 
-  it('la liste des secrets obligatoires est celle du lot 1', () => {
+  it('the list of required secrets is the one from lot 1', () => {
     // Same list as refuse_to_start_in_prod_without_secrets on the Python side.
     expect([...SECRETS_REQUIRED_IN_PROD].sort()).toEqual([
       'databaseUrl',

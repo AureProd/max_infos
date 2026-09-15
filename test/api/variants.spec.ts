@@ -42,8 +42,8 @@ beforeAll(async () => {
 
 const auth = () => ({ cookie, 'content-type': 'application/json' })
 
-describe('saisie manuelle', () => {
-  it('enregistre une publication LinkedIn', async () => {
+describe('manual entry', () => {
+  it('records a LinkedIn post', async () => {
     // The only possible path: reading one's own LinkedIn posts is
     // impossible, the r_member_social scope is closed to new apps.
     const p = await $fetch('/api/admin/social-posts', {
@@ -61,7 +61,7 @@ describe('saisie manuelle', () => {
     expect(p?.externalId).toBeNull()
   })
 
-  it('extrait le code court d’une adresse Instagram', async () => {
+  it('extracts the shortcode from an Instagram address', async () => {
     const p = await $fetch('/api/admin/social-posts', {
       method: 'POST',
       headers: auth(),
@@ -70,7 +70,7 @@ describe('saisie manuelle', () => {
     expect(p?.shortcode).toBe('DdGUF5XJbhE')
   })
 
-  it('laisse coexister PLUSIEURS saisies manuelles', async () => {
+  it('lets SEVERAL manual entries coexist', async () => {
     // NULLs being distinct under PostgreSQL, the unique index
     // (network, external_id) does not block them. Intended behaviour.
     const before = await $fetch('/api/admin/social-posts', { headers: auth() })
@@ -84,8 +84,8 @@ describe('saisie manuelle', () => {
   })
 })
 
-describe('rattachement', () => {
-  it('dit dans la LISTE à quel article chaque publication est rattachée', async () => {
+describe('attachment', () => {
+  it('says in the LIST which article each post is attached to', async () => {
     // Without this, the screen had to query each article one by one to
     // rebuild the table — one request per article, for information the list
     // can carry itself.
@@ -102,7 +102,7 @@ describe('rattachement', () => {
     expect(after.find((p) => p.id !== id)?.articleSlug).toBeNull()
   })
 
-  it('rattache puis détache une publication', async () => {
+  it('attaches then detaches a post', async () => {
     const list = await $fetch('/api/admin/social-posts', { headers: auth() })
     const id = list[0]?.id as number
 
@@ -124,7 +124,7 @@ describe('rattachement', () => {
     expect(detached.linked).toBeNull()
   })
 
-  it('refuse de rattacher à un article inexistant', async () => {
+  it('refuses to attach to a non-existent article', async () => {
     const list = await $fetch('/api/admin/social-posts', { headers: auth() })
     const r = await fetch(`/api/admin/social-posts/${list[0]?.id}/article`, {
       method: 'PUT',
@@ -135,8 +135,8 @@ describe('rattachement', () => {
   })
 })
 
-describe('visibilité', () => {
-  it('masque une publication, qui disparaît du public', async () => {
+describe('visibility', () => {
+  it('hides a post, which disappears from the public side', async () => {
     const list = await $fetch('/api/admin/social-posts', { headers: auth() })
     const id = list[0]?.id as number
 
@@ -155,8 +155,8 @@ describe('visibilité', () => {
   })
 })
 
-describe('gabarits de déclinaison', () => {
-  it('résout les variables depuis l’article', async () => {
+describe('variant templates', () => {
+  it('resolves the variables from the article', async () => {
     const d = await $fetch('/api/admin/articles/un-article/variants', { headers: auth() })
     expect(d.linkedin).toContain('Un article')
     expect(d.linkedin).toContain('Son chapô.')
@@ -167,7 +167,7 @@ describe('gabarits de déclinaison', () => {
     expect(d.reel).not.toMatch(/\{\{/)
   })
 
-  it('annonce les variables disponibles', async () => {
+  it('announces the available variables', async () => {
     const d = await $fetch('/api/admin/articles/un-article/variants', { headers: auth() })
     expect(d.variables).toContain('titre')
     expect(d.variables).toContain('url')

@@ -67,15 +67,15 @@ beforeEach(async () => {
   )
 })
 
-describe('le jeton appartient au compte', () => {
-  it('dérive une clé par compte', () => {
+describe('the token belongs to the account', () => {
+  it('derives one key per account', () => {
     // A single token for everyone was the previous model: two accounts
     // would have overwritten each other without a single message.
     expect(tokenKey(1)).toBe('instagram_access_token:1')
     expect(tokenKey(2)).not.toBe(tokenKey(1))
   })
 
-  it('range, relit et supprime le jeton du bon compte', async () => {
+  it("stores, re-reads and deletes the right account's token", async () => {
     await saveToken(1, 'jeton-un')
     await saveToken(2, 'jeton-deux')
 
@@ -87,15 +87,15 @@ describe('le jeton appartient au compte', () => {
     expect(await readToken(2)).toBe('jeton-deux')
   })
 
-  it('stocke le jeton CHIFFRÉ, jamais en clair', async () => {
+  it('stores the token ENCRYPTED, never in the clear', async () => {
     await saveToken(1, 'jeton-tres-secret')
     const [row] = await db.select().from(s.secret)
     expect(row?.ciphertext).not.toContain('jeton-tres-secret')
   })
 })
 
-describe('enregistrement du compte', () => {
-  it('reprend l’identité du profil Meta', async () => {
+describe('saving the account', () => {
+  it('takes the identity from the Meta profile', async () => {
     const id = await saveAccount(profile('42'))
     const [account] = await db.select().from(s.socialAccount).where(eq(s.socialAccount.id, id))
 
@@ -107,7 +107,7 @@ describe('enregistrement du compte', () => {
     expect(account?.lastSyncAt).toBeInstanceOf(Date)
   })
 
-  it('reconnecter un compte connu retombe sur SA ligne', async () => {
+  it('reconnecting a known account lands on ITS row', async () => {
     const first = await saveAccount(profile('42'))
     const second = await saveAccount(profile('42', { username: 'renomme' }))
 
@@ -115,7 +115,7 @@ describe('enregistrement du compte', () => {
     expect(await db.select().from(s.socialAccount)).toHaveLength(1)
   })
 
-  it('ne défait JAMAIS les réglages d’affichage de Max', async () => {
+  it("NEVER undoes Max's display settings", async () => {
     // The trap: a sync that resets everything would also put a hidden
     // account back on display, with nobody understanding why.
     const id = await saveAccount(profile('42'))
@@ -134,8 +134,8 @@ describe('enregistrement du compte', () => {
   })
 })
 
-describe('synchronisation, compte par compte', () => {
-  it('range chaque publication sous son compte', async () => {
+describe('sync, account by account', () => {
+  it('files every post under its account', async () => {
     const un = await saveAccount(profile('1'))
     const two = await saveAccount(profile('2'))
 
@@ -147,14 +147,14 @@ describe('synchronisation, compte par compte', () => {
     expect(lines.filter((l) => l.accountId === two).map((l) => l.externalId)).toEqual(['C'])
   })
 
-  it('reste idempotente', async () => {
+  it('stays idempotent', async () => {
     const un = await saveAccount(profile('1'))
     expect(await syncPosts([media('A')], un)).toEqual({ views: 1, fresh: 1 })
     expect(await syncPosts([media('A')], un)).toEqual({ views: 1, fresh: 0 })
     expect(await db.select().from(s.socialPost)).toHaveLength(1)
   })
 
-  it('ne remet ni le masquage ni la position de Max', async () => {
+  it("resets neither Max's hiding nor his ordering", async () => {
     const un = await saveAccount(profile('1'))
     await syncPosts([media('A')], un)
     await db.update(s.socialPost).set({ hidden: true, position: 5 })
@@ -168,8 +168,8 @@ describe('synchronisation, compte par compte', () => {
   })
 })
 
-describe('inventaire des comptes à synchroniser', () => {
-  it('rend les comptes Instagram, masqués COMPRIS', async () => {
+describe('inventory of the accounts to sync', () => {
+  it('returns the Instagram accounts, hidden ones INCLUDED', async () => {
     // A hidden account stays synced: hiding it is a display decision, not a
     // broken connection. Showing it again must reveal up-to-date posts, not
     // a three-week gap.

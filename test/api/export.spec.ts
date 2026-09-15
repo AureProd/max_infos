@@ -62,14 +62,14 @@ async function downloadArchive(): Promise<Record<string, string>> {
 }
 
 describe('export', () => {
-  it('produit une VRAIE archive zip, qui s’ouvre', async () => {
+  it('produces a REAL zip archive, one that opens', async () => {
     // An archive that downloads but does not open is not a backup.
     // `unzipSync` would fail on a malformed file.
     const files = await downloadArchive()
     expect(Object.keys(files).length).toBeGreaterThan(5)
   })
 
-  it('se propose en téléchargement, datée', async () => {
+  it('offers itself as a dated download', async () => {
     const r = await fetch('/api/admin/export', { headers: auth() })
     expect(r.headers.get('content-type')).toBe('application/zip')
     expect(r.headers.get('content-disposition')).toMatch(
@@ -77,14 +77,14 @@ describe('export', () => {
     )
   })
 
-  it('porte une version de schéma et des counts', async () => {
+  it('carries a schema version and counts', async () => {
     const files = await downloadArchive()
     const manifest = JSON.parse(files['manifest.json'] ?? '{}')
     expect(manifest.version).toBe(2)
     expect(manifest.counts.articles).toBeGreaterThan(0)
   })
 
-  it('contient les articles en MARKDOWN, lisibles tels quels', async () => {
+  it('holds the articles as MARKDOWN, readable as they are', async () => {
     // An archive you can only open with the software that produced it is
     // not a backup, it is a dependency.
     const files = await downloadArchive()
@@ -96,12 +96,12 @@ describe('export', () => {
     expect(content).toContain('tags:')
   })
 
-  it('explique son contenu, pour dans deux ans', async () => {
+  it('explains its contents, for two years from now', async () => {
     const files = await downloadArchive()
     expect(files['LISEZ-MOI.txt']).toContain('Cloudflare R2')
   })
 
-  it('n’exporte JAMAIS les jetons tiers', async () => {
+  it('NEVER exports third-party tokens', async () => {
     // Re-exporting them would mean taking access credentials out of a
     // system to put them in a file about to be downloaded.
     const files = await downloadArchive()
@@ -110,15 +110,15 @@ describe('export', () => {
     expect(all).not.toContain('ciphertext')
   })
 
-  it('n’exporte d’un compte que son adresse et son rôle', async () => {
+  it("exports only an account's address and role", async () => {
     const files = await downloadArchive()
     const account = JSON.parse(files['data/users.json'] ?? '[]')[0]
     expect(Object.keys(account ?? {}).sort()).toEqual(['active', 'email', 'name', 'role'])
   })
 })
 
-describe('dryRun d’import', () => {
-  it('n’écrit RIEN et montre le différentiel', async () => {
+describe('import dry run', () => {
+  it('writes NOTHING and shows the difference', async () => {
     const beforeTest = await archiveToObject()
 
     const r = await $fetch('/api/admin/import', {
@@ -139,7 +139,7 @@ describe('dryRun d’import', () => {
     )
   })
 
-  it('refuse une archive d’une AUTRE version de schéma', async () => {
+  it('refuses an archive of ANOTHER schema version', async () => {
     // Writing nonsense would be worse than refusing.
     const r = await fetch('/api/admin/import', {
       method: 'POST',
@@ -170,8 +170,8 @@ async function archiveToObject(): Promise<Record<string, unknown>> {
   }
 }
 
-describe('aller-retour complet', () => {
-  it('emporte les comptes sociaux — sinon les publications seraient orphelines', async () => {
+describe('full round trip', () => {
+  it('carries the social accounts — otherwise the posts would be orphans', async () => {
     // `social_post.account_id` points at `social_account`: an archive
     // forgetting the accounts would make restoring onto a blank database
     // impossible, the foreign key refusing every post.
@@ -180,7 +180,7 @@ describe('aller-retour complet', () => {
     expect(accounts.map((c) => c.username)).toContain('maxinfo')
   })
 
-  it('exporter, wipe, réimporter : les données sont identiques', async () => {
+  it('export, wipe, re-import: the data is identical', async () => {
     const before = await archiveToObject()
 
     const written = await $fetch('/api/admin/import', {
@@ -213,14 +213,14 @@ describe('aller-retour complet', () => {
     }
   })
 
-  it('le jeton chiffré a SURVÉCU au vidage', async () => {
+  it('the encrypted token SURVIVED the wipe', async () => {
     // `secret` is deliberately absent from the truncate: an import must not
     // erase the access to third-party accounts.
     const [restant] = await db.select().from(secret)
     expect(restant?.ciphertext).toContain('jeton-chiffre-a-ne-jamais-exporter')
   })
 
-  it('le site public répond toujours après l’aller-retour', async () => {
+  it('the public site still answers after the round trip', async () => {
     const list = await $fetch('/api/articles')
     expect(list.total).toBeGreaterThan(0)
   })

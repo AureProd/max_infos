@@ -35,8 +35,8 @@ beforeAll(async () => {
 
 const auth = () => ({ cookie, 'content-type': 'application/json' })
 
-describe('cycle de vie d’un article', () => {
-  it('naît TOUJOURS en brouillon', async () => {
+describe('article life cycle', () => {
+  it('is ALWAYS born a draft', async () => {
     // Publishing must be an explicit act, never a side effect.
     const created = await $fetch('/api/admin/articles', {
       method: 'POST',
@@ -48,13 +48,13 @@ describe('cycle de vie d’un article', () => {
     expect(created.slug).toBe('mon-premier')
   })
 
-  it('reste invisible du public tant qu’il est brouillon', async () => {
+  it('stays invisible to the public while it is a draft', async () => {
     const list = await $fetch('/api/articles')
     expect(list.items.map((i) => i.slug)).not.toContain('mon-premier')
     expect((await fetch('/api/articles/mon-premier')).status).toBe(404)
   })
 
-  it('rend et assainit le corps à l’ENREGISTREMENT', async () => {
+  it('renders and sanitises the body ON SAVE', async () => {
     const update = await $fetch('/api/admin/articles/mon-premier', {
       method: 'PUT',
       headers: auth(),
@@ -70,7 +70,7 @@ describe('cycle de vie d’un article', () => {
     expect(update.bodyHtml).not.toContain('javascript:')
   })
 
-  it('recalcule les mesures dérivées', async () => {
+  it('recomputes the derived measurements', async () => {
     const update = await $fetch('/api/admin/articles/mon-premier', {
       method: 'PUT',
       headers: auth(),
@@ -80,7 +80,7 @@ describe('cycle de vie d’un article', () => {
     expect(update.readingMinutes).toBe(2)
   })
 
-  it('publie, et l’article apparaît alors publiquement', async () => {
+  it('publishes, and the article then appears publicly', async () => {
     const r = await $fetch('/api/admin/articles/mon-premier/status', {
       method: 'PUT',
       headers: auth(),
@@ -95,7 +95,7 @@ describe('cycle de vie d’un article', () => {
     expect(list.items.map((i) => i.slug)).toContain('mon-premier')
   })
 
-  it('dépublie sans perdre la date de publication', async () => {
+  it('unpublishes without losing the publication date', async () => {
     await $fetch('/api/admin/articles/mon-premier/status', {
       method: 'PUT',
       headers: auth(),
@@ -108,7 +108,7 @@ describe('cycle de vie d’un article', () => {
     expect(a.publishedAt).toBeTruthy()
   })
 
-  it('supprime, et la liaison de tag part en cascade', async () => {
+  it('deletes, and the tag link goes on cascade', async () => {
     await $fetch('/api/admin/articles/mon-premier', { method: 'DELETE', headers: auth() })
     expect((await fetch('/api/admin/articles/mon-premier', { headers: auth() })).status).toBe(404)
     const remaining = await db.select().from(article).where(eq(article.slug, 'mon-premier'))
@@ -117,7 +117,7 @@ describe('cycle de vie d’un article', () => {
 })
 
 describe('slugs', () => {
-  it('déduit un slug du titre, et en trouve un libre s’il est pris', async () => {
+  it('derives a slug from the title, and finds a free one when taken', async () => {
     const a = await $fetch('/api/admin/articles', {
       method: 'POST',
       headers: auth(),
@@ -134,8 +134,8 @@ describe('slugs', () => {
   })
 })
 
-describe('sujets', () => {
-  it('crée les sujets inconnus et les rattache', async () => {
+describe('tags', () => {
+  it('creates the unknown tags and attaches them', async () => {
     const a = await $fetch('/api/admin/articles', {
       method: 'POST',
       headers: auth(),
@@ -144,7 +144,7 @@ describe('sujets', () => {
     expect(a.tags.map((t) => t.slug).sort()).toEqual(['europe', 'geopolitique'])
   })
 
-  it('REMPLACE les sujets, il ne les ajoute pas', async () => {
+  it('REPLACES the tags, it does not add to them', async () => {
     // That is what a form where you remove a tag expects.
     const update = await $fetch('/api/admin/articles/avec-sujets', {
       method: 'PUT',
@@ -154,7 +154,7 @@ describe('sujets', () => {
     expect(update.tags.map((t) => t.slug)).toEqual(['europe'])
   })
 
-  it('retire tous les sujets quand la liste est vide', async () => {
+  it('removes every tag when the list is empty', async () => {
     const update = await $fetch('/api/admin/articles/avec-sujets', {
       method: 'PUT',
       headers: auth(),
@@ -164,8 +164,8 @@ describe('sujets', () => {
   })
 })
 
-describe('aperçu', () => {
-  it('passe par le MÊME moteur que l’enregistrement', async () => {
+describe('preview', () => {
+  it('goes through the SAME engine as saving', async () => {
     const a = await $fetch('/api/admin/preview', {
       method: 'POST',
       headers: auth(),
@@ -176,8 +176,8 @@ describe('aperçu', () => {
   })
 })
 
-describe('médias', () => {
-  it('refuse un type de fichier hors liste', async () => {
+describe('media', () => {
+  it('refuses a file type outside the list', async () => {
     const r = await fetch('/api/admin/media/upload-url', {
       method: 'POST',
       headers: auth(),
@@ -191,7 +191,7 @@ describe('médias', () => {
     expect(r.status).toBe(415)
   })
 
-  it('enregistre la ligne AVANT de renvoyer l’URL signée', async () => {
+  it('records the row BEFORE returning the signed URL', async () => {
     // A file uploaded without a row would be invisible and impossible to
     // clean up; a row without a file is easy to spot and delete.
     const r = await $fetch('/api/admin/media/upload-url', {
@@ -207,7 +207,7 @@ describe('médias', () => {
     )
   })
 
-  it('dit si le stockage est configuré', async () => {
+  it('says whether storage is configured', async () => {
     const r = await $fetch('/api/admin/media', { headers: auth() })
     expect(r.stockage).toBe(true)
   })

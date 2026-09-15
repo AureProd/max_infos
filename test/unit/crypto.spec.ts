@@ -17,19 +17,19 @@ beforeEach(() => {
   currentKey = KEY
 })
 
-describe('chiffrement des secrets', () => {
-  it('fait l’aller-retour', () => {
+describe('secret encryption', () => {
+  it('makes the round trip', () => {
     const token = 'IGQWRO...a-long-lived-instagram-token'
     expect(decrypt(encrypt(token))).toBe(token)
   })
 
-  it('supporte l’accentuation et les chaînes vides', () => {
+  it('supports accents and empty strings', () => {
     for (const v of ['', 'é à ù — “guillemets”', '🔑']) {
       expect(decrypt(encrypt(v))).toBe(v)
     }
   })
 
-  it('produit un texte chiffré DIFFÉRENT à chaque fois', () => {
+  it('produces a DIFFERENT ciphertext every time', () => {
     // An IV reused with GCM breaks confidentiality AND authentication at
     // once. Two encryptions of the same plaintext must therefore differ.
     const a = encrypt('même valeur')
@@ -38,11 +38,11 @@ describe('chiffrement des secrets', () => {
     expect(decrypt(a)).toBe(decrypt(b))
   })
 
-  it('ne laisse jamais le clair apparaître', () => {
+  it('never lets the plaintext show', () => {
     expect(encrypt('mot-de-passe-très-secret')).not.toContain('secret')
   })
 
-  it('REFUSE un message altéré', () => {
+  it('REFUSES a tampered message', () => {
     // That is the whole point of authenticated encryption: tampering is
     // detected, it does not yield noise one might take for valid data.
     const sealed = encrypt('valeur')
@@ -53,29 +53,29 @@ describe('chiffrement des secrets', () => {
     expect(() => decrypt(altered)).toThrow()
   })
 
-  it('REFUSE une étiquette d’authentification bidouillée', () => {
+  it('REFUSES a doctored authentication tag', () => {
     const parts = encrypt('valeur').split('.')
     const falsy = [parts[0], parts[1], randomBytes(16).toString('base64'), parts[3]].join('.')
     expect(() => decrypt(falsy)).toThrow()
   })
 
-  it('refuse un format inconnu', () => {
+  it('refuses an unknown format', () => {
     for (const wrong of ['', 'nimporte', 'v2.a.b.c', 'v1.a.b']) {
       expect(() => decrypt(wrong)).toThrow()
     }
   })
 
-  it('refuse une clé de mauvaise size, plutôt que de chiffrer faiblement', () => {
+  it('refuses a key of the wrong size, rather than encrypting weakly', () => {
     currentKey = randomBytes(16).toString('base64')
     expect(() => encrypt('x')).toThrow(/32 octets/)
   })
 
-  it('refuse une clé absente', () => {
+  it('refuses a missing key', () => {
     currentKey = ''
     expect(() => encrypt('x')).toThrow(/NUXT_SECRET_ENCRYPTION_KEY/)
   })
 
-  it('ne déchiffre pas avec une AUTRE clé', () => {
+  it('does not decrypt with a DIFFERENT key', () => {
     const sealed = encrypt('valeur')
     currentKey = randomBytes(32).toString('base64')
     expect(() => decrypt(sealed)).toThrow()
