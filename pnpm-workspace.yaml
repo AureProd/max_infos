@@ -1,16 +1,15 @@
-# pnpm 12 refuse par défaut d'exécuter les scripts d'installation des
-# dépendances : c'est une protection contre les paquets malveillants.
-# On autorise explicitement ceux dont on a besoin, et seulement ceux-là.
+# pnpm 12 refuses by default to run dependency install scripts: it is a
+# protection against malicious packages. We explicitly allow the ones we
+# need, and only those.
 allowBuilds:
-  # esbuild récupère son binaire natif dans son script postinstall. Sans lui,
-  # Vite (donc Nuxt) ne peut pas compiler. Dépendance transitive de Vite.
+  # esbuild fetches its native binary in its postinstall script. Without it,
+  # Vite (and therefore Nuxt) cannot compile. A transitive Vite dependency.
   esbuild: true
-  # lefthook place le binaire Go livré par npm dans .bin depuis son script
-  # d'installation. Sans lui, aucun hook Git n'est posé.
+  # lefthook puts the Go binary shipped by npm into .bin from its install
+  # script. Without it, no Git hook is set.
   lefthook: true
 
-# pnpm 12 refuse aussi les versions publiées trop récemment (fenêtre de
-# quarantaine contre les compromissions de registre). Les exceptions
-# assumées sont listées ici.
+# pnpm 12 also refuses versions published too recently (a quarantine window
+# against registry compromises). The accepted exceptions are listed here.
 minimumReleaseAgeExclude:
   - zod@4.6.5

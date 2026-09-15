@@ -1,16 +1,16 @@
-# Ce qui ne doit jamais entrer dans le contexte de build.
+# What must never enter the build context.
 node_modules
-# Une sortie de build de l'hôte invaliderait le cache à chaque itération et
-# pourrait écraser celle construite dans le conteneur.
+# A build output from the host would invalidate the cache on every
+# iteration and could overwrite the one built inside the container.
 .nuxt
 .output
 .data
 coverage
 
-# Reliquat de la maquette, converti au fil de l'eau puis supprimé.
+# Leftover from the mock-up, converted as we go then removed.
 frontend
 
-# Sans intérêt pour l'image.
+# Of no use to the image.
 mockup
 docs
 .git
@@ -20,7 +20,7 @@ docs
 test
 **/*.log
 
-# Secrets et artefacts générés.
+# Secrets and generated artefacts.
 .env
 .env.*
 !.env.example
