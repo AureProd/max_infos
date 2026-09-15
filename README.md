@@ -184,11 +184,19 @@ dans [`docs/GOING-LIVE.md`](docs/GOING-LIVE.md).
 
 ## Conventions
 
+**La langue.** Tout le technique est en anglais — noms de fichiers, routes,
+identifiants, commentaires, messages de commit, libellés de test. Le
+français reste pour ce qui s'adresse à un humain : les textes du site, le
+contenu des articles, le contenu de ces documents, et les noms de variables
+de gabarit que Max écrit lui-même. Le détail est dans
+[`CLAUDE.md`](CLAUDE.md).
+
 **Les messages de commit** suivent [Conventional
-Commits](https://www.conventionalcommits.org/fr/), et un hook les refuse
+Commits](https://www.conventionalcommits.org/), et un hook les refuse
 sinon. Préfixes admis : `feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
 `test`, `build`, `ci`, `chore`, `revert`. Un `!` signale une rupture
-(`chore!: …`).
+(`chore!: …`). Le sujet ne prend pas de majuscule initiale — commitlint la
+refuse.
 
 **Les vérifications tournent avant chaque commit.** Rien à installer :
 `pnpm install` pose les hooks lui-même, par le script `prepare`. Tout le

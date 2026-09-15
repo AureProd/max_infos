@@ -6,9 +6,23 @@ Le chantier est décrit dans `docs/PLAN.md`, l'état d'avancement dans
 
 ## Langue
 
-Tout est en français : commentaires, docstrings, messages de commit, noms de
-variables métier. Les identifiants techniques imposés par un cadre (`default`,
-`index`, `slug`) restent tels quels.
+**Tout le technique est en anglais**, parce que c'est le standard : noms de
+fichiers et de dossiers, routes, identifiants, commentaires, messages de
+commit, libellés de test.
+
+**Le français reste pour ce qui s'adresse à un humain :**
+
+| Reste en français | Pourquoi |
+|---|---|
+| Les textes affichés aux visiteurs | C'est le contenu du site |
+| Le contenu des articles (`scripts/seed/content/`) | Idem |
+| Le contenu des documents (`.md`) — leurs noms, eux, sont anglais | Ils s'adressent à JB et Max |
+| Les noms de variables de gabarit (`{{titre}}`, `{{sujets}}`) | Max les écrit lui-même, dans l'écran Décliner |
+| Les mois de `shared/utils/format.ts` | Ils s'affichent tels quels sur le site |
+
+Le piège du renommage est là : une chaîne de caractères peut être du contenu.
+Un remplacement automatique doit donc ignorer les chaînes et le `<template>`
+des composants — un `sed` ne le fait pas.
 
 ## Méthode
 
@@ -28,17 +42,20 @@ migration appliquant un jeu périmé tout en répondant « applied successfully 
 | Piège | Ce qu'il faut faire |
 |---|---|
 | Ce que `nuxt.config.ts` lit par `process.env` est **figé au build** | Tout ce qui varie à l'exécution passe par `runtimeConfig` et une variable `NUXT_*` |
-| `docker compose config` déplie les `env_file` et **écarte les services à profil** | `--profile migrate` dans `./setup` ; l'artefact contient les secrets, il est en 0600 et gitignoré |
+| `docker compose config` déplie les `env_file` **en clair** et **écarte les services à profil** | `--profile migrate` dans `./setup` ; l'artefact contient les secrets, il est en 0600 et gitignoré. En déploiement, ce qui protège est l'ORDRE : le `.env` est fabriqué APRÈS le rendu du compose |
+| La forme dépliée s'écrit `NOM: valeur`, pas `NOM=valeur` | Un garde-fou qui ne cherche que `NOM=` regarde à côté de la fuite qu'il doit arrêter |
 | Un conteneur qui déclare plus d'un service Traefik voit ses routeurs sans label `.service` **écartés sans erreur** | Toujours nommer le service du routeur |
 | Traefik refuse de router vers un conteneur `unhealthy` | Une sonde cassée rend le site injoignable par le proxy |
 | Drizzle transforme `sql\`${v}\`` en **paramètre lié**, inutilisable en DDL | `sql.raw` pour les contraintes ; **relire le SQL généré**, toujours |
 | Nitro parcourt `shared/` avec rollup, qui ignore les imports `?raw` de Vite | Les données de maquette vivent dans `scripts/seed/` |
 | `toLocaleString` casse l'hydratation (U+202F ou U+00A0 selon l'ICU) | Formater à la main, sans `Intl` |
 | Biome lit le `<script>` des `.vue` **sans le `<template>`** | Deux règles désactivées sur les `.vue` ; `vue-tsc` prend le relais |
-| Les routes Nuxt **statiques passent avant les dynamiques** : un article au slug d'un écran devient inaccessible | `SLUGS_RESERVES`, tenu à jour par un test qui lit `app/pages/admin/` |
+| Les routes Nuxt **statiques passent avant les dynamiques** : un article au slug d'un écran devient inaccessible | `RESERVED_SLUGS`, tenu à jour par un test qui lit `app/pages/admin/` |
 | Un `$fetch<T>` dont on écrit le type **annule l'inférence de Nitro** et accepte n'importe quel champ | Laisser Nitro déduire : un champ renommé côté serveur doit casser le typage côté page |
 | `onConflictDoUpdate` sur une colonne **sans contrainte d'unicité** échoue à l'exécution seulement | Vérifier l'index avant de viser une colonne |
 | Le code d'OAuth Instagram donne un jeton d'**une heure** | Le second échange (`ig_exchange_token`) est obligatoire, sinon l'intégration meurt au bout d'une heure |
+| Un `sed` sur du code touche aussi les **chaînes** et le `<template>` | Renommer par un lexeur : apostrophes de commentaires, gabarits imbriqués et littéraux regex cassent toute regex |
+| Deux suites `pnpm test` en parallèle partagent la **même base de test** | Elles se truncatent mutuellement : lancer une seule suite à la fois |
 
 ## Frontières à ne jamais franchir
 
