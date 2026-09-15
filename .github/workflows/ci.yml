@@ -161,8 +161,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Trivy
-        # The tag carries the « v »: the unprefixed form no longer resolves.
-        uses: aquasecurity/trivy-action@v0.28.0
+        # Pinned to a COMMIT, not a tag, and to v0.35.0 specifically.
+        #
+        # In March 2026 an attacker force-pushed 76 of the 77 trivy-action
+        # tags onto an infostealer that dumps the runner's memory. The
+        # original tags were deleted during remediation, which is why
+        # `@0.28.0` stopped resolving at all — and why the v-prefixed tag
+        # that replaced it still pointed at a setup-trivy tag that was never
+        # restored.
+        #
+        # v0.35.0 is the version the advisory designates as safe: it was
+        # published after GitHub's immutable releases were turned on for the
+        # repository, so it could not be rewritten. A SHA cannot be moved at
+        # all, which is the property that actually matters here.
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           image-ref: unmaxdinfo:ci
           # The GHCR image becomes public: a secret slipping into it would
