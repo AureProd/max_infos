@@ -35,7 +35,12 @@ jobs:
       - name: No secret in the clear
         run: pnpm secrets
       - name: File hygiene
-        run: node scripts/hooks/hygiene.mjs $(git ls-files)
+        # An array, and a SINGLE call: checkCaseCollisions compares the paths
+        # against each other and would miss collisions if the list were split
+        # across several invocations.
+        run: |
+          mapfile -t files < <(git ls-files)
+          node scripts/hooks/hygiene.mjs "${files[@]}"
       - name: No unauthorized v-html
         run: scripts/hooks/check-v-html.sh
 
