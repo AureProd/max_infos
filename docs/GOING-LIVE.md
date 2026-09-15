@@ -262,8 +262,8 @@ variable que ce qui peut être public.
 
 **Variables**
 
-`URL_HOST`, `POSTGRES_DB`, `POSTGRES_USER`, `DB_HOST`, `DB_PORT`,
-`NUXT_OAUTH_GOOGLE_CLIENT_ID`, `NUXT_OAUTH_GOOGLE_REDIRECT_URL`,
+`DEPLOY_SSH_PORT`, `URL_HOST`, `POSTGRES_DB`, `POSTGRES_USER`, `DB_HOST`,
+`DB_PORT`, `NUXT_OAUTH_GOOGLE_CLIENT_ID`, `NUXT_OAUTH_GOOGLE_REDIRECT_URL`,
 `NUXT_BOOTSTRAP_TECH_EMAIL`, `NUXT_R2_BUCKET`, `NUXT_R2_ENDPOINT`,
 `NUXT_INSTAGRAM_APP_ID`, `NUXT_INSTAGRAM_SYNC_INTERVAL_MINUTES`,
 `NUXT_SCHEDULER_ENABLED`, `NUXT_PUBLIC_R2_BASE_URL`.
@@ -271,6 +271,8 @@ variable que ce qui peut être public.
 Celles qui ont une valeur évidente ont une valeur par défaut dans le
 workflow : seules `NUXT_OAUTH_GOOGLE_*`, `NUXT_BOOTSTRAP_TECH_EMAIL`,
 `NUXT_R2_*` et `NUXT_PUBLIC_R2_BASE_URL` sont réellement à poser.
+`DEPLOY_SSH_PORT` vaut `22` tant qu'on ne la pose pas : elle n'est à définir
+que si le démon SSH du VPS écoute ailleurs.
 
 Le déploiement **échoue avant de toucher au serveur** si l'une des valeurs
 obligatoires manque, en la nommant. Mieux vaut un déploiement refusé qu'un
@@ -294,7 +296,7 @@ Créer une paire dédiée, jamais ta clé personnelle :
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/unmaxdinfo_deploy -C 'deploy unmaxdinfo' -N ''
-ssh-copy-id -i ~/.ssh/unmaxdinfo_deploy.pub <user>@<host>
+ssh-copy-id -i ~/.ssh/unmaxdinfo_deploy.pub <user>@<host>   # -p <port> si ce n'est pas 22
 cat ~/.ssh/unmaxdinfo_deploy          # → DEPLOY_SSH_KEY
 ```
 

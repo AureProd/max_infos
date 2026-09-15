@@ -215,6 +215,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ vars.DEPLOY_SSH_PORT || '22' }}
           source: docker-compose.yml,.env
           target: ${{ secrets.DEPLOY_PATH }}
 
@@ -224,6 +225,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ vars.DEPLOY_SSH_PORT || '22' }}
           script: |
             set -euo pipefail
             cd "${{ secrets.DEPLOY_PATH }}"
