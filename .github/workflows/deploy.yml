@@ -96,36 +96,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Render the production compose
-        env:
-          INSTANCE_NAME: unmaxdinfo
-          URL_HOST: unmaxdinfo.fr
-          APP_ENV: prod
-          ENV_FILE: .env
-          APP_IMAGE: ${{ env.REGISTRY }}/${{ needs.publier.outputs.repository }}:${{ github.sha }}
-          MIGRATE_IMAGE: ${{ env.REGISTRY }}/${{ needs.publier.outputs.repository }}-migrate:${{ github.sha }}
-        run: |
-          docker compose -p "$INSTANCE_NAME" --project-directory . \
-            -f deploy/docker-compose.yml \
-            -f deploy/docker-compose-prod-override.yml \
-            --profile migrate \
-            config > docker-compose.yml
-          # Check: the rendered file must contain no secret.
-          #
-          # `docker compose config` UNFOLDS env_file into `environment:`, in
-          # the clear — verified, not assumed. What protects us here is that
-          # the .env does not exist YET: it is built in the next step. The
-          # order of the two steps is therefore load-bearing; swapping them
-          # would publish every secret into the file copied to the server.
-          #
-          # The pattern looks for both syntaxes. It used to look only for
-          # `NAME=`, whereas the unfolded form reads `NAME: value`: the
-          # guard rail was looking away from the only leak it had to stop.
-          if grep -qE '(PASSWORD|SECRET|TOKEN|KEY)[[:space:]]*[:=][[:space:]]*[^[:space:]$]' docker-compose.yml; then
-            echo "::error::The rendered compose contains a secret value"
-            exit 1
-          fi
-
       - name: Render the production .env
         # The server now holds nothing but the SSH key: everything else is
         # built here, on every deployment, from the secrets and variables of
@@ -142,6 +112,10 @@ jobs:
         # the quoting question for good: its alphabet holds no quote, no
         # space and no `$`, so no password can break out of the transport.
         env:
+          # --- What Compose interpolates, on the server -------------------
+          APP_IMAGE: ${{ env.REGISTRY }}/${{ needs.publier.outputs.repository }}:${{ github.sha }}
+          MIGRATE_IMAGE: ${{ env.REGISTRY }}/${{ needs.publier.outputs.repository }}-migrate:${{ github.sha }}
+          INSTANCE_NAME: unmaxdinfo
           # --- Secrets ---------------------------------------------------
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           NUXT_SECRET_ENCRYPTION_KEY: ${{ secrets.NUXT_SECRET_ENCRYPTION_KEY }}
@@ -234,7 +208,21 @@ jobs:
             echo "NUXT_PUBLIC_R2_BASE_URL=${NUXT_PUBLIC_R2_BASE_URL}"
           )
 
+          # Every `$` is DOUBLED, because Compose interpolates the contents
+          # of env_file too. Measured, not assumed: a value `mot$de{passe}`
+          # reaches the container as `mot{passe}` — the `$de` is read as a
+          # variable and replaced by nothing. A password silently amputated
+          # gives a database that refuses a password which looks right in
+          # every file you would think to open.
+          content=${content//\$/\$\$}
+
           printf 'ENV_B64=%s\n' "$(printf '%s\n' "$content" | base64 -w0)" >> "$GITHUB_ENV"
+          {
+            echo "APP_IMAGE=${APP_IMAGE}"
+            echo "MIGRATE_IMAGE=${MIGRATE_IMAGE}"
+            echo "INSTANCE_NAME=${INSTANCE_NAME}"
+            echo "URL_HOST=${URL_HOST}"
+          } >> "$GITHUB_ENV"
           echo "$(printf '%s\n' "$content" | wc -l) variables prepared."
 
       - name: Copier sur le serveur
@@ -244,10 +232,11 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
-          # The .env is NOT here: it is rebuilt on the server, in the next
-          # step. The rendered compose carries no secret — the previous step
-          # checks that rather than assuming it.
-          source: docker-compose.yml
+          # The compose files AS THEY ARE IN THE REPOSITORY, not a rendered
+          # version. They hold no secret by construction — they are tracked
+          # in a public repository, and the `secrets` hook checks them.
+          source: deploy/docker-compose.yml,deploy/docker-compose-prod-override.yml
+          strip_components: 1
           target: ${{ secrets.DEPLOY_PATH }}
 
       - name: Migrer PUIS basculer
@@ -257,7 +246,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
-          envs: ENV_B64
+          envs: ENV_B64,APP_IMAGE,MIGRATE_IMAGE,INSTANCE_NAME,URL_HOST
           script: |
             set -euo pipefail
             cd "${{ secrets.DEPLOY_PATH }}"
@@ -266,11 +255,21 @@ jobs:
             umask 077
             printf '%s' "$ENV_B64" | base64 -d > .env
             chmod 600 .env
-            docker compose pull
-            # The && is the whole guarantee: a failed migration means no
+
+            # `--env-file /dev/null`: Compose otherwise reads .env for its
+            # own ${} interpolation, and a password holding a `$` would be
+            # mangled on the way. Interpolation therefore takes ONLY what is
+            # exported here; .env is left to do one job, feeding the
+            # containers verbatim through env_file.
+            export APP_IMAGE MIGRATE_IMAGE INSTANCE_NAME URL_HOST
+            compose="docker compose -p ${INSTANCE_NAME} --env-file /dev/null \
+              -f docker-compose.yml -f docker-compose-prod-override.yml"
+
+            $compose pull
+            # The order is the whole guarantee: a failed migration means no
             # switch, and the old image keeps serving.
-            docker compose run --rm migrate
-            docker compose up -d --wait
+            $compose run --rm migrate
+            $compose up -d --wait
             docker image prune -f
 
       - name: Check that the site answers
