@@ -163,7 +163,8 @@ Ne pas les modifier à la main — relancer `./setup`.
 
 Un `push` sur `main` déclenche `deploy.yml`, qui **attend que la CI soit
 verte**, publie les images sur GHCR, rend le compose de production et le
-copie sur le VPS. Puis, dans cet ordre :
+fabrique le `.env` depuis ses secrets, et copie les deux sur le VPS. Puis,
+dans cet ordre :
 
 ```bash
 docker compose pull
@@ -176,9 +177,10 @@ l'ancienne image continue de servir. Les migrations doivent donc rester
 **compatibles vers l'arrière** le temps de la bascule — ajouter une colonne,
 jamais la renommer d'un coup.
 
-Secrets GitHub attendus : `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`,
-`DEPLOY_PATH`. Le fichier `.env` vit **sur le serveur**, jamais dans le
-dépôt ni dans la CI.
+Le serveur ne détient **que la clé SSH** : tous les secrets de production
+vivent dans l'environnement `production` de GitHub, et le `.env` du VPS est
+réécrit à chaque déploiement. La liste des secrets et variables attendus est
+dans [`docs/MISE-EN-LIGNE.md`](docs/MISE-EN-LIGNE.md).
 
 ## Conventions
 

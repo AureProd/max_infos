@@ -101,12 +101,114 @@ jobs:
             -f deploy/docker-compose-prod-override.yml \
             --profile migrate \
             config > docker-compose.yml
-          # Contrôle : le fichier rendu ne doit contenir aucun secret. Les
-          # valeurs viennent du .env qui vit sur le serveur, jamais d'ici.
-          if grep -qE '(PASSWORD|SECRET|TOKEN)=[^[:space:]$]' docker-compose.yml; then
+          # Contrôle : le fichier rendu ne doit contenir aucun secret.
+          #
+          # `docker compose config` DÉPLIE les env_file en `environment:`, en
+          # clair — vérifié, pas supposé. Ce qui protège ici, c'est que le
+          # .env n'existe pas ENCORE : il est fabriqué au pas suivant.
+          # L'ordre des deux pas est donc porteur ; les inverser publierait
+          # tous les secrets dans le fichier copié sur le serveur.
+          #
+          # Le motif cherche les deux syntaxes. Il ne cherchait que `NOM=`,
+          # or la forme dépliée s'écrit `NOM: valeur` : le garde-fou
+          # regardait à côté de la seule fuite qu'il devait arrêter.
+          if grep -qE '(PASSWORD|SECRET|TOKEN|KEY)[[:space:]]*[:=][[:space:]]*[^[:space:]$]' docker-compose.yml; then
             echo "::error::Le compose rendu contient une valeur secrète"
             exit 1
           fi
+
+      - name: Rendre le .env de production
+        # Le serveur ne détient plus que la clé SSH : tout le reste est
+        # fabriqué ici, à chaque déploiement, depuis les secrets et
+        # variables de l'environnement `production`.
+        #
+        # Les valeurs passent par l'environnement du pas, jamais par la
+        # ligne de commande : `ps` la montrerait à tout processus du runner.
+        env:
+          # --- Secrets ---------------------------------------------------
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          NUXT_SECRET_ENCRYPTION_KEY: ${{ secrets.NUXT_SECRET_ENCRYPTION_KEY }}
+          NUXT_SESSION_PASSWORD: ${{ secrets.NUXT_SESSION_PASSWORD }}
+          NUXT_OAUTH_GOOGLE_CLIENT_SECRET: ${{ secrets.NUXT_OAUTH_GOOGLE_CLIENT_SECRET }}
+          NUXT_R2_ACCOUNT_ID: ${{ secrets.NUXT_R2_ACCOUNT_ID }}
+          NUXT_R2_ACCESS_KEY_ID: ${{ secrets.NUXT_R2_ACCESS_KEY_ID }}
+          NUXT_R2_SECRET_ACCESS_KEY: ${{ secrets.NUXT_R2_SECRET_ACCESS_KEY }}
+          NUXT_INSTAGRAM_APP_SECRET: ${{ secrets.NUXT_INSTAGRAM_APP_SECRET }}
+          # --- Variables (lisibles : rien de confidentiel) ----------------
+          URL_HOST: ${{ vars.URL_HOST || 'unmaxdinfo.fr' }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB || 'unmaxdinfo' }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER || 'unmaxdinfo' }}
+          DB_HOST: ${{ vars.DB_HOST || 'db' }}
+          DB_PORT: ${{ vars.DB_PORT || '5432' }}
+          NUXT_OAUTH_GOOGLE_CLIENT_ID: ${{ vars.NUXT_OAUTH_GOOGLE_CLIENT_ID }}
+          NUXT_OAUTH_GOOGLE_REDIRECT_URL: ${{ vars.NUXT_OAUTH_GOOGLE_REDIRECT_URL }}
+          NUXT_BOOTSTRAP_TECH_EMAIL: ${{ vars.NUXT_BOOTSTRAP_TECH_EMAIL }}
+          NUXT_R2_BUCKET: ${{ vars.NUXT_R2_BUCKET }}
+          NUXT_R2_ENDPOINT: ${{ vars.NUXT_R2_ENDPOINT }}
+          NUXT_INSTAGRAM_APP_ID: ${{ vars.NUXT_INSTAGRAM_APP_ID }}
+          NUXT_INSTAGRAM_SYNC_INTERVAL_MINUTES: ${{ vars.NUXT_INSTAGRAM_SYNC_INTERVAL_MINUTES || '60' }}
+          NUXT_SCHEDULER_ENABLED: ${{ vars.NUXT_SCHEDULER_ENABLED || 'true' }}
+          NUXT_PUBLIC_R2_BASE_URL: ${{ vars.NUXT_PUBLIC_R2_BASE_URL }}
+        run: |
+          set -euo pipefail
+          umask 077
+
+          # Contrôle de complétude AVANT d'écrire quoi que ce soit : mieux
+          # vaut un déploiement refusé ici qu'un conteneur `app` qui
+          # redémarre en boucle sur le serveur.
+          manquantes=()
+          for nom in POSTGRES_PASSWORD NUXT_SECRET_ENCRYPTION_KEY \
+                     NUXT_SESSION_PASSWORD NUXT_OAUTH_GOOGLE_CLIENT_ID \
+                     NUXT_OAUTH_GOOGLE_CLIENT_SECRET NUXT_OAUTH_GOOGLE_REDIRECT_URL \
+                     NUXT_BOOTSTRAP_TECH_EMAIL NUXT_R2_ACCOUNT_ID \
+                     NUXT_R2_ACCESS_KEY_ID NUXT_R2_SECRET_ACCESS_KEY \
+                     NUXT_R2_BUCKET NUXT_R2_ENDPOINT NUXT_PUBLIC_R2_BASE_URL; do
+            [ -n "${!nom:-}" ] || manquantes+=("$nom")
+          done
+          if [ ${#manquantes[@]} -gt 0 ]; then
+            echo "::error::Valeurs absentes de l'environnement 'production' : ${manquantes[*]}"
+            exit 1
+          fi
+
+          # Composée, jamais stockée en double : une URL et un mot de passe
+          # qui divergent, c'est une panne dont la cause ne se voit pas.
+          url_bdd="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT}/${POSTGRES_DB}"
+
+          {
+            echo "# Fabriqué par GitHub Actions, écrasé à chaque déploiement."
+            echo "# Ne rien modifier ici : la source de vérité est"
+            echo "# Settings -> Secrets and variables -> Actions -> production."
+            echo "APP_ENV=prod"
+            echo "URL_HOST=${URL_HOST}"
+            echo "URL_SCHEME=https"
+            echo "POSTGRES_DB=${POSTGRES_DB}"
+            echo "POSTGRES_USER=${POSTGRES_USER}"
+            echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
+            echo "DB_HOST=${DB_HOST}"
+            echo "DB_PORT=${DB_PORT}"
+            echo "DATABASE_URL=${url_bdd}"
+            echo "NUXT_DATABASE_URL=${url_bdd}"
+            echo "NUXT_SECRET_ENCRYPTION_KEY=${NUXT_SECRET_ENCRYPTION_KEY}"
+            echo "NUXT_SESSION_PASSWORD=${NUXT_SESSION_PASSWORD}"
+            echo "NUXT_OAUTH_GOOGLE_CLIENT_ID=${NUXT_OAUTH_GOOGLE_CLIENT_ID}"
+            echo "NUXT_OAUTH_GOOGLE_CLIENT_SECRET=${NUXT_OAUTH_GOOGLE_CLIENT_SECRET}"
+            echo "NUXT_OAUTH_GOOGLE_REDIRECT_URL=${NUXT_OAUTH_GOOGLE_REDIRECT_URL}"
+            echo "NUXT_BOOTSTRAP_TECH_EMAIL=${NUXT_BOOTSTRAP_TECH_EMAIL}"
+            echo "NUXT_R2_ACCOUNT_ID=${NUXT_R2_ACCOUNT_ID}"
+            echo "NUXT_R2_ACCESS_KEY_ID=${NUXT_R2_ACCESS_KEY_ID}"
+            echo "NUXT_R2_SECRET_ACCESS_KEY=${NUXT_R2_SECRET_ACCESS_KEY}"
+            echo "NUXT_R2_BUCKET=${NUXT_R2_BUCKET}"
+            echo "NUXT_R2_ENDPOINT=${NUXT_R2_ENDPOINT}"
+            echo "NUXT_INSTAGRAM_APP_ID=${NUXT_INSTAGRAM_APP_ID}"
+            echo "NUXT_INSTAGRAM_APP_SECRET=${NUXT_INSTAGRAM_APP_SECRET}"
+            echo "NUXT_INSTAGRAM_SYNC_INTERVAL_MINUTES=${NUXT_INSTAGRAM_SYNC_INTERVAL_MINUTES}"
+            echo "NUXT_SCHEDULER_ENABLED=${NUXT_SCHEDULER_ENABLED}"
+            echo "NUXT_PUBLIC_APP_ENV=prod"
+            echo "NUXT_PUBLIC_BASE_URL=https://${URL_HOST}"
+            echo "NUXT_PUBLIC_R2_BASE_URL=${NUXT_PUBLIC_R2_BASE_URL}"
+          } > .env
+
+          echo "$(wc -l < .env) variables écrites."
 
       - name: Copier sur le serveur
         uses: appleboy/scp-action@v0.1.7
@@ -114,7 +216,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: docker-compose.yml
+          source: docker-compose.yml,.env
           target: ${{ secrets.DEPLOY_PATH }}
 
       - name: Migrer PUIS basculer
@@ -126,6 +228,9 @@ jobs:
           script: |
             set -euo pipefail
             cd "${{ secrets.DEPLOY_PATH }}"
+            # scp ne garantit pas les droits : le .env ne doit être lisible
+            # que par son propriétaire.
+            chmod 600 .env
             docker compose pull
             # Le && fait toute la garantie : migration en échec = aucune
             # bascule, l'ancienne image continue de servir.

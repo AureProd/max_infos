@@ -9,14 +9,18 @@ créer et coller, dans l'ordre où chaque étape débloque la suivante.
 
 ## Où va quoi — à lire une fois
 
-Il y a **trois endroits** différents où poser une valeur, et les confondre
+Il y a **deux endroits** différents où poser une valeur, et les confondre
 est la première source de perte de temps.
 
 | Endroit | Quoi | Comment |
 |---|---|---|
 | `.env.dev` (ta machine) | de quoi développer en local | `./setup` le crée et remplit les secrets locaux |
-| `.env` (sur le VPS) | les secrets de production | créé à la main **une fois**, jamais commité, jamais copié par la CI |
-| Secrets GitHub | de quoi *atteindre* le VPS | Settings → Secrets and variables → Actions |
+| Secrets et variables GitHub | **toute la production** | Settings → Secrets and variables → Actions → environnement `production` |
+
+Le VPS ne détient plus aucun secret en propre : il reçoit une **clé SSH
+publique**, et rien d'autre. Son `.env` est fabriqué par GitHub Actions à
+chaque déploiement, puis écrasé au suivant — le modifier sur le serveur ne
+sert à rien, la modification disparaît.
 
 Deux familles de noms, et la frontière compte :
 
@@ -88,7 +92,7 @@ compte, la seule porte d'entrée est l'OAuth Google et la liste blanche.
    sous-domaines ; `unmaxdinfo.localhost` en fait partie.
 5. Copier l'identifiant et le secret.
 
-**Sur le VPS** (`.env`) **et** en local (`.env.dev`) :
+**Dans GitHub** (environnement `production`) **et** en local (`.env.dev`) :
 
 ```dotenv
 NUXT_OAUTH_GOOGLE_CLIENT_ID=…apps.googleusercontent.com
@@ -215,44 +219,28 @@ Le projet ne déploie **aucun** Traefik : il rejoint celui qui existe déjà.
 # Le réseau du Traefik en place, au nom LITTÉRAL (aucun préfixe de projet)
 docker network ls | grep reverse_proxy   # doit exister
 
-mkdir -p /srv/unmaxdinfo && cd /srv/unmaxdinfo
-umask 077
-$EDITOR .env       # contenu ci-dessous
-chmod 600 .env
+mkdir -p /srv/unmaxdinfo
 ```
 
-Contenu de `.env` sur le VPS — tout ce qui précède, plus :
+C'est tout. **Aucun fichier à écrire à la main** : le `.env` est fabriqué
+par GitHub Actions et copié en `0600` à chaque déploiement.
 
-```dotenv
-APP_ENV=prod
-URL_HOST=unmaxdinfo.fr
-URL_SCHEME=https
+Il reste à autoriser la clé de déploiement :
 
-POSTGRES_DB=unmaxdinfo
-POSTGRES_USER=unmaxdinfo
-POSTGRES_PASSWORD=<openssl rand -hex 24>
-DATABASE_URL=postgres://unmaxdinfo:<le même>@db:5432/unmaxdinfo
-NUXT_DATABASE_URL=postgres://unmaxdinfo:<le même>@db:5432/unmaxdinfo
-
-NUXT_SECRET_ENCRYPTION_KEY=<openssl rand -base64 32>
-NUXT_SESSION_PASSWORD=<openssl rand -hex 32>
-
-NUXT_PUBLIC_APP_ENV=prod
-NUXT_PUBLIC_BASE_URL=https://unmaxdinfo.fr
+```bash
+# La clé PUBLIQUE de la paire dédiée au déploiement, et elle seule.
+cat >> ~/.ssh/authorized_keys
 ```
-
-Ces cinq secrets sont **obligatoires en production** : l'application
-**refuse de démarrer** s'il en manque un, et le message nomme la variable.
-C'est délibéré — mieux vaut un conteneur qui ne démarre pas qu'un site qui
-tourne avec une clé de chiffrement vide.
-
-> `NUXT_SECRET_ENCRYPTION_KEY` chiffre le jeton Instagram. **La perdre, ce
-> n'est pas perdre le site, c'est perdre le jeton** : il faudra refaire la
-> connexion Instagram. La changer a le même effet.
 
 ### Secrets GitHub
 
 Settings → Secrets and variables → **Actions** :
+
+Tout se pose dans l'environnement **`production`**. Un *secret* n'est jamais
+relisible ni affiché dans les journaux ; une *variable* l'est : ne mettre en
+variable que ce qui peut être public.
+
+**Secrets — atteindre le VPS**
 
 | Secret | Valeur |
 |---|---|
@@ -260,6 +248,47 @@ Settings → Secrets and variables → **Actions** :
 | `DEPLOY_USER` | l'utilisateur SSH |
 | `DEPLOY_SSH_KEY` | la **clé privée** d'une paire dédiée au déploiement |
 | `DEPLOY_PATH` | `/srv/unmaxdinfo` |
+
+**Secrets — faire tourner le site**
+
+| Secret | Comment l'obtenir |
+|---|---|
+| `POSTGRES_PASSWORD` | `openssl rand -hex 24` |
+| `NUXT_SECRET_ENCRYPTION_KEY` | `openssl rand -base64 32` |
+| `NUXT_SESSION_PASSWORD` | `openssl rand -hex 32` |
+| `NUXT_OAUTH_GOOGLE_CLIENT_SECRET` | console Google, étape 2 |
+| `NUXT_R2_ACCOUNT_ID`, `NUXT_R2_ACCESS_KEY_ID`, `NUXT_R2_SECRET_ACCESS_KEY` | Cloudflare R2, étape 3 |
+| `NUXT_INSTAGRAM_APP_SECRET` | Meta, étape 4 |
+
+**Variables**
+
+`URL_HOST`, `POSTGRES_DB`, `POSTGRES_USER`, `DB_HOST`, `DB_PORT`,
+`NUXT_OAUTH_GOOGLE_CLIENT_ID`, `NUXT_OAUTH_GOOGLE_REDIRECT_URL`,
+`NUXT_BOOTSTRAP_TECH_EMAIL`, `NUXT_R2_BUCKET`, `NUXT_R2_ENDPOINT`,
+`NUXT_INSTAGRAM_APP_ID`, `NUXT_INSTAGRAM_SYNC_INTERVAL_MINUTES`,
+`NUXT_SCHEDULER_ENABLED`, `NUXT_PUBLIC_R2_BASE_URL`.
+
+Celles qui ont une valeur évidente ont une valeur par défaut dans le
+workflow : seules `NUXT_OAUTH_GOOGLE_*`, `NUXT_BOOTSTRAP_TECH_EMAIL`,
+`NUXT_R2_*` et `NUXT_PUBLIC_R2_BASE_URL` sont réellement à poser.
+
+Le déploiement **échoue avant de toucher au serveur** si l'une des valeurs
+obligatoires manque, en la nommant. Mieux vaut un déploiement refusé qu'un
+conteneur `app` qui redémarre en boucle.
+
+> ### Deux pièges qui ne préviennent pas
+>
+> **Un secret GitHub ne se relit pas.** `NUXT_SECRET_ENCRYPTION_KEY` chiffre
+> le jeton Instagram stocké en base : la perdre, ce n'est pas perdre le
+> site, c'est perdre le jeton — il faudra refaire la connexion Instagram.
+> La changer a le même effet. En garder une copie dans un gestionnaire de
+> mots de passe est **obligatoire**, puisque GitHub ne la redonnera pas.
+>
+> **Changer `POSTGRES_PASSWORD` ne change pas le mot de passe de la base.**
+> Postgres ne lit cette variable qu'au tout premier démarrage, quand il crée
+> son volume. Ensuite, modifier le secret GitHub ne fait que désaccorder
+> l'application et la base. Pour une rotation réelle : `ALTER USER
+> unmaxdinfo WITH PASSWORD '…'` dans le conteneur `db`, **puis** le secret.
 
 Créer une paire dédiée, jamais ta clé personnelle :
 
