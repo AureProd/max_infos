@@ -43,6 +43,11 @@ WORKDIR /app
 # a little slower.
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# The `prepare` script runs during the install, so it must exist by then.
+# It installs the Git hooks — and does nothing here, since this stage has no
+# .git. Without this copy, the install fails on a module not found, and with
+# it the whole image build.
+COPY scripts/hooks/install.mjs ./scripts/hooks/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm config set store-dir /pnpm/store \
  && pnpm install --frozen-lockfile --ignore-scripts=false

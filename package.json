@@ -14,7 +14,7 @@
     "preview": "nuxt preview",
     "start": "node .output/server/index.mjs",
     "postinstall": "nuxt prepare",
-    "prepare": "lefthook install",
+    "prepare": "node scripts/hooks/install.mjs",
     "lint": "biome check .",
     "hooks": "lefthook run pre-commit --all-files",
     "secrets": "secretlint --maskSecrets '**/*'",
