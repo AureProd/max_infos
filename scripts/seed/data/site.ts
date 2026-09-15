@@ -1,10 +1,9 @@
 /**
- * Identité du site, en dur.
+ * The site identity, hard-coded.
  *
- * TEMPORAIRE : au lot 3 ces données passent en base (table `setting`, clés
- * `identity`, `contact` et `cv`) et ce file disparaît au profit de
- * `GET /api/site`. Il est typé dès maintenant pour que la bascule se fasse
- * sans surprise.
+ * TEMPORARY: in lot 3 this data moves into the database (`setting` table,
+ * keys `identity`, `contact` and `cv`) and this file gives way to
+ * `GET /api/site`. It is typed already so the switch holds no surprise.
  */
 
 export interface SiteLink {

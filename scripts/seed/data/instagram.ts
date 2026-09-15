@@ -1,20 +1,20 @@
 import type { IgMedia } from '../../../shared/types/content'
 
 /**
- * Intégration Instagram.
+ * Instagram integration.
  *
- * Instagram n'expose plus aucune publication sans authentification :
- * l'API Basic Display a fermé fin 2024 et l'API Graph exige un account
- * professionnel, une application Meta et un token à renouveler.
+ * Instagram no longer exposes any post without authentication: the Basic
+ * Display API closed at the end of 2024 and the Graph API requires a
+ * professional account, a Meta application and a token to renew.
  *
- * La voie qui fonctionne sans token est l'EMBED OFFICIEL : la publication
- * est rendue par Instagram dans une iframe, avec son média, sa légende et
- * ses flèches de carrousel d'origine. Le content est monté en JavaScript
- * côté navigateur — il ne se voit donc pas en récupérant l'URL en row
- * de commande, seulement dans une vraie page.
+ * The path that works without a token is the OFFICIAL EMBED: the post is
+ * rendered by Instagram in an iframe, with its media, its caption and its
+ * original carousel arrows. The content is mounted in JavaScript in the
+ * browser — so it does not show when fetching the URL from the command
+ * line, only in a real page.
  *
- * Pour add une publication : copied son adresse since Instagram et
- * reporte l'identifiant qui suit /p/ ou /reel/ dans `shortcode`.
+ * To add a post: copy its address from Instagram and put the identifier
+ * following /p/ or /reel/ into `shortcode`.
  */
 export const IG_MEDIA: IgMedia[] = [
   {

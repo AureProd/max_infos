@@ -1,91 +1,92 @@
 #!/usr/bin/env node
-// Contrôles d'hygiène des files, en remplacement des hooks Python de
-// `pre-commit-hooks`. Huit contrôles, un par ancien hook : espaces en fin de
-// row, nouvelle row finale, fins de row CRLF, marqueurs de conflit,
-// files volumineux, collisions de casse, YAML et JSON valides.
+// File hygiene checks, replacing the Python hooks of `pre-commit-hooks`.
+// Eight checks, one per former hook: trailing whitespace, final newline,
+// CRLF line endings, conflict markers, large files, case collisions, valid
+// YAML and valid JSON.
 //
-// Contrairement aux hooks d'origine, celui-ci NE CORRIGE RIEN : il signale.
-// Un hook qui réécrit les files sous le commit rend le diff relu différent
-// du diff commité, et Biome corrige déjà all ce qui relève du format.
+// Unlike the original hooks, this one FIXES NOTHING: it reports. A hook
+// that rewrites files under the commit makes the reviewed diff differ from
+// the committed one, and Biome already fixes everything formatting-related.
 //
-// Le file expose des fonctions pures pour être testable (test/unit/hygiene.spec.ts) ;
-// la partie exécutable ne lit l'index Git que si on l'appelle en row de commande.
+// The file exposes pure functions so it can be tested
+// (test/unit/hygiene.spec.ts); the executable part only reads the Git index
+// when called from the command line.
 import { execFileSync } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
 import { parseAllDocuments } from 'yaml'
 
-/** Au-delà, c'est un artefact : il n'a rien à faire dans l'historique Git. */
-export const TAILLE_MAX_KO = 512
+/** Beyond this, it is an artefact: it has no business in Git history. */
+export const MAX_SIZE_KB = 512
 
-/** La typographie française des articles ne doit pas être retouchée. */
-const SANS_CONTROLE_D_ESPACES = /\.md$/
+/** French typography in articles must not be touched up. */
+const NO_WHITESPACE_CHECK = /\.md$/
 
-/** Biome se configure en JSONC : commentaires et virgules finales y sont légitimes. */
-const HORS_JSON_STRICT = /^\.vscode\/|\.jsonc$/
+/** Biome is configured in JSONC: comments and trailing commas belong there. */
+const NOT_STRICT_JSON = /^\.vscode\/|\.jsonc$/
 
-const EST_YAML = /\.ya?ml$/
-const EST_JSON = /\.json$/
+const IS_YAML = /\.ya?ml$/
+const IS_JSON = /\.json$/
 
-// Ancrés en début de row et suivis d'une espace : c'est la shape exacte que
-// Git écrit, et elle ne peut pas apparaître par accident dans du code.
-const MARQUEUR_DE_CONFLIT = /^(<{7}|={7}|>{7})(\s|$)/m
+// Anchored at the start of a line and followed by a space: that is the
+// exact shape Git writes, and it cannot appear by accident in code.
+const CONFLICT_MARKER = /^(<{7}|={7}|>{7})(\s|$)/m
 
-/** Un octet nul ne se rencontre pas dans du text : le file est binary. */
-function estBinaire(content) {
+/** A null byte does not occur in text: the file is binary. */
+function isBinary(content) {
   return content.includes(0)
 }
 
 /**
- * Les problèmes d'un file, sous la shape `{ regle, message }`.
+ * A file's problems, as `{ rule, message }`.
  * @param {{ path: string, content: Buffer }} file
  */
-export function controlerFichier({ path, content }) {
+export function checkFile({ path, content }) {
   const problems = []
-  const signaler = (regle, message) => problems.push({ path, regle, message })
+  const report = (rule, message) => problems.push({ path, rule, message })
 
-  if (content.byteLength > TAILLE_MAX_KO * 1024) {
-    const ko = Math.round(content.byteLength / 1024)
-    signaler('fichier-volumineux', `${ko} ko, au-delà des ${TAILLE_MAX_KO} ko admis`)
+  if (content.byteLength > MAX_SIZE_KB * 1024) {
+    const kb = Math.round(content.byteLength / 1024)
+    report('large-file', `${kb} kB, beyond the ${MAX_SIZE_KB} kB allowed`)
   }
 
-  // Un binary n'a ni row, ni encodage à vérifier.
-  if (estBinaire(content)) return problems
+  // A binary has neither lines nor an encoding to check.
+  if (isBinary(content)) return problems
 
   const text = content.toString('utf8')
   if (text.length === 0) return problems
 
   if (text.includes('\r\n')) {
-    signaler('fin-de-ligne-mixte', 'fins de ligne CRLF, attendu LF')
+    report('mixed-line-ending', 'CRLF line endings, LF expected')
   }
 
   if (!text.endsWith('\n')) {
-    signaler('newline-finale', 'pas de nouvelle ligne en fin de fichier')
+    report('final-newline', 'no newline at end of file')
   }
 
-  if (!SANS_CONTROLE_D_ESPACES.test(path)) {
+  if (!NO_WHITESPACE_CHECK.test(path)) {
     const lines = text.split('\n')
-    const fautives = lines.map((row, i) => (/[ \t]+\r?$/.test(row) ? i + 1 : 0)).filter(Boolean)
-    if (fautives.length > 0) {
-      signaler('espaces-en-fin-de-ligne', `ligne(s) ${fautives.join(', ')}`)
+    const offending = lines.map((line, i) => (/[ \t]+\r?$/.test(line) ? i + 1 : 0)).filter(Boolean)
+    if (offending.length > 0) {
+      report('trailing-whitespace', `line(s) ${offending.join(', ')}`)
     }
   }
 
-  if (MARQUEUR_DE_CONFLIT.test(text)) {
-    signaler('marqueur-de-conflit', 'conflit de fusion non résolu')
+  if (CONFLICT_MARKER.test(text)) {
+    report('conflict-marker', 'unresolved merge conflict')
   }
 
-  if (EST_YAML.test(path)) {
-    // `--allow-multiple-documents` de l'ancien hook : un compose rendered peut
-    // en contenir plusieurs.
-    const erreurs = parseAllDocuments(text).flatMap((doc) => doc.errors)
-    if (erreurs.length > 0) signaler('yaml-invalide', erreurs[0].message.split('\n')[0])
+  if (IS_YAML.test(path)) {
+    // The former hook's `--allow-multiple-documents`: a rendered compose
+    // file can hold several.
+    const errors = parseAllDocuments(text).flatMap((doc) => doc.errors)
+    if (errors.length > 0) report('invalid-yaml', errors[0].message.split('\n')[0])
   }
 
-  if (EST_JSON.test(path) && !HORS_JSON_STRICT.test(path)) {
+  if (IS_JSON.test(path) && !NOT_STRICT_JSON.test(path)) {
     try {
       JSON.parse(text)
     } catch (error) {
-      signaler('json-invalide', error.message)
+      report('invalid-json', error.message)
     }
   }
 
@@ -93,32 +94,32 @@ export function controlerFichier({ path, content }) {
 }
 
 /**
- * Deux chemins qui ne diffèrent que par la casse : invisible sous Linux,
- * destructeur au clone sous macOS ou Windows.
- * @param {string[]} chemins
+ * Two paths differing only by case: invisible under Linux, destructive on
+ * clone under macOS or Windows.
+ * @param {string[]} paths
  */
-export function controlerCollisionsDeCasse(chemins) {
-  const vus = new Map()
+export function checkCaseCollisions(paths) {
+  const seen = new Map()
   const problems = []
-  for (const path of chemins) {
+  for (const path of paths) {
     const key = path.toLowerCase()
-    const deja = vus.get(key)
-    if (deja !== undefined) {
+    const already = seen.get(key)
+    if (already !== undefined) {
       problems.push({
         path,
-        regle: 'collision-de-casse',
-        message: `ne diffère de ${deja} que par la casse`,
+        rule: 'case-collision',
+        message: `differs from ${already} only by case`,
       })
     } else {
-      vus.set(key, path)
+      seen.set(key, path)
     }
   }
   return problems
 }
 
-/** Les files indexés, ou ceux passés en arguments. */
-function fichiersAControler(arguments_) {
-  if (arguments_.length > 0) return arguments_
+/** The staged files, or the ones passed as arguments. */
+function filesToCheck(argv) {
+  if (argv.length > 0) return argv
   const output = execFileSync('git', ['diff', '--cached', '--name-only', '--diff-filter=ACMR'], {
     encoding: 'utf8',
   })
@@ -126,12 +127,12 @@ function fichiersAControler(arguments_) {
 }
 
 function main() {
-  const chemins = fichiersAControler(process.argv.slice(2))
-  const problems = controlerCollisionsDeCasse(chemins)
+  const paths = filesToCheck(process.argv.slice(2))
+  const problems = checkCaseCollisions(paths)
 
-  for (const path of chemins) {
-    // Un file indexé then supprimé du disque ne se lit pas : ce n'est pas
-    // une faute d'hygiène.
+  for (const path of paths) {
+    // A file staged then deleted from disk cannot be read: that is not a
+    // hygiene fault.
     let content
     try {
       if (!statSync(path).isFile()) continue
@@ -139,14 +140,14 @@ function main() {
     } catch {
       continue
     }
-    problems.push(...controlerFichier({ path, content }))
+    problems.push(...checkFile({ path, content }))
   }
 
   if (problems.length === 0) return 0
 
-  console.error('/!\\ Hygiène des fichiers :')
-  for (const { path, regle, message } of problems) {
-    console.error(`    ${path} — ${regle} : ${message}`)
+  console.error('/!\\ File hygiene:')
+  for (const { path, rule, message } of problems) {
+    console.error(`    ${path} — ${rule}: ${message}`)
   }
   return 1
 }

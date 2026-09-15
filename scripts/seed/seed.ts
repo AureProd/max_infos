@@ -1,19 +1,19 @@
 /**
- * Migration one-shot du content de la maquette vers la base.
+ * One-shot migration of the mock-up content into the database.
  *
- *   pnpm seed              écrit par-dessus l'existing (idempotent)
- *   pnpm seed --reset      vide les tables de content d'abord
+ *   pnpm seed              writes over what is there (idempotent)
+ *   pnpm seed --reset      empties the content tables first
  *
- * Idempotent par construction : chaque écriture passe par un
- * onConflictDoUpdate sur une contrainte d'unicité. Le relancer two fois de
- * suite donne le même résultat, ce qui permet de le rejouer après un ajout
- * sans craindre les doublons.
+ * Idempotent by construction: every write goes through an
+ * onConflictDoUpdate on a uniqueness constraint. Running it twice in a row
+ * gives the same result, which allows replaying it after an addition
+ * without fear of duplicates.
  *
- * Ce que ce script NE migre PAS, délibérément : les publications marquées
- * `placeholder` dans posts.ts. Ce sont des emplacements de maquette dont le
- * text dit « Colle here le text réel » — les écrire en base reviendrait à
- * publier du falsy content. Seules les two publications Instagram réelles,
- * celles qui portent un shortcode, sont reprises.
+ * What this script does NOT migrate, deliberately: the posts marked
+ * `placeholder` in posts.ts. Those are mock-up slots whose text reads
+ * « Paste the real text here » — writing them to the database would amount
+ * to publishing wrong content. Only the two real Instagram posts, the ones
+ * carrying a shortcode, are taken.
  */
 import { eq, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
@@ -47,7 +47,7 @@ async function main(): Promise<void> {
     console.log('▸ tables de contenu vidées')
   }
 
-  // --- Sujets -------------------------------------------------------------
+  // --- Tags -----------------------------------------------------------------
   const labels = [...new Set(ARTICLES.flatMap((a) => a.tags))]
   const tags = new Map<string, number>()
   for (const label of labels) {
@@ -60,10 +60,10 @@ async function main(): Promise<void> {
   }
   console.log(`▸ ${tags.size} sujets`)
 
-  // --- Articles et leurs covers --------------------------------------
+  // --- Articles and their covers --------------------------------------------
   for (const a of ARTICLES) {
-    // La cover vit again sur le CDN de Substack : on enregistre son
-    // URL sans clé R2, en attendant le ré-hébergement du lot 5.
+    // The cover still lives on Substack's CDN: we record its URL without
+    // an R2 key, pending the re-hosting of lot 5.
     let coverId: number | null = null
     if (a.cover) {
       const [m] = await db
@@ -90,17 +90,16 @@ async function main(): Promise<void> {
         title: a.title,
         dek: a.dek,
         bodyMd: a.body,
-        // Rendu par le MÊME engine que le back-office : les articles
-        // migrés sont servis exactement comme ceux écrits ensuite.
+        // Rendered by the SAME engine as the back-office: migrated
+        // articles are served exactly like those written later.
         bodyHtml: renderMarkdown(a.body),
         status: 'published',
         publishedAt: new Date(`${a.date}T12:00:00Z`),
         coverMediaId: coverId,
-        // Les values du file sont reprises TELLES QUELLES, et non
-        // recalculées : `chars` sert de graine au visuel de repli
-        // (`chars % 97`), donc le recalculer changerait l'apparence des
-        // cinq articles existants. Les nouveaux articles, eux, seront
-        // calculés par le back-office.
+        // The file's values are taken AS THEY ARE, not recomputed:
+        // `chars` seeds the fallback artwork (`chars % 97`), so
+        // recomputing it would change the look of the five existing
+        // articles. New articles will be computed by the back-office.
         readingMinutes: a.minutes,
         charCount: a.chars,
         substackUrl: a.substack,
@@ -132,12 +131,12 @@ async function main(): Promise<void> {
   }
   console.log(`▸ ${ARTICLES.length} articles`)
 
-  // --- Le account Instagram de la maquette ---------------------------------
+  // --- The mock-up's Instagram account --------------------------------------
   //
-  // `externalId` porte une value repère plutôt que NULL : sous PostgreSQL
-  // two NULL sont DISTINCTS, et un semis rejoué créerait un second account
-  // au lieu de retrouver le first. La première connection réelle le
-  // remplacera par l'identifiant Meta.
+  // `externalId` carries a marker value rather than NULL: under PostgreSQL
+  // two NULLs are DISTINCT, and a replayed seed would create a second
+  // account instead of finding the first. The first real connection will
+  // replace it with the Meta identifier.
   const [account] = await db
     .insert(schema.socialAccount)
     .values({
@@ -153,7 +152,7 @@ async function main(): Promise<void> {
     })
     .returning({ id: schema.socialAccount.id })
 
-  // --- Publications Instagram réelles -------------------------------------
+  // --- Real Instagram posts -------------------------------------------------
   let linked = 0
   for (const [i, m] of IG_MEDIA.entries()) {
     const [post] = await db
@@ -167,8 +166,8 @@ async function main(): Promise<void> {
         permalink: m.url,
         mediaType: m.type === 'reel' ? 'reel' : 'carousel',
         postedAt: new Date(`${m.date}T12:00:00Z`),
-        // `manual` et non `api` : ces adresses ont été relevées à la main.
-        // La synchronisation du lot 6 les reprendra avec source='api'.
+        // `manual` and not `api`: these addresses were collected by hand.
+        // The lot 6 sync will pick them up again with source='api'.
         source: 'manual',
         position: i,
       })
@@ -194,7 +193,7 @@ async function main(): Promise<void> {
   }
   console.log(`▸ ${IG_MEDIA.length} publications Instagram, ${linked} rattachées`)
 
-  // --- Réglages publics ---------------------------------------------------
+  // --- Public settings ------------------------------------------------------
   const settings: Record<string, unknown> = {
     identity: {
       name: SITE.name,
@@ -204,10 +203,10 @@ async function main(): Promise<void> {
       pitch: SITE.pitch,
     },
     contact: {
-      // Chaque field porte SON PROPRE interrupteur de visibilité. Ceux qui
-      // viennent de la maquette sont des links publics par nature ; les
-      // données personnelles du CV (téléphone, adresse, date de naissance)
-      // arriveront masquées, comme le prévoit le plan.
+      // Each field carries ITS OWN visibility switch. The ones coming from
+      // the mock-up are public links by nature; the CV's personal data
+      // (phone, address, date of birth) will arrive hidden, as the plan
+      // provides.
       fields: SITE.links.map((l) => ({
         key: l.label.toLowerCase(),
         label: l.label,
@@ -230,7 +229,7 @@ async function main(): Promise<void> {
   for (const [key, value] of Object.entries(settings)) {
     await db
       .insert(schema.setting)
-      // La portée vient de la table, jamais d'une value écrite here.
+      // The scope comes from the table, never from a value written here.
       .values({ key, value, scope: SETTING_SCOPE[key as SettingKey] ?? 'public' })
       .onConflictDoUpdate({ target: schema.setting.key, set: { value, updatedAt: sql`now()` } })
   }

@@ -3,8 +3,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Article } from '../../../shared/types/content'
 
-// Lecture par le système de files, et non par les imports `?raw` de
-// Vite : ce file ne tourne plus que dans Node, au moment du semis.
+// Read through the file system, not through Vite's `?raw` imports: this
+// file only runs in Node now, at seed time.
 const FOLDER = join(dirname(fileURLToPath(import.meta.url)), '..', 'content')
 const BODIES: Record<string, string> = Object.fromEntries(
   ['controler-lia', 'fifa', 'cri-dequoy', 'ni-dici-ni-dailleurs', 'ben-mhidi'].map((slug) => [
@@ -14,13 +14,13 @@ const BODIES: Record<string, string> = Object.fromEntries(
 )
 
 /**
- * Articles longs, importés du Substack « Un Max d'info ».
+ * Long articles, imported from the « Un Max d'info » Substack.
  *
- * TEMPORAIRE : au lot 3, un script les écrit en base et ce file
- * disparaît au profit de `GET /api/articles`. Les .md vivent déjà dans
- * scripts/seed/content/, leur emplacement définitif.
+ * TEMPORARY: in lot 3 a script writes them to the database and this file
+ * gives way to `GET /api/articles`. The .md files already live in
+ * scripts/seed/content/, their final home.
  */
-/** Lève si un body manque, plutôt que de publier un article vide. */
+/** Throws when a body is missing, rather than publishing an empty article. */
 function bodyOf(slug: string): string {
   const body = BODIES[slug]
   if (!body) throw new Error(`Corps introuvable pour l'article « ${slug} »`)

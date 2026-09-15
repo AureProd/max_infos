@@ -1,98 +1,94 @@
 import { describe, expect, it } from 'vitest'
-import {
-  controlerCollisionsDeCasse,
-  controlerFichier,
-  TAILLE_MAX_KO,
-} from '../../scripts/hooks/hygiene.mjs'
+import { checkCaseCollisions, checkFile, MAX_SIZE_KB } from '../../scripts/hooks/hygiene.mjs'
 
-/** Raccourci : les règles déclenchées par un file, sans le détail. */
+/** Shorthand: the rules a file triggers, without the detail. */
 function rules(path: string, content: string | Buffer): string[] {
   const bytes = Buffer.isBuffer(content) ? content : Buffer.from(content, 'utf8')
-  return controlerFichier({ path, content: bytes }).map((p) => p.regle)
+  return checkFile({ path, content: bytes }).map((p) => p.rule)
 }
 
-describe('espaces en fin de ligne', () => {
-  it('les signale dans un fichier de code', () => {
-    expect(rules('app/x.ts', 'const a = 1   \nconst b = 2\n')).toContain('espaces-en-fin-de-ligne')
+describe('trailing whitespace', () => {
+  it('reports it in a code file', () => {
+    expect(rules('app/x.ts', 'const a = 1   \nconst b = 2\n')).toContain('trailing-whitespace')
   })
 
-  // La typographie française des articles ne doit pas être retouchée : en
-  // Markdown, two espaces en fin de row sont un back à la row voulu.
-  it('les tolère en Markdown', () => {
-    expect(rules('docs/x.md', 'une ligne  \nune autre\n')).not.toContain('espaces-en-fin-de-ligne')
+  // French typography in articles must not be touched up: in Markdown, two
+  // trailing spaces are a deliberate line break.
+  it('tolerates it in Markdown', () => {
+    expect(rules('docs/x.md', 'une ligne  \nune autre\n')).not.toContain('trailing-whitespace')
   })
 })
 
-describe('fin de fichier', () => {
-  it('exige une nouvelle ligne finale', () => {
-    expect(rules('app/x.ts', 'const a = 1')).toContain('newline-finale')
+describe('end of file', () => {
+  it('requires a final newline', () => {
+    expect(rules('app/x.ts', 'const a = 1')).toContain('final-newline')
   })
 
-  it('accepte un fichier vide', () => {
+  it('accepts an empty file', () => {
     expect(rules('app/x.ts', '')).toEqual([])
   })
 })
 
-describe('fins de ligne', () => {
-  it('refuse CRLF', () => {
-    expect(rules('app/x.ts', 'const a = 1\r\n')).toContain('fin-de-ligne-mixte')
+describe('line endings', () => {
+  it('refuses CRLF', () => {
+    expect(rules('app/x.ts', 'const a = 1\r\n')).toContain('mixed-line-ending')
   })
 })
 
-describe('marqueurs de conflit', () => {
-  it('refuse un conflit non résolu', () => {
-    const content = ['<<<<<<< HEAD', 'a', '=======', 'b', '>>>>>>> autre', ''].join('\n')
-    expect(rules('app/x.ts', content)).toContain('marqueur-de-conflit')
+describe('conflict markers', () => {
+  it('refuses an unresolved conflict', () => {
+    const content = ['<<<<<<< HEAD', 'a', '=======', 'b', '>>>>>>> other', ''].join('\n')
+    expect(rules('app/x.ts', content)).toContain('conflict-marker')
   })
 
-  it('ne confond pas avec une suite de chevrons dans du texte', () => {
-    expect(rules('app/x.ts', 'const fleche = "<<<<<<<"\n')).not.toContain('marqueur-de-conflit')
-  })
-})
-
-describe('fichiers volumineux', () => {
-  it(`refuse au-delà de ${TAILLE_MAX_KO} ko`, () => {
-    const large = Buffer.alloc((TAILLE_MAX_KO + 1) * 1024, 0x61)
-    expect(rules('public/gros.bin', large)).toContain('fichier-volumineux')
+  it('does not confuse it with a run of angle brackets in text', () => {
+    expect(rules('app/x.ts', 'const arrow = "<<<<<<<"\n')).not.toContain('conflict-marker')
   })
 })
 
-describe('fichiers binaires', () => {
-  it('ne leur applique aucun contrôle de texte', () => {
+describe('large files', () => {
+  it(`refuses anything beyond ${MAX_SIZE_KB} kB`, () => {
+    const big = Buffer.alloc((MAX_SIZE_KB + 1) * 1024, 0x61)
+    expect(rules('public/big.bin', big)).toContain('large-file')
+  })
+})
+
+describe('binary files', () => {
+  it('applies no text check to them', () => {
     const binary = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x20])
     expect(rules('public/img.png', binary)).toEqual([])
   })
 })
 
 describe('YAML', () => {
-  it('refuse un document invalide', () => {
-    expect(rules('deploy/x.yml', 'a:\n  - b\n c: d\n')).toContain('yaml-invalide')
+  it('refuses an invalid document', () => {
+    expect(rules('deploy/x.yml', 'a:\n  - b\n c: d\n')).toContain('invalid-yaml')
   })
 
-  it('accepte plusieurs documents dans un même fichier', () => {
-    expect(rules('deploy/x.yml', 'a: 1\n---\nb: 2\n')).not.toContain('yaml-invalide')
+  it('accepts several documents in one file', () => {
+    expect(rules('deploy/x.yml', 'a: 1\n---\nb: 2\n')).not.toContain('invalid-yaml')
   })
 })
 
 describe('JSON', () => {
-  it('refuse un document invalide', () => {
-    expect(rules('x.json', '{"a": 1,}\n')).toContain('json-invalide')
+  it('refuses an invalid document', () => {
+    expect(rules('x.json', '{"a": 1,}\n')).toContain('invalid-json')
   })
 
-  // Biome se configure en JSONC : commentaires et virgules finales y sont
-  // légitimes, JSON.parse les refuserait.
-  it('laisse passer le JSONC', () => {
-    expect(rules('biome.jsonc', '{ /* un commentaire */ "a": 1 }\n')).not.toContain('json-invalide')
+  // Biome is configured in JSONC: comments and trailing commas are
+  // legitimate there, JSON.parse would refuse them.
+  it('lets JSONC through', () => {
+    expect(rules('biome.jsonc', '{ /* a comment */ "a": 1 }\n')).not.toContain('invalid-json')
   })
 })
 
-describe('collisions de casse', () => {
-  it('refuse deux chemins qui ne diffèrent que par la casse', () => {
-    const problems = controlerCollisionsDeCasse(['app/Article.vue', 'app/article.vue'])
-    expect(problems.map((p) => p.regle)).toContain('collision-de-casse')
+describe('case collisions', () => {
+  it('refuses two paths differing only by case', () => {
+    const problems = checkCaseCollisions(['app/Article.vue', 'app/article.vue'])
+    expect(problems.map((p) => p.rule)).toContain('case-collision')
   })
 
-  it('accepte des chemins réellement distincts', () => {
-    expect(controlerCollisionsDeCasse(['app/a.vue', 'app/b.vue'])).toEqual([])
+  it('accepts genuinely distinct paths', () => {
+    expect(checkCaseCollisions(['app/a.vue', 'app/b.vue'])).toEqual([])
   })
 })
