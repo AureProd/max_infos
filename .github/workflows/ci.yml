@@ -161,7 +161,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Trivy
-        uses: aquasecurity/trivy-action@0.28.0
+        # The tag carries the « v »: the unprefixed form no longer resolves.
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: unmaxdinfo:ci
           # The GHCR image becomes public: a secret slipping into it would
