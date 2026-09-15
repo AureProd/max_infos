@@ -1,5 +1,5 @@
-# Traefik jetable de développement. Jamais déployé en production.
-# Partagé par les environnements « dev » et « preview ».
+# A throwaway development Traefik. Never deployed to production.
+# Shared by the « dev » and « preview » environments.
 
 services:
   app:
@@ -12,38 +12,38 @@ services:
     restart: unless-stopped
 
   rp:
-    # Version épinglée, et non `traefik` tout court : une montée de version
-    # majeure ne doit pas arriver par surprise un lundi matin.
+    # A pinned version, not plain `traefik`: a major upgrade must not arrive
+    # by surprise on a Monday morning.
     image: traefik:v3.5
     restart: unless-stopped
     environment:
       - TZ=Europe/Paris
     volumes:
-      # Lecture seule : Traefik n'a besoin que d'énumérer les conteneurs.
+      # Read only: Traefik only needs to enumerate the containers.
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./deploy/config/traefik-dev.yml:/traefik.yml:ro
-      # Configuration dynamique : relue à chaud, contrairement à la
-      # statique. Vide en HTTP, elle porte les certificats en HTTPS.
+      # Dynamic configuration: re-read live, unlike the static one. Empty
+      # over HTTP, it carries the certificates over HTTPS.
       - ./deploy/dynamic:/dynamic:ro
       - ./deploy/certs:/certs:ro
     ports:
-      # 127.0.0.1 et jamais 0.0.0.0 : la pile de développement n'est pas
-      # exposée au réseau local.
-      # En HTTPS, le port public pointe sur l'entrée TLS. C'est ./setup qui
-      # règle PORT_INTERNE selon URL_SCHEME, pour que l'adresse annoncée et
-      # le port publié ne puissent pas diverger.
+      # 127.0.0.1 and never 0.0.0.0: the development stack is not exposed to
+      # the local network.
+      # Over HTTPS, the public port points at the TLS entrypoint. ./setup
+      # sets PORT_INTERNE from URL_SCHEME, so the announced address and the
+      # published port cannot drift apart.
       - 127.0.0.1:${URL_PORT:-8000}:${PORT_INTERNE:-80}
-      # Calculé par ./setup : URL_PORT + 10000. Un décalage fixe, et non un
-      # « 1 » collé devant URL_PORT, qui cesse d'être un port au-delà de
-      # quatre chiffres.
+      # Computed by ./setup: URL_PORT + 10000. A fixed offset, rather than a
+      # « 1 » glued in front of URL_PORT, which stops being a port beyond
+      # four digits.
       - 127.0.0.1:${DASHBOARD_PORT:-18000}:8080
     networks: [reverse_proxy]
 
 networks:
-  # Pas de `name:`, volontairement. Un nom fixe ferait UN réseau global que
-  # chaque clone du dépôt rejoindrait, et chaque Traefik ramasserait alors
-  # les conteneurs des autres par la socket Docker — tous porteurs de la
-  # même règle Host(...). Laissé à Compose, le réseau prend le nom du
-  # projet : ${INSTANCE_NAME}_reverse_proxy.
+  # No `name:`, deliberately. A fixed name would make ONE global network
+  # every clone of the repository would join, and each Traefik would then
+  # pick up the others' containers through the Docker socket — all carrying
+  # the same Host(...) rule. Left to Compose, the network takes the project
+  # name: ${INSTANCE_NAME}_reverse_proxy.
   reverse_proxy:
     external: false

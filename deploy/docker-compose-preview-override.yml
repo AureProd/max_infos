@@ -1,8 +1,8 @@
-# Preview : le VRAI build de production, derrière le Traefik local, sans
-# déployer. Sélectionné par ./setup quand APP_ENV=preview.
+# Preview: the REAL production build, behind the local Traefik, without
+# deploying. Selected by ./setup when APP_ENV=preview.
 #
-# Aucun montage de source, aucun rechargement à chaud : c'est bien l'image
-# de production qu'on regarde, avec son rendu serveur réel.
+# No source mount, no hot reload: this really is the production image we are
+# looking at, with its actual server rendering.
 
 services:
   app:

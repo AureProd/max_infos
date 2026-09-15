@@ -1,25 +1,25 @@
-# Les vérifications posées devant le commit. Remplace pre-commit, qui
-# imposait Python et uv dans un dépôt par ailleurs 100 % TypeScript.
+# The checks placed in front of the commit. Replaces pre-commit, which
+# required Python and uv in an otherwise 100% TypeScript repository.
 #
-# L'installation se fait toute seule : le script `prepare` de package.json
-# lance `lefthook install` à chaque `pnpm install`. Auparavant rien ne
-# garantissait qu'un clone ait ses hooks posés.
+# Installation takes care of itself: package.json's `prepare` script runs
+# `lefthook install` on every `pnpm install`. Previously nothing guaranteed
+# a clone had its hooks in place.
 #
-# Pour tout passer sans commiter : `pnpm hooks`.
+# To run everything without committing: `pnpm hooks`.
 
 pre-commit:
   parallel: true
   jobs:
     - name: hygiene
-      # Espaces en fin de ligne, newline finale, CRLF, marqueurs de conflit,
-      # fichiers volumineux, collisions de casse, YAML et JSON valides.
+      # Trailing whitespace, final newline, CRLF, conflict markers, large
+      # files, case collisions, valid YAML and JSON.
       run: node scripts/hooks/hygiene.mjs {staged_files}
 
     - name: secrets
-      # Le garde-fou qui compte, et il compte davantage depuis que le dépôt
-      # est public : une clé poussée sur un dépôt public est compromise
-      # immédiatement et irréversiblement, les forks et les caches GitHub la
-      # conservant malgré toute réécriture d'historique.
+      # The guard rail that counts, and it counts more since the repository
+      # went public: a key pushed to a public repository is compromised
+      # immediately and irreversibly, forks and GitHub caches keeping it
+      # despite any history rewrite.
       run: pnpm exec secretlint --maskSecrets {staged_files}
 
     - name: biome
@@ -29,10 +29,10 @@ pre-commit:
       run: pnpm exec biome check --write --no-errors-on-unmatched {staged_files}
       stage_fixed: true
 
-    - name: typage
-      # L'équivalent de `mypy --strict`. Contrairement à Biome, il lit les
-      # templates : c'est lui qui voit un composant mal typé. Il travaille
-      # sur le projet entier, pas sur les fichiers indexés.
+    - name: typecheck
+      # The equivalent of `mypy --strict`. Unlike Biome, it reads the
+      # templates: it is what sees a badly typed component. It works on the
+      # whole project, not on the staged files.
       glob: "*.{ts,vue}"
       exclude:
         - "frontend/**"

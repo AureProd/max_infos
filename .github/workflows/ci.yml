@@ -9,7 +9,7 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# Dépôt public : moindre privilège par défaut, relevé tâche par tâche si besoin.
+# Public repository: least privilege by default, raised job by job if needed.
 permissions:
   contents: read
 
@@ -18,7 +18,7 @@ env:
 
 jobs:
   quality:
-    name: Qualité (lint, typage, hooks)
+    name: Quality (lint, types, hooks)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,22 +28,22 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Lint et format
+      - name: Lint and format
         run: pnpm exec biome ci .
-      - name: Typage
+      - name: Types
         run: pnpm typecheck
-      - name: Aucun secret en clair
+      - name: No secret in the clear
         run: pnpm secrets
-      - name: Hygiène des fichiers
+      - name: File hygiene
         run: node scripts/hooks/hygiene.mjs $(git ls-files)
-      - name: Aucun v-html non autorisé
+      - name: No unauthorized v-html
         run: scripts/hooks/check-v-html.sh
 
   test:
     name: Tests
     runs-on: ubuntu-latest
-    # Un seul projet, une seule installation, une couverture consolidée :
-    # mieux que les deux seuils de 80 % séparés de l'ancienne CI.
+    # One project, one install, one consolidated coverage: better than the
+    # two separate 80% thresholds of the old CI.
     services:
       postgres:
         image: postgres:17-alpine
@@ -68,35 +68,35 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
-      - name: Appliquer les migrations
+      - name: Apply the migrations
         run: pnpm db:migrate
 
-      - name: Aucune migration manquante
-        # L'équivalent d'`alembic --autogenerate --check` du lot 1 : si le
-        # schéma TypeScript a changé sans qu'on génère la migration, un
-        # fichier apparaît ici et la tâche échoue.
+      - name: No missing migration
+        # The equivalent of lot 1's `alembic --autogenerate --check`: if the
+        # TypeScript schema changed without the migration being generated, a
+        # file appears here and the job fails.
         run: |
           pnpm db:check
           pnpm db:generate --name controle_de_derive
           git diff --exit-code drizzle/ \
             || { echo "::error::Une migration manque. Lancer 'pnpm db:generate' et commiter le fichier SQL."; exit 1; }
 
-      - name: Tests et couverture
+      - name: Tests and coverage
         run: pnpm coverage
 
-      - name: Récapitulatif de couverture
+      - name: Coverage summary
         if: always()
         run: |
           echo '### Couverture' >> "$GITHUB_STEP_SUMMARY"
           node -e "
             const s = require('./coverage/coverage-summary.json').total;
             const l = ['lines','statements','functions','branches'];
-            console.log('| Métrique | % |'); console.log('|---|---|');
+            console.log('| Metric | % |'); console.log('|---|---|');
             for (const k of l) console.log(\`| \${k} | \${s[k].pct} |\`);
           " >> "$GITHUB_STEP_SUMMARY" || true
 
   security:
-    name: Sécurité
+    name: Security
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -109,16 +109,16 @@ jobs:
       - name: pnpm audit
         run: pnpm audit --audit-level=high
       - name: osv-scanner
-        # Interroge la base OSV, dont la couverture diffère de celle du
-        # registre npm : garder les deux n'est pas redondant.
+        # Queries the OSV database, whose coverage differs from the npm
+        # registry's: keeping both is not redundant.
         run: pnpm dlx osv-scanner@latest scan source --lockfile=pnpm-lock.yaml
 
   workflows:
     name: Workflows
     runs-on: ubuntu-latest
-    # Sur un dépôt public, les workflows sont une surface d'attaque à part
-    # entière : injection par titre de PR, actions non épinglées, secrets
-    # exposés à une PR extérieure.
+    # On a public repository, workflows are an attack surface of their own:
+    # injection through a PR title, unpinned actions, secrets exposed to an
+    # outside PR.
     steps:
       - uses: actions/checkout@v4
       - uses: docker://rhysd/actionlint:latest
@@ -126,13 +126,13 @@ jobs:
           args: -color
 
   build:
-    name: Image Docker
+    name: Docker image
     runs-on: ubuntu-latest
     needs: [quality, test]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - name: Construire l'image (sans publication)
+      - name: Build the image (without publishing)
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -147,8 +147,8 @@ jobs:
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: unmaxdinfo:ci
-          # L'image GHCR devient publique : un secret qui s'y glisserait
-          # serait lisible par tout le monde.
+          # The GHCR image becomes public: a secret slipping into it would
+          # be readable by everyone.
           scanners: vuln,secret
           severity: HIGH,CRITICAL
           exit-code: "1"

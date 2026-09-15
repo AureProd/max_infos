@@ -1,4 +1,4 @@
-# Développement : build local, source monté, rechargement à chaud.
+# Development: local build, source mounted, hot reload.
 
 services:
   app:
@@ -7,10 +7,10 @@ services:
       dockerfile: Dockerfile
       target: dev
     image: unmaxdinfo:${INSTANCE_NAME}
-    # On monte les RÉPERTOIRES de source, jamais la racine : un montage de
-    # « . » sur /app masquerait le node_modules construit dans l'image, dont
-    # les binaires natifs sont compilés pour l'architecture du conteneur.
-    # Ajouter un répertoire de premier niveau = modifier ce fichier.
+    # We mount the source DIRECTORIES, never the root: mounting « . » on
+    # /app would mask the node_modules built into the image, whose native
+    # binaries are compiled for the container's architecture. Adding a
+    # top-level directory means editing this file.
     volumes:
       - ./app:/app/app
       - ./server:/app/server
@@ -20,30 +20,29 @@ services:
       - ./drizzle:/app/drizzle
       - ./nuxt.config.ts:/app/nuxt.config.ts:ro
       - ./tsconfig.json:/app/tsconfig.json:ro
-      # Le cache Nuxt survit à un `up --force-recreate` : le premier rendu
-      # est bien plus rapide.
+      # The Nuxt cache survives an `up --force-recreate`: the first render
+      # is far faster.
       - nuxt_cache:/app/.nuxt
     environment:
-      # Lus par nuxt.config.ts pour calculer ws.clientPort et allowedHosts.
+      # Read by nuxt.config.ts to compute ws.clientPort and allowedHosts.
       URL_PORT: ${URL_PORT:-8000}
       URL_HOST: ${URL_HOST}
 
-    # --- Surveillance des sources -----------------------------------------
+    # --- Watching the sources ---------------------------------------------
     #
-    # Les montages ci-dessus suffisent au rechargement à chaud, mais ils ne
-    # voient PAS le cas qui fait vraiment perdre du temps : une dépendance
-    # ajoutée. Le node_modules vit dans l'image ; après un `pnpm add`,
-    # l'image garde l'ancien et l'application échoue sur un module
-    # introuvable, sans que le message dise pourquoi. C'est arrivé trois
-    # fois pendant ce chantier.
+    # The mounts above are enough for hot reload, but they do NOT see the
+    # case that really wastes time: a dependency added. node_modules lives
+    # in the image; after a `pnpm add`, the image keeps the old one and the
+    # application fails on a module not found, with a message that does not
+    # say why. It happened three times during this work.
     #
-    # `docker compose watch` (ou `up --watch`) reconstruit l'image dès que
-    # package.json ou le lockfile changent.
+    # `docker compose watch` (or `up --watch`) rebuilds the image as soon as
+    # package.json or the lockfile change.
     #
-    # AUCUNE règle `sync` : les montages ci-dessus s'en chargent déjà, et
-    # Compose refuse de surveiller un chemin qu'un montage couvre — il le
-    # signale d'ailleurs par un avertissement. La surveillance ne sert donc
-    # qu'au cas que les montages ne voient pas : les dépendances.
+    # NO `sync` rule: the mounts above already handle that, and Compose
+    # refuses to watch a path a mount covers — it says so with a warning.
+    # Watching therefore only serves the case the mounts cannot see:
+    # dependencies.
     develop:
       watch:
         - action: rebuild
@@ -53,7 +52,7 @@ services:
         - action: rebuild
           path: pnpm-workspace.yaml
     healthcheck:
-      # `nuxt dev` compile à la volée : le premier rendu peut dépasser 60 s.
+      # `nuxt dev` compiles on the fly: the first render can exceed 60 s.
       start_period: 180s
       interval: 10s
       start_interval: 3s
@@ -64,35 +63,35 @@ services:
       dockerfile: Dockerfile
       target: migrate
     image: unmaxdinfo-migrate:${INSTANCE_NAME}
-    # Les migrations et le schéma sont montés, et non figés dans l'image :
-    # sans cela, il faudrait reconstruire l'image à CHAQUE `pnpm db:generate`,
-    # et on appliquerait sans s'en apercevoir un jeu de migrations périmé —
-    # la commande répondant « migrations applied successfully » puisqu'elle
-    # aurait bien appliqué tout ce qu'elle connaît.
+    # Migrations and schema are mounted, not frozen into the image: without
+    # that, the image would have to be rebuilt on EVERY `pnpm db:generate`,
+    # and a stale set of migrations would be applied without anyone
+    # noticing — the command answering « migrations applied successfully »
+    # since it did apply everything it knows about.
     #
-    # En production l'image reste autonome : c'est justement ce qu'on veut
-    # déployer, un artefact figé et vérifiable.
+    # In production the image stays self-contained: that is precisely what
+    # we want to deploy, a frozen, verifiable artefact.
     volumes:
       - ./drizzle:/app/drizzle:ro
       - ./server/database:/app/server/database:ro
       - ./drizzle.config.ts:/app/drizzle.config.ts:ro
 
-  # Base jetable réservée aux tests, publiée sur la boucle locale pour que
-  # `pnpm test` tourne depuis l'hôte. Celle de développement, elle, ne
-  # publie AUCUN port : on ne relâche pas cette règle pour les tests.
+  # A throwaway database reserved for the tests, published on the loopback
+  # so `pnpm test` runs from the host. The development one publishes NO
+  # port: we do not relax that rule for the tests.
   #
-  # tmpfs et non volume : les données ne survivent pas au conteneur, c'est
-  # exactement ce qu'on veut, et les écritures ne touchent pas le disque.
+  # tmpfs and not a volume: the data does not survive the container, which
+  # is exactly what we want, and the writes never touch the disk.
   db-test:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: unmaxdinfo_test
       POSTGRES_USER: unmaxdinfo
-      # Base éphémère, en mémoire, liée à 127.0.0.1 : rien à protéger.
+      # An ephemeral, in-memory database bound to 127.0.0.1: nothing to protect.
       POSTGRES_PASSWORD: test
-      # Sans durabilité : une base de test qui perd tout au redémarrage est
-      # sans conséquence, et c'est deux à trois fois plus rapide.
+      # No durability: a test database losing everything on restart is
+      # harmless, and it is two to three times faster.
       POSTGRES_INITDB_ARGS: "--nosync"
     command: >-
       postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off

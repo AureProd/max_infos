@@ -1,9 +1,9 @@
-# Production. Volontairement maigre : tout le reste est déjà façonné prod
-# dans deploy/docker-compose.yml.
+# Production. Deliberately thin: everything else is already shaped for prod
+# in deploy/docker-compose.yml.
 #
-# Le Traefik du VPS existe déjà. Ce projet n'en déploie AUCUN et ne modifie
-# rien chez lui : il pose seulement ses labels, tous suffixés par
-# ${INSTANCE_NAME}, et rejoint son réseau.
+# The VPS Traefik already exists. This project deploys NONE and changes
+# nothing about it: it only sets its labels, all suffixed with
+# ${INSTANCE_NAME}, and joins its network.
 
 services:
   app:

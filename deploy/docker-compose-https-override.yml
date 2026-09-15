@@ -1,15 +1,15 @@
-# HTTPS local. Inclus par ./setup quand URL_SCHEME=https.
+# Local HTTPS. Included by ./setup when URL_SCHEME=https.
 #
-# Un fichier à part plutôt qu'un label conditionnel : les labels sont une
-# liste, et « poser cette entrée seulement si… » ne s'exprime pas dans
-# Compose. Le motif est déjà celui des autres overrides.
+# A separate file rather than a conditional label: labels are a list, and
+# « set this entry only if… » cannot be expressed in Compose. The pattern is
+# already that of the other overrides.
 
 services:
   app:
     labels:
-      # Sans ce label, Traefik sert bien le routeur sur l'entrée websecure
-      # mais NE TERMINE PAS le TLS : la requête n'aboutit pas et le
-      # diagnostic est trompeur, puisque le certificat est pourtant présenté
-      # correctement.
+      # Without this label, Traefik does serve the router on the websecure
+      # entrypoint but DOES NOT TERMINATE TLS: the request fails and the
+      # diagnosis is misleading, since the certificate is presented
+      # correctly all the same.
       - traefik.http.routers.app-${INSTANCE_NAME}.tls=true
       - traefik.http.routers.app-${INSTANCE_NAME}.entrypoints=websecure

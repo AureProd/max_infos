@@ -1,20 +1,22 @@
-# Base commune à tous les environnements, façonnée pour la production.
-# Les fichiers deploy/docker-compose-*-override.yml en dérivent, et
-# ./setup en compose l'artefact docker-compose.yml de la racine (gitignoré).
+# The common base for every environment, shaped for production. The
+# deploy/docker-compose-*-override.yml files derive from it, and ./setup
+# composes the root docker-compose.yml artefact from them (gitignored).
 
 services:
   app:
     image: ${APP_IMAGE}
     restart: always
-    # env_file et non environment : un secret placé en environment: serait
-    # résolu par `docker compose config` et finirait EN CLAIR dans
-    # l'artefact généré.
+    # env_file and not environment: a secret placed under environment:
+    # would be resolved by `docker compose config` and would end up IN THE
+    # CLEAR in the generated artefact. Beware: `docker compose config`
+    # unfolds env_file too — what protects the deployment is that the .env
+    # does not exist yet when the compose is rendered.
     #
-    # required: false parce que le RENDU se fait sur le runner de CI, où le
-    # fichier n'existe pas — il vit sur le serveur. Sans cela, l'étape de
-    # déploiement échouerait avant même de copier quoi que ce soit. Un
-    # fichier manquant en production reste rattrapé par la validation de
-    # configuration, qui refuse de démarrer sans ses secrets.
+    # required: false because the RENDERING happens on the CI runner, where
+    # the file does not exist — it is written on the server at deploy time.
+    # Without this, the deployment step would fail before copying anything.
+    # A file missing in production is still caught by the configuration
+    # validation, which refuses to start without its secrets.
     env_file:
       - path: ${ENV_FILE:-.env}
         required: false
@@ -25,19 +27,19 @@ services:
       - traefik.enable=true
       - traefik.http.routers.app-${INSTANCE_NAME}.rule=Host(`${URL_HOST}`)
       - traefik.http.routers.app-${INSTANCE_NAME}.priority=1
-      # Explicite plutôt que déduit : Traefik doit savoir vers quel port
-      # envoyer, sans dépendre de ce que l'image expose.
+      # Explicit rather than inferred: Traefik must know which port to send
+      # to, without depending on what the image exposes.
       - traefik.http.services.app-${INSTANCE_NAME}.loadbalancer.server.port=3000
-      # Nommer le service du routeur, même quand il n'y en a qu'un. Dès
-      # qu'un conteneur déclare plus d'un service Traefik, un routeur qui ne
-      # nomme pas le sien est écarté SANS message d'erreur : le site répond
-      # alors 404 à travers le proxy tout en répondant 200 en direct sur le
-      # conteneur. Une heure de recherche, autant l'écrire une fois pour
-      # toutes.
+      # Name the router's service, even when there is only one. As soon as
+      # a container declares more than one Traefik service, a router that
+      # does not name its own is discarded WITHOUT an error message: the
+      # site then answers 404 through the proxy while answering 200 directly
+      # on the container. An hour of searching, worth writing down once and
+      # for all.
       - traefik.http.routers.app-${INSTANCE_NAME}.service=app-${INSTANCE_NAME}
-      # Retire les en-têtes qui identifient la pile. Une valeur VIDE dans
-      # customResponseHeaders supprime l'en-tête de la réponse : c'est le
-      # seul endroit où Server et X-Powered-By disparaissent vraiment.
+      # Strips the headers that identify the stack. An EMPTY value in
+      # customResponseHeaders removes the header from the response: it is
+      # the only place where Server and X-Powered-By really disappear.
       - traefik.http.middlewares.hide-tech-${INSTANCE_NAME}.headers.customResponseHeaders.Server=
       - traefik.http.middlewares.hide-tech-${INSTANCE_NAME}.headers.customResponseHeaders.X-Powered-By=
       - traefik.http.routers.app-${INSTANCE_NAME}.middlewares=hide-tech-${INSTANCE_NAME}@docker
@@ -56,14 +58,14 @@ services:
     env_file:
       - path: ${ENV_FILE:-.env}
         required: false
-    # Aucun ports: — la base n'est joignable que par le réseau interne du
-    # projet, jamais depuis l'hôte.
+    # No ports: — the database is only reachable through the project's
+    # internal network, never from the host.
     volumes:
       - db_data:/var/lib/postgresql/data
     networks: [default]
     healthcheck:
-      # CMD-SHELL : le $$ échappe l'interpolation Compose et laisse le shell
-      # du conteneur lire ses propres variables.
+      # CMD-SHELL: the $$ escapes Compose interpolation and lets the
+      # container's shell read its own variables.
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
@@ -72,10 +74,10 @@ services:
 
   migrate:
     image: ${MIGRATE_IMAGE}
-    # Hors du `up` par défaut : le bug docker/compose#10596 fait sortir
-    # `up --wait` en 1 dès qu'un conteneur d'init se termine en 0. On
-    # l'invoque donc explicitement — ce qui est exactement la séquence
-    # attendue en production (lot 11) :
+    # Outside the default `up`: the docker/compose#10596 bug makes
+    # `up --wait` exit 1 as soon as an init container exits 0. So we invoke
+    # it explicitly — which is exactly the sequence expected in production
+    # (lot 11):
     #   docker compose run --rm migrate && docker compose up -d --wait
     profiles: ["migrate"]
     restart: "no"
@@ -92,8 +94,8 @@ volumes:
 
 networks:
   default:
-  # En production : le réseau du Traefik déjà en place sur le VPS. Nom
-  # littéral, sans préfixe de projet. L'override local le repasse en
-  # external: false pour que Compose en crée un par instance.
+  # In production: the network of the Traefik already running on the VPS. A
+  # literal name, without a project prefix. The local override switches it
+  # back to external: false so Compose creates one per instance.
   reverse_proxy:
     external: true

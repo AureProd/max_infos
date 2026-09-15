@@ -1,51 +1,51 @@
-# Gabarit de la configuration statique du Traefik de développement.
-# ./setup en dérive deploy/config/traefik-dev.yml par envsubst — fichier
-# généré, donc gitignoré.
+# Template of the development Traefik's static configuration.
+# ./setup derives deploy/config/traefik-dev.yml from it through envsubst — a
+# generated file, and therefore gitignored.
 #
-# Ce Traefik est JETABLE et local. Celui de production existe déjà sur le
-# VPS : le projet s'y raccorde sans jamais le modifier.
+# This Traefik is THROWAWAY and local. The production one already exists on
+# the VPS: the project plugs into it without ever changing it.
 
 entryPoints:
   web:
     address: ":80"
-${BLOC_REDIRECTION}
+${REDIRECTION_BLOCK}
   websecure:
     address: ":443"
 
 providers:
-  # Les certificats du développement, relus à chaud. Le fichier n'existe
-  # qu'en HTTPS ; `directory` tolère son absence, là où `filename` ferait
-  # échouer le démarrage.
+  # The development certificates, re-read live. The file only exists over
+  # HTTPS; `directory` tolerates its absence, where `filename` would fail
+  # the startup.
   file:
     directory: /dynamic
     watch: true
 
   docker:
     exposedByDefault: false
-    # Compose nomme le réseau d'après le projet, et Traefik n'applique pas
-    # ce préfixe de lui-même.
+    # Compose names the network after the project, and Traefik does not
+    # apply that prefix by itself.
     network: ${INSTANCE_NAME}_reverse_proxy
-    # Ne découvrir que les conteneurs de CETTE instance.
+    # Discover only THIS instance's containers.
     #
-    # Traefik les énumère par la socket Docker, qui liste TOUS les
-    # conteneurs de la machine quels que soient les réseaux. Chaque clone du
-    # dépôt publie les mêmes règles Host(...). Sans cette contrainte, chaque
-    # Traefik les enregistre toutes et la requête est servie par l'instance
-    # qui a gagné la course. `com.docker.compose.project` est posé par
-    # Compose : il n'y a aucun label à tenir à jour.
+    # Traefik enumerates them through the Docker socket, which lists EVERY
+    # container on the machine whatever the networks. Each clone of the
+    # repository publishes the same Host(...) rules. Without this
+    # constraint, every Traefik registers them all and the request is served
+    # by whichever instance won the race. `com.docker.compose.project` is
+    # set by Compose: there is no label to keep up to date.
     constraints: "Label(`com.docker.compose.project`, `${INSTANCE_NAME}`)"
 
 api:
   dashboard: true
-  # Acceptable uniquement parce que le port n'est publié que sur
-  # 127.0.0.1:${DASHBOARD_PORT}, jamais sur 0.0.0.0.
+  # Acceptable only because the port is published on
+  # 127.0.0.1:${DASHBOARD_PORT} alone, never on 0.0.0.0.
   insecure: true
 
 log:
   level: "INFO"
 
-# Sur la sortie standard (docker compose logs rp) plutôt que dans un
-# fichier : évite un répertoire ./logs appartenant à root dans le dépôt.
+# To standard output (docker compose logs rp) rather than to a file: avoids
+# a root-owned ./logs directory inside the repository.
 accessLog:
   fields:
     names:

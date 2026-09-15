@@ -1,14 +1,14 @@
-name: Déploiement
+name: Deployment
 
 on:
   push:
     branches: [main]
-    # Un tag déploie aussi : permet de rejouer une version précise.
+    # A tag deploys too: it allows replaying a precise version.
     tags: ["v*"]
   workflow_dispatch:
 
-# Le déploiement est CONDITIONNÉ à la réussite de la CI : sans cela, un
-# commit qui casse les tests partirait quand même en production.
+# The deployment is CONDITIONAL on CI passing: without that, a commit
+# breaking the tests would go to production all the same.
 concurrency:
   group: deploy-production
   cancel-in-progress: false
@@ -23,19 +23,19 @@ env:
 
 jobs:
   attendre-ci:
-    name: Attendre la CI
+    name: Wait for CI
     runs-on: ubuntu-latest
     steps:
       - uses: lewagon/wait-on-check-action@v1.3.4
         with:
           ref: ${{ github.sha }}
-          running-workflow-name: Attendre la CI
+          running-workflow-name: Wait for CI
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 20
           allowed-conclusions: success
 
   publier:
-    name: Construire et publier les images
+    name: Build and publish the images
     runs-on: ubuntu-latest
     needs: [attendre-ci]
     outputs:
@@ -53,7 +53,7 @@ jobs:
         run: |
           echo "tags=${{ env.REGISTRY }}/${{ github.repository }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
-      - name: Image applicative
+      - name: Application image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -66,7 +66,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Image de migration
+      - name: Migration image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -80,14 +80,14 @@ jobs:
           cache-to: type=gha,mode=max
 
   deployer:
-    name: Déployer sur le VPS
+    name: Deploy to the VPS
     runs-on: ubuntu-latest
     needs: [publier]
     environment: production
     steps:
       - uses: actions/checkout@v4
 
-      - name: Rendre le compose de production
+      - name: Render the production compose
         env:
           INSTANCE_NAME: unmaxdinfo
           URL_HOST: unmaxdinfo.fr
@@ -101,29 +101,29 @@ jobs:
             -f deploy/docker-compose-prod-override.yml \
             --profile migrate \
             config > docker-compose.yml
-          # Contrôle : le fichier rendu ne doit contenir aucun secret.
+          # Check: the rendered file must contain no secret.
           #
-          # `docker compose config` DÉPLIE les env_file en `environment:`, en
-          # clair — vérifié, pas supposé. Ce qui protège ici, c'est que le
-          # .env n'existe pas ENCORE : il est fabriqué au pas suivant.
-          # L'ordre des deux pas est donc porteur ; les inverser publierait
-          # tous les secrets dans le fichier copié sur le serveur.
+          # `docker compose config` UNFOLDS env_file into `environment:`, in
+          # the clear — verified, not assumed. What protects us here is that
+          # the .env does not exist YET: it is built in the next step. The
+          # order of the two steps is therefore load-bearing; swapping them
+          # would publish every secret into the file copied to the server.
           #
-          # Le motif cherche les deux syntaxes. Il ne cherchait que `NOM=`,
-          # or la forme dépliée s'écrit `NOM: valeur` : le garde-fou
-          # regardait à côté de la seule fuite qu'il devait arrêter.
+          # The pattern looks for both syntaxes. It used to look only for
+          # `NAME=`, whereas the unfolded form reads `NAME: value`: the
+          # guard rail was looking away from the only leak it had to stop.
           if grep -qE '(PASSWORD|SECRET|TOKEN|KEY)[[:space:]]*[:=][[:space:]]*[^[:space:]$]' docker-compose.yml; then
-            echo "::error::Le compose rendu contient une valeur secrète"
+            echo "::error::The rendered compose contains a secret value"
             exit 1
           fi
 
-      - name: Rendre le .env de production
-        # Le serveur ne détient plus que la clé SSH : tout le reste est
-        # fabriqué ici, à chaque déploiement, depuis les secrets et
-        # variables de l'environnement `production`.
+      - name: Render the production .env
+        # The server now holds nothing but the SSH key: everything else is
+        # built here, on every deployment, from the secrets and variables of
+        # the `production` environment.
         #
-        # Les valeurs passent par l'environnement du pas, jamais par la
-        # ligne de commande : `ps` la montrerait à tout processus du runner.
+        # The values travel through the step's environment, never the
+        # command line: `ps` would show it to every process on the runner.
         env:
           # --- Secrets ---------------------------------------------------
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -153,30 +153,29 @@ jobs:
           set -euo pipefail
           umask 077
 
-          # Contrôle de complétude AVANT d'écrire quoi que ce soit : mieux
-          # vaut un déploiement refusé ici qu'un conteneur `app` qui
-          # redémarre en boucle sur le serveur.
-          manquantes=()
+          # Completeness check BEFORE writing anything: a deployment refused
+          # here beats an `app` container restarting in a loop on the server.
+          missing=()
           for nom in POSTGRES_PASSWORD NUXT_SECRET_ENCRYPTION_KEY \
                      NUXT_SESSION_PASSWORD NUXT_OAUTH_GOOGLE_CLIENT_ID \
                      NUXT_OAUTH_GOOGLE_CLIENT_SECRET NUXT_OAUTH_GOOGLE_REDIRECT_URL \
                      NUXT_BOOTSTRAP_TECH_EMAIL NUXT_R2_ACCOUNT_ID \
                      NUXT_R2_ACCESS_KEY_ID NUXT_R2_SECRET_ACCESS_KEY \
                      NUXT_R2_BUCKET NUXT_R2_ENDPOINT NUXT_PUBLIC_R2_BASE_URL; do
-            [ -n "${!nom:-}" ] || manquantes+=("$nom")
+            [ -n "${!nom:-}" ] || missing+=("$nom")
           done
-          if [ ${#manquantes[@]} -gt 0 ]; then
-            echo "::error::Valeurs absentes de l'environnement 'production' : ${manquantes[*]}"
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Values missing from the 'production' environment: ${missing[*]}"
             exit 1
           fi
 
-          # Composée, jamais stockée en double : une URL et un mot de passe
-          # qui divergent, c'est une panne dont la cause ne se voit pas.
-          url_bdd="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT}/${POSTGRES_DB}"
+          # Composed, never stored twice: a URL and a password that drift
+          # apart make a failure whose cause does not show.
+          database_url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT}/${POSTGRES_DB}"
 
           {
-            echo "# Fabriqué par GitHub Actions, écrasé à chaque déploiement."
-            echo "# Ne rien modifier ici : la source de vérité est"
+            echo "# Built by GitHub Actions, overwritten on every deployment."
+            echo "# Do not edit here: the source of truth is"
             echo "# Settings -> Secrets and variables -> Actions -> production."
             echo "APP_ENV=prod"
             echo "URL_HOST=${URL_HOST}"
@@ -186,8 +185,8 @@ jobs:
             echo "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}"
             echo "DB_HOST=${DB_HOST}"
             echo "DB_PORT=${DB_PORT}"
-            echo "DATABASE_URL=${url_bdd}"
-            echo "NUXT_DATABASE_URL=${url_bdd}"
+            echo "DATABASE_URL=${database_url}"
+            echo "NUXT_DATABASE_URL=${database_url}"
             echo "NUXT_SECRET_ENCRYPTION_KEY=${NUXT_SECRET_ENCRYPTION_KEY}"
             echo "NUXT_SESSION_PASSWORD=${NUXT_SESSION_PASSWORD}"
             echo "NUXT_OAUTH_GOOGLE_CLIENT_ID=${NUXT_OAUTH_GOOGLE_CLIENT_ID}"
@@ -208,7 +207,7 @@ jobs:
             echo "NUXT_PUBLIC_R2_BASE_URL=${NUXT_PUBLIC_R2_BASE_URL}"
           } > .env
 
-          echo "$(wc -l < .env) variables écrites."
+          echo "$(wc -l < .env) variables written."
 
       - name: Copier sur le serveur
         uses: appleboy/scp-action@v0.1.7
@@ -228,24 +227,24 @@ jobs:
           script: |
             set -euo pipefail
             cd "${{ secrets.DEPLOY_PATH }}"
-            # scp ne garantit pas les droits : le .env ne doit être lisible
-            # que par son propriétaire.
+            # scp does not guarantee the permissions: the .env must only be
+            # readable by its owner.
             chmod 600 .env
             docker compose pull
-            # Le && fait toute la garantie : migration en échec = aucune
-            # bascule, l'ancienne image continue de servir.
+            # The && is the whole guarantee: a failed migration means no
+            # switch, and the old image keeps serving.
             docker compose run --rm migrate
             docker compose up -d --wait
             docker image prune -f
 
-      - name: Vérifier que le site répond
+      - name: Check that the site answers
         run: |
           for _ in $(seq 1 20); do
             if curl -fsS https://unmaxdinfo.fr/api/health > /dev/null; then
-              echo "Le site répond."
+              echo "The site answers."
               exit 0
             fi
             sleep 10
           done
-          echo "::error::Le site ne répond pas après le déploiement"
+          echo "::error::The site does not answer after the deployment"
           exit 1
