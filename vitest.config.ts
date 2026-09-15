@@ -85,10 +85,11 @@ export default defineConfig(async () => ({
       ],
       // All four metrics, not just lines: a threshold on lines alone is
       // trivially worked around.
-      // PROVISIONAL rung, lowered to the level actually measured on the
-      // narrowed scope so that CI stops blocking the deployment. Each batch of
-      // tests raises it again; the target remains 80 everywhere.
-      thresholds: { lines: 62, statements: 62, functions: 64, branches: 58 },
+      //
+      // Back to the target the project set itself. The measured figures sit
+      // well above it (99 / 92 / 100 / 99); the bar stays at 80 so that a
+      // module arriving without tests is what fails, not an ordinary edit.
+      thresholds: { lines: 80, statements: 80, functions: 80, branches: 80 },
     },
   },
 }))

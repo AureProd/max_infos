@@ -53,8 +53,16 @@ export function useDraft(slug: Ref<string | null>) {
       coverMediaId: a.coverMediaId,
     }
     status.value = a.status
-    modified.value = false
     await refreshPreview()
+
+    // AFTER the watchers, not before: they fire on the next tick, so an
+    // assignment made here would be overwritten and the form would claim
+    // unsaved edits on an article just opened — and publishing would save
+    // for nothing. The pending preview is dropped along the way: it has
+    // just been fetched.
+    await nextTick()
+    clearTimeout(previewTimer)
+    modified.value = false
   }
 
   let previewTimer: ReturnType<typeof setTimeout> | undefined
