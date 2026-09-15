@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { isCurrentScreen } from '~/utils/admin-nav'
+
 const { user, peut, signOut } = useUser()
 
 /**
@@ -9,6 +11,9 @@ const { user, peut, signOut } = useUser()
  * like it was not built for you.
  */
 const seesTech = peut('tech')
+
+const route = useRoute()
+const isCurrent = (to: string): boolean => isCurrentScreen(route.path, to)
 
 const screens = computed(() =>
   [
@@ -27,10 +32,21 @@ const screens = computed(() =>
 <template>
   <div class="admin-bar">
     <nav class="cnav">
-      <NuxtLink v-for="e in screens" :key="e.to" :to="e.to">{{ e.label }}</NuxtLink>
+      <NuxtLink
+        v-for="e in screens"
+        :key="e.to"
+        :to="e.to"
+        :aria-current="isCurrent(e.to) ? 'page' : undefined"
+        :class="{ current: isCurrent(e.to) }"
+      >
+        {{ e.label }}
+      </NuxtLink>
     </nav>
     <div class="cluster">
       <span class="pill">{{ user?.name ?? user?.email }}</span>
+      <!-- The role, shown rather than guessed: which screens are missing
+           from the menu is otherwise a puzzle. -->
+      <span v-if="seesTech" class="pill">technique</span>
       <slot />
       <button class="btn" type="button" @click="signOut">Se déconnecter</button>
     </div>

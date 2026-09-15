@@ -26,6 +26,7 @@ useSeoMeta({ title: 'Articles', robots: 'noindex, nofollow' })
   <div class="wrap">
     <section class="admin-page">
       <AdminNav>
+        <SubstackPanel @imported="refresh" />
         <button class="btn btn-primary" type="button" @click="create">Nouvel article</button>
       </AdminNav>
 

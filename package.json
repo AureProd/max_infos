@@ -37,6 +37,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1131.0",
     "drizzle-orm": "^0.45.2",
     "fflate": "^0.8.3",
+    "htmlparser2": "^12.0.0",
     "marked": "^18.0.13",
     "nuxt": "^4.5.2",
     "nuxt-auth-utils": "^0.5.30",

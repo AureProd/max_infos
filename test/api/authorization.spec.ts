@@ -151,6 +151,16 @@ const EXPECTED: Record<string, Pending> = {
     },
   },
 
+  // Max's publication, Max's screen: `editor` passes. 409 in the tests —
+  // no feed address is recorded — which is exactly what proves the role was
+  // NOT the reason for the refusal. No network is touched.
+  'POST /api/admin/substack/import': {
+    anonyme: 401,
+    editor: 409,
+    tech: 409,
+    body: { dryRun: true },
+  },
+
   'GET /api/admin/users': { anonyme: 401, editor: 403, tech: 200 },
   // Inviting writes a REAL row. Its own address, the least powerful role, and
   // no later case signs in with it.

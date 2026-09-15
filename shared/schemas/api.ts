@@ -170,3 +170,20 @@ export const userUpdate = z.object({
   role: z.enum(ROLES).optional(),
   active: z.boolean().optional(),
 })
+
+// --- Rapatriement Substack ------------------------------------------------
+
+/**
+ * Repatriating the publication.
+ *
+ * `dryRun` defaults to TRUE: importing is not something you run twice out of
+ * curiosity, and seeing what would be created costs nothing.
+ *
+ * `feedUrl` is optional — the address is remembered in the `substack`
+ * setting, and typed only the first time. Whatever it holds, the server
+ * checks it before going to fetch it: it is the one making the request.
+ */
+export const substackImport = z.object({
+  feedUrl: z.string().trim().max(600).optional(),
+  dryRun: z.boolean().default(true),
+})

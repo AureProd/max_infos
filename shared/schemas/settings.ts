@@ -109,6 +109,17 @@ export const instagramSchema = z.object({
   lastSyncAt: z.string().nullable().default(null),
 })
 
+/**
+ * Where the initial migration reads from.
+ *
+ * Public scope, and it costs nothing: it is the address of a publication
+ * anyone can read. Max sets it himself, once — the repatriation screen is
+ * his, not JB's.
+ */
+export const substackSchema = z.object({
+  feedUrl: z.string().trim().max(600).default(''),
+})
+
 export const storageSchema = z.object({
   bucket: z.string().max(200).default(''),
   publicBaseUrl: z.string().max(600).default(''),
@@ -124,6 +135,7 @@ export const SETTING_SCHEMAS = {
   templates: templatesSchema,
   instagram: instagramSchema,
   storage: storageSchema,
+  substack: substackSchema,
 } as const
 
 export type SettingKey = keyof typeof SETTING_SCHEMAS
@@ -144,6 +156,7 @@ export const SETTING_SCOPE: Record<SettingKey, 'public' | 'tech'> = {
   templates: 'public',
   instagram: 'tech',
   storage: 'tech',
+  substack: 'public',
 }
 
 export const SETTING_KEYS = Object.keys(SETTING_SCHEMAS) as SettingKey[]
@@ -175,6 +188,7 @@ export const SETTING_DEFAULTS: { [K in SettingKey]: SettingValue<K> } = {
   templates: { linkedin: '', reel: '' },
   instagram: instagramSchema.parse({}),
   storage: storageSchema.parse({}),
+  substack: substackSchema.parse({}),
 }
 
 // `hasOwn` rather than `in`: `in` walks the prototype chain, so 'toString'
