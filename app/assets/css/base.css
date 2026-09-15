@@ -1695,18 +1695,42 @@ button {
    The back-office does not have to be pretty — it has to be legible and not
    misleading. Hence minimal rules, reusing the site's variables.
 --------------------------------------------------------------------------- */
+/* At phone width the eight entries wrapped onto three lines and pushed the
+   title down. A strip that scrolls keeps the bar one line tall, whatever the
+   screen, and the scrollbar itself is hidden — the overflow is the hint. */
 .cnav {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+  max-width: 100%;
+}
+@media (max-width: 640px) {
+  .cnav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .cnav::-webkit-scrollbar {
+    display: none;
+  }
+  .cnav a {
+    white-space: nowrap;
+  }
 }
 
 .cnav a {
   padding: 6px 12px;
   border-radius: 3px;
+  font-family: var(--display);
   font-size: 14px;
   text-decoration: none;
   color: var(--muted, #949ba4);
+  border-bottom: 2px solid transparent;
+  transition:
+    color 0.15s,
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .cnav a:hover {
@@ -1714,9 +1738,13 @@ button {
   background: rgba(255, 255, 255, 0.04);
 }
 
-.cnav a.router-link-active {
+/* `.current` and NOT `.router-link-active`: the latter matches by prefix, so
+   /admin stayed lit on every screen of the back-office. app/utils/admin-nav.ts
+   decides, and a test holds it to exactly one entry. */
+.cnav a.current {
   color: var(--text, #dbdee1);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--accent-lo);
+  border-bottom-color: var(--accent);
 }
 
 .cluster {
