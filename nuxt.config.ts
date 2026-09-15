@@ -14,7 +14,7 @@
 // is running.
 import { version } from './package.json'
 
-const urlHost = process.env.URL_HOST ?? 'unmaxdinfo.localhost'
+const urlHost = process.env.URL_HOST ?? 'localhost'
 const urlPort = Number(process.env.URL_PORT ?? 8000)
 
 export default defineNuxtConfig({
@@ -131,7 +131,7 @@ export default defineNuxtConfig({
     public: {
       version,
       appEnv: 'dev',
-      baseUrl: 'http://unmaxdinfo.localhost:8000',
+      baseUrl: 'http://localhost:8000',
       r2BaseUrl: '',
     },
   },

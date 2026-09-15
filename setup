@@ -66,7 +66,7 @@ if [ ! -f "${ENV_FILE}" ]; then
 # NUXT_-prefixed ones are read by the application AT STARTUP.
 
 APP_ENV=dev
-URL_HOST=unmaxdinfo.localhost
+URL_HOST=localhost
 # 8000 and not 8080: 8080 is used by work projects.
 URL_PORT=8000
 
@@ -85,12 +85,12 @@ NUXT_SECRET_ENCRYPTION_KEY=$(gen_key)
 NUXT_SESSION_NAME=umdi_session
 NUXT_SESSION_MAX_AGE=1209600
 NUXT_PUBLIC_APP_ENV=dev
-NUXT_PUBLIC_BASE_URL=http://unmaxdinfo.localhost:8000
+NUXT_PUBLIC_BASE_URL=http://localhost:8000
 
 # --- To fill in yourself (lots 4 to 6) ------------------------------------
 NUXT_OAUTH_GOOGLE_CLIENT_ID=
 NUXT_OAUTH_GOOGLE_CLIENT_SECRET=
-NUXT_OAUTH_GOOGLE_REDIRECT_URL=http://unmaxdinfo.localhost:8000/api/auth/google
+NUXT_OAUTH_GOOGLE_REDIRECT_URL=http://localhost:8000/api/auth/google
 NUXT_BOOTSTRAP_TECH_EMAIL=
 NUXT_R2_ACCOUNT_ID=
 NUXT_R2_ACCESS_KEY_ID=
@@ -158,7 +158,7 @@ case "${APP_ENV}" in
   *) echo "/!\\ APP_ENV must be dev, preview or prod (read: '${APP_ENV}')"; exit 1 ;;
 esac
 
-export URL_HOST="${URL_HOST:-unmaxdinfo.localhost}"
+export URL_HOST="${URL_HOST:-localhost}"
 
 # Priority, strongest to weakest:
 #   1. what the caller exports       — an explicit, one-off intent
@@ -224,16 +224,16 @@ if [ "${URL_SCHEME}" = "https" ]; then
       # mkcert produces a certificate the browser ACCEPTS, provided its
       # authority is installed — `mkcert -install`, once.
       mkcert -cert-file "${CERTS_DIR}/local.pem" -key-file "${CERTS_DIR}/local-key.pem" \
-        "${URL_HOST:-unmaxdinfo.localhost}" localhost 127.0.0.1 >/dev/null 2>&1
-      echo "▸ mkcert certificate generated for ${URL_HOST:-unmaxdinfo.localhost}"
+        "${URL_HOST:-localhost}" localhost 127.0.0.1 >/dev/null 2>&1
+      echo "▸ mkcert certificate generated for ${URL_HOST:-localhost}"
     else
       # Self-signed fallback: the plumbing works, but the browser will show
       # a warning. Enough to check cookie behaviour, not enough for daily
       # work.
       openssl req -x509 -newkey rsa:2048 -sha256 -days 825 -nodes \
         -keyout "${CERTS_DIR}/local-key.pem" -out "${CERTS_DIR}/local.pem" \
-        -subj "/CN=${URL_HOST:-unmaxdinfo.localhost}" \
-        -addext "subjectAltName=DNS:${URL_HOST:-unmaxdinfo.localhost},DNS:localhost,IP:127.0.0.1" \
+        -subj "/CN=${URL_HOST:-localhost}" \
+        -addext "subjectAltName=DNS:${URL_HOST:-localhost},DNS:localhost,IP:127.0.0.1" \
         >/dev/null 2>&1
       echo "▸ SELF-SIGNED certificate generated (the browser will warn)."
       echo "  For an accepted certificate: install mkcert, run 'mkcert -install',"

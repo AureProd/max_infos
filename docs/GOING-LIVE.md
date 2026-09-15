@@ -86,10 +86,15 @@ compte, la seule porte d'entrée est l'OAuth Google et la liste blanche.
 4. **Authorized redirect URIs** — au caractère près, les deux :
    ```
    https://unmaxdinfo.fr/api/auth/google
-   http://unmaxdinfo.localhost:8000/api/auth/google
+   http://localhost:8000/api/auth/google
    ```
-   Google accepte le `http://` en local uniquement sur `localhost` et ses
-   sous-domaines ; `unmaxdinfo.localhost` en fait partie.
+   Google n'accepte le `http://` que sur `localhost` ou `127.0.0.1`
+   **nus**. Un sous-domaine comme `unmaxdinfo.localhost` est refusé par la
+   console, avec deux messages qui n'expliquent pas la vraie règle :
+   « l'URI doit se terminer par une extension de domaine public » et
+   « vous devez utiliser un principal domaine privé valide ». C'est pour
+   cela que l'hôte de développement est `localhost` et non
+   `unmaxdinfo.localhost`.
 5. Copier l'identifiant et le secret.
 
 **Dans GitHub** (environnement `production`) **et** en local (`.env.dev`) :
@@ -142,7 +147,7 @@ lit le navigateur. Ce sont deux domaines différents, c'est normal.
 > **CORS** : le navigateur envoie le fichier *directement* à R2, pas au
 > serveur. Dans les réglages du bucket, autoriser la méthode `PUT` depuis
 > l'origine `https://unmaxdinfo.fr` (et
-> `http://unmaxdinfo.localhost:8000` pour tester en local). Sans cela le
+> `http://localhost:8000` pour tester en local). Sans cela le
 > téléversement échoue sur une erreur CORS que rien d'autre n'explique.
 
 ---

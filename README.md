@@ -36,12 +36,14 @@ Trois adresses :
 
 | | |
 |---|---|
-| Le site | <http://unmaxdinfo.localhost:8000> |
-| La sonde | <http://unmaxdinfo.localhost:8000/api/health> |
+| Le site | <http://localhost:8000> |
+| La sonde | <http://localhost:8000/api/health> |
 | Le tableau de bord Traefik | <http://localhost:18000> |
 
-`unmaxdinfo.localhost` résout nativement vers `127.0.0.1` dans Chrome et
-Firefox : **il n'y a rien à écrire dans `/etc/hosts`**.
+L'hôte de développement est `localhost` nu, et non `unmaxdinfo.localhost` :
+c'est le seul nom en clair que la console Google accepte comme URI de
+redirection OAuth. Il est réglable par `URL_HOST` dans `.env.dev`, mais le
+changer coupe la connexion Google en local.
 
 Pour arrêter : `docker compose down`. Pour repartir d'une base vierge :
 `docker compose down -v`.
@@ -96,7 +98,7 @@ Par défaut le site est servi en clair. Pour passer en HTTPS, poser dans
 
 ```
 URL_SCHEME=https
-NUXT_PUBLIC_BASE_URL=https://unmaxdinfo.localhost:8000
+NUXT_PUBLIC_BASE_URL=https://localhost:8000
 ```
 
 puis `./setup && docker compose up -d --force-recreate rp app`.
