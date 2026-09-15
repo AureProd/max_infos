@@ -152,6 +152,25 @@ const EXPECTED: Record<string, Pending> = {
   },
 
   'GET /api/admin/users': { anonyme: 401, editor: 403, tech: 200 },
+  // Inviting writes a REAL row. Its own address, the least powerful role, and
+  // no later case signs in with it.
+  'POST /api/admin/users': {
+    anonyme: 401,
+    editor: 403,
+    tech: 201,
+    body: { email: 'matrice@exemple.test', role: 'editor' },
+  },
+  // 999999 does not exist: 404 AFTER the role check, which is what is being
+  // measured here. Aiming at a real account could strip the `tech` whose
+  // session the following cases borrow — the handler therefore reads the row
+  // BEFORE applying its guard rails, or a 409 would come out instead.
+  'PUT /api/admin/users/[id]': {
+    anonyme: 401,
+    editor: 403,
+    tech: 404,
+    body: { active: true },
+  },
+  'DELETE /api/admin/users/[id]': { anonyme: 401, editor: 403, tech: 404 },
   'GET /api/admin/export': { anonyme: 401, editor: 403, tech: 200 },
   'POST /api/admin/import': {
     anonyme: 401,

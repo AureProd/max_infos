@@ -4,18 +4,6 @@ definePageMeta({ middleware: 'admin' })
 const { peut } = useUser()
 const seesTech = peut('tech')
 
-// The server refuses anyway: this call would fail with a 403 for an
-// `editor` account. The guard below only avoids showing an error page to
-// someone who asked for nothing.
-const { data: accounts, error } = await useFetch('/api/admin/users', {
-  key: 'admin-users',
-  immediate: false,
-})
-
-watchEffect(() => {
-  if (seesTech.value && !accounts.value && !error.value) refreshNuxtData('admin-users')
-})
-
 const importState = ref<'repos' | 'en cours' | 'échec'>('repos')
 const importMessage = ref('')
 
@@ -90,21 +78,12 @@ useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
           {{ importMessage }}
         </p>
 
-        <h2>Comptes autorisés</h2>
-        <ul class="list">
-          <li v-for="c in accounts ?? []" :key="c.id">
-            <div class="entry">
-              <div>
-                <h3>{{ c.name ?? c.email }}</h3>
-                <div class="meta">
-                  <span>{{ c.email }}</span>
-                  <span>{{ c.role }}</span>
-                  <span>{{ c.active ? 'actif' : 'désactivé' }}</span>
-                </div>
-              </div>
-            </div>
-          </li>
-        </ul>
+        <!--
+          The accounts moved into their own component: this screen already
+          carries backups and imports, and the list is no longer a list — it
+          invites, promotes, cuts off and deletes.
+        -->
+        <UsersPanel />
       </template>
     </section>
   </div>

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ROLES } from '#shared/utils/roles'
 
 /**
  * Validation of public HTTP input.
@@ -137,4 +138,35 @@ export const accountLabel = z.object({
 export const templates = z.object({
   linkedin: z.string().max(8000),
   reel: z.string().max(8000),
+})
+
+// --- Comptes autorisés ----------------------------------------------------
+
+/**
+ * Inviting an address to sign in.
+ *
+ * Google authenticates; this list AUTHORISES. Inviting means writing the row
+ * ahead of time: `signInOrReject` matches on lower(email) and fills the name
+ * in on the first connection. There is nothing else to do.
+ *
+ * The address is therefore the join key. A malformed one creates a row no
+ * login will ever match, and the person is told « ask JB » forever — hence
+ * the validation here rather than a trim in the handler.
+ */
+export const userInvitation = z.object({
+  email: z.string().trim().email().max(320),
+  role: z.enum(ROLES),
+})
+
+/**
+ * Changing an account: its role, its access, or both.
+ *
+ * Both optional, like `accountLabel`: the screen sends the field it touched,
+ * not the whole state — which would overwrite a change made in the meantime.
+ * An empty object is accepted; saying « you changed nothing » is the route's
+ * job, not the schema's.
+ */
+export const userUpdate = z.object({
+  role: z.enum(ROLES).optional(),
+  active: z.boolean().optional(),
 })
