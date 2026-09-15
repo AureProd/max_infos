@@ -47,8 +47,8 @@ export default defineEventHandler(async (event) => {
   add('data/articles.json', archive.articles)
   add('data/tags.json', archive.tags)
   add('data/links.json', {
-    tags: archive.liaisonsTags,
-    social: archive.liaisonsSocial,
+    tags: archive.tagLinks,
+    social: archive.socialLinks,
   })
   add('data/social_accounts.json', archive.socialAccounts)
   add('data/social_posts.json', archive.socialPosts)
@@ -67,7 +67,7 @@ export default defineEventHandler(async (event) => {
   // que contient chaque folder.
   add(
     'LISEZ-MOI.txt',
-    `Export de unmaxdinfo.fr — ${archive.manifest.exporteLe}
+    `Export de unmaxdinfo.fr — ${archive.manifest.exportedAt}
 Version de schéma : ${archive.manifest.version}
 
   articles/*.md        les articles, lisibles tels quels (front-matter + Markdown)

@@ -2,18 +2,18 @@ import { Marked } from 'marked'
 import sanitizeHtml from 'sanitize-html'
 
 /**
- * Rendu Markdown de référence, exécuté CÔTÉ SERVEUR au moment de
- * l'record, jamais à la lecture.
+ * The reference Markdown rendering, run SERVER-SIDE at save time, never on
+ * read.
  *
- * Trois conséquences, et c'est all l'intérêt :
- *  - afficher un article ne coûte plus aucun rendered ;
- *  - le HTML servi est assaini PAR CONSTRUCTION, et non parce qu'on aura
- *    pensé à le faire à chaque endroit qui l'affiche ;
- *  - l'aperçu du back-office passe par la même fonction, donc ne peut pas
- *    diverger du rendered publié.
+ * Three consequences, and they are the whole point:
+ *  - displaying an article no longer costs any rendering;
+ *  - the HTML served is sanitised BY CONSTRUCTION, not because someone
+ *    remembered to do it at every place that displays it;
+ *  - the back-office preview goes through the same function, so it cannot
+ *    drift from the published rendering.
  *
- * Remplace le engine maison de la maquette, retiré au lot 5 : il écrivait
- * href="..." sans rien vérifier, et le rendered se faisait à l'affichage.
+ * Replaces the mock-up's home-grown engine, dropped in lot 5: it wrote
+ * href="..." without checking anything, and rendered on display.
  */
 
 const engine = new Marked({
@@ -22,9 +22,9 @@ const engine = new Marked({
 })
 
 /**
- * La list blanche. Tout ce qui n'y figure pas est retiré — y compris les
- * tagNames que `marked` sait produire mais qu'on ne veut pas voir dans un
- * article (`<script>`, `<iframe>`, `<form>`, `<style>`).
+ * The allow list. Anything not in it is stripped — including the tags
+ * `marked` can produce but that we do not want in an article (`<script>`,
+ * `<iframe>`, `<form>`, `<style>`).
  */
 const RULES: sanitizeHtml.IOptions = {
   allowedTags: [
@@ -55,22 +55,22 @@ const RULES: sanitizeHtml.IOptions = {
     'td',
   ],
   allowedAttributes: {
-    // target et rel doivent figurer here : transformTags les ajoute, mais
-    // l'assainissement passe APRÈS et retirerait all attribute non déclaré.
+    // target and rel must be listed here: transformTags adds them, but
+    // sanitising runs AFTER and would strip any undeclared attribute.
     a: ['href', 'title', 'target', 'rel'],
     img: ['src', 'alt', 'title', 'loading'],
-    // Pour la coloration syntaxique, plus tard.
+    // For syntax highlighting, later.
     code: ['class'],
     th: ['align'],
     td: ['align'],
   },
-  // Le seul endroit où l'on décide ce qu'un link peut viser. `javascript:`,
-  // `data:` et consorts ne sont pas dans la list, donc l'attribute saute.
+  // The only place where we decide what a link may point at. `javascript:`,
+  // `data:` and friends are not on the list, so the attribute is dropped.
   allowedSchemes: ['http', 'https', 'mailto'],
   allowedSchemesByTag: { img: ['http', 'https'] },
   transformTags: {
-    // Un link sortant ouvert dans un nouvel onglet sans `rel` donne à la
-    // page target l'accès à `window.opener`. Posé systématiquement.
+    // An outgoing link opened in a new tab without `rel` gives the target
+    // page access to `window.opener`. Set systematically.
     a: (name, attribs) => {
       const href = attribs.href ?? ''
       const external = /^https?:\/\//i.test(href)
@@ -83,25 +83,25 @@ const RULES: sanitizeHtml.IOptions = {
   },
 }
 
-/** Markdown → HTML assaini. La seule fonction autorisée à produire du HTML d'article. */
+/** Markdown → sanitised HTML. The only function allowed to produce article HTML. */
 export function renderMarkdown(source: string): string {
   const raw = engine.parse(source ?? '', { async: false })
   return sanitizeHtml(raw, RULES)
 }
 
 /**
- * Nombre de caractères, espaces normalisées. Sert au compteur affiché et à
- * l'estimation du temps de lecture.
+ * Character count, whitespace normalised. Feeds the displayed counter and
+ * the reading-time estimate.
  */
 export function countCharacters(source: string): number {
   return (source ?? '').replace(/\s+/g, ' ').trim().length
 }
 
 /**
- * Temps de lecture en minutes, arrondi au-dessus, minimum 1.
+ * Reading time in minutes, rounded up, minimum 1.
  *
- * 1 400 caractères par minute, soit environ 230 mots — la fourchette basse
- * des mesures de lecture en français. Mieux vaut annoncer un peu long.
+ * 1,400 characters per minute, about 230 words — the low end of measured
+ * French reading speeds. Better to announce slightly long.
  */
 export function readingMinutes(source: string): number {
   return Math.max(1, Math.ceil(countCharacters(source) / 1400))

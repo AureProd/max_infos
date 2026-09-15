@@ -13,9 +13,9 @@ describe('sondes', () => {
   })
 
   it('/api/health/ready confirme que la base répond', async () => {
-    const r = await $fetch<{ database: string; latenceMs: number }>('/api/health/ready')
+    const r = await $fetch<{ database: string; latencyMs: number }>('/api/health/ready')
     expect(r.database).toBe('ok')
-    expect(r.latenceMs).toBeGreaterThanOrEqual(0)
+    expect(r.latencyMs).toBeGreaterThanOrEqual(0)
   })
 
   it('les routes d’API ne sont pas avalées par le routeur de pages', async () => {

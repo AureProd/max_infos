@@ -2,20 +2,20 @@ import { sql } from 'drizzle-orm'
 import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 
 /**
- * Les values fermées du modèle de données.
+ * The closed value sets of the data model.
  *
- * Choix assumé : colonne `text` + contrainte CHECK, et non `pgEnum`.
+ * A deliberate choice: a `text` column plus a CHECK constraint, not
+ * `pgEnum`.
  *
- *  1. Migration. `ALTER TYPE … ADD VALUE` ne s'exécute pas dans une
- *     transaction sous PostgreSQL, or une migration drizzle-kit est un
- *     file SQL joué en bloc. Et retirer une value impose de recréer le
- *     type then de réécrire toutes les colonnes qui l'utilisent. Or ces
- *     listes vont bouger : `media_type` gagnera « story », `source`
- *     gagnera d'autres provenances.
- *  2. Source de vérité unique. Un tuple TypeScript `as const` alimente à la
- *     fois le type TS, la contrainte CHECK et le schéma Zod. Avec pgEnum il
- *     faudrait resynchroniser Zod à la main.
- *  3. Le coût est nul : un CHECK … IN (…) est aussi rapide qu'un enum.
+ *  1. Migrations. `ALTER TYPE … ADD VALUE` does not run inside a
+ *     transaction under PostgreSQL, and a drizzle-kit migration is one SQL
+ *     file played as a block. Removing a value also means recreating the
+ *     type then rewriting every column using it. And these lists will move:
+ *     `media_type` will gain « story », `source` will gain other origins.
+ *  2. A single source of truth. One TypeScript `as const` tuple feeds the
+ *     TS type, the CHECK constraint and the Zod schema at once. With pgEnum
+ *     Zod would have to be resynchronised by hand.
+ *  3. The cost is nil: a CHECK … IN (…) is as fast as an enum.
  */
 
 export const ARTICLE_STATUS = ['draft', 'published'] as const
@@ -39,29 +39,29 @@ export type SocialSource = (typeof SOCIAL_SOURCE)[number]
 export const SETTING_SCOPE = ['public', 'tech'] as const
 export type SettingScope = (typeof SETTING_SCOPE)[number]
 
-// Réexporté since shared/ : la contrainte SQL et la règle d'autorisation
-// doivent décrire exactement le même ensemble. Import relatif et non
-// `#shared`, parce que ce file est aussi lu par le script de semis, qui
-// tourne sous tsx et ne connaît pas les alias de Nuxt.
+// Re-exported from shared/: the SQL constraint and the authorization rule
+// must describe exactly the same set. A relative import rather than
+// `#shared`, because this file is also read by the seed script, which runs
+// under tsx and knows nothing of Nuxt's aliases.
 export { ROLES as USER_ROLE, type Role as UserRole } from '../../../shared/utils/roles'
 
 /**
- * Fabrique l'expression `colonne in ('a', 'b')` d'une contrainte CHECK à
- * partir du tuple de values, pour qu'il n'y ait jamais qu'un seul endroit
- * à modifier.
+ * Builds the `column in ('a', 'b')` expression of a CHECK constraint from
+ * the value tuple, so that there is only ever one place to edit.
  */
-export function oneOf(colonne: AnyPgColumn, values: readonly string[]) {
-  // sql.raw et non une interpolation : Drizzle transforme `${v}` en
-  // PARAMÈTRE LIÉ ($1, $2…), ce qui n'a aucun sens dans du DDL — la
-  // contrainte générée serait `in ($1, $2)` et donc inopérante.
-  // Les values viennent de nos propres tuples `as const`, jamais d'une
-  // input ; l'apostrophe est malgré all échappée.
-  // TRIÉ : sans cela, l'ordre du tuple TypeScript fuirait dans le SQL, et
-  // le moindre réordonnancement — qui ne change rien au sens — produirait
-  // une migration. Le tri rend la contrainte générée déterministe.
+export function oneOf(column: AnyPgColumn, values: readonly string[]) {
+  // sql.raw and not an interpolation: Drizzle turns `${v}` into a BOUND
+  // PARAMETER ($1, $2…), which makes no sense in DDL — the generated
+  // constraint would read `in ($1, $2)` and do nothing.
+  // The values come from our own `as const` tuples, never from user input;
+  // the apostrophe is escaped all the same.
+  // SORTED: without that, the order of the TypeScript tuple would leak into
+  // the SQL, and the slightest reordering — which changes no meaning —
+  // would produce a migration. Sorting makes the generated constraint
+  // deterministic.
   const list = [...values]
     .sort()
     .map((v) => `'${v.replace(/'/g, "''")}'`)
     .join(', ')
-  return sql`${colonne} in (${sql.raw(list)})`
+  return sql`${column} in (${sql.raw(list)})`
 }

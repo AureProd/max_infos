@@ -24,21 +24,21 @@ export const article = pgTable(
   'article',
   {
     /**
-     * BY DEFAULT et non ALWAYS.
+     * BY DEFAULT and not ALWAYS.
      *
-     * `GENERATED ALWAYS` refuse toute insertion explicit d'identifiant, ce
-     * qui rend un import impossible à restaurer : les tables de liaison
-     * référencent ces identifiants, et les laisser se régénérer romprait
-     * all les links. C'est précisément le cas pour lequel `BY DEFAULT`
-     * existe. Toutes les tables du schéma suivent cette règle.
+     * `GENERATED ALWAYS` refuses any explicit identifier insert, which
+     * makes an import impossible to restore: the link tables reference
+     * these identifiers, and letting them be regenerated would break every
+     * link. This is precisely the case `BY DEFAULT` exists for. Every table
+     * in the schema follows this rule.
      */
     id: integer().generatedByDefaultAsIdentity().primaryKey(),
     slug: text().notNull(),
     title: text().notNull(),
     dek: text(),
     bodyMd: text().notNull().default(''),
-    // Rendu assaini côté serveur au moment de l'record : la lecture
-    // ne coûte alors rien et le HTML servi est sûr par construction.
+    // Sanitised server-side at save time: reading then costs nothing and
+    // the HTML served is safe by construction.
     bodyHtml: text().notNull().default(''),
     status: text().$type<ArticleStatus>().notNull().default('draft'),
     publishedAt: timestamp({ withTimezone: true, mode: 'date' }),
@@ -55,14 +55,13 @@ export const article = pgTable(
   },
   (t) => [
     uniqueIndex('uq_article_slug').on(t.slug),
-    // La requête de la page d'accueil : les publiés, du plus récent au plus
-    // ancien.
+    // The home page query: the published ones, newest first.
     index('ix_article_published').on(t.status, t.publishedAt.desc()),
     check('article_status', oneOf(t.status, ARTICLE_STATUS)),
     check('article_source', oneOf(t.source, ARTICLE_SOURCE)),
-    // Un article publié SANS date de publication est une incohérence que
-    // rien d'autre ne rattraperait : ni le feed RSS, ni le tri, ni le
-    // sitemap ne sauraient quoi en faire.
+    // A published article WITHOUT a publication date is an inconsistency
+    // nothing else would catch: neither the RSS feed, nor the ordering, nor
+    // the sitemap would know what to do with it.
     check(
       'article_published_coherent',
       sql`(${t.status} <> 'published') or (${t.publishedAt} is not null)`,
@@ -76,7 +75,7 @@ export const tag = pgTable(
     id: integer().generatedByDefaultAsIdentity().primaryKey(),
     slug: text().notNull(),
     label: text().notNull(),
-    // Une variable CSS du thème, pas une color en dur.
+    // A CSS variable of the theme, not a hard-coded colour.
     color: text(),
     ...timestamps,
   },
@@ -95,9 +94,9 @@ export const articleTag = pgTable(
   },
   (t) => [
     primaryKey({ columns: [t.articleId, t.tagId] }),
-    // Indispensable, et c'est l'index qu'on oublie : une clé composite
-    // n'indexe que son PREMIER terme, or « les articles de ce tag » attaque
-    // par tag_id.
+    // Essential, and the index everyone forgets: a composite key only
+    // indexes its FIRST term, yet « the articles of this tag » starts from
+    // tag_id.
     index('ix_article_tag_tag').on(t.tagId),
   ],
 )

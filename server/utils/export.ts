@@ -14,39 +14,39 @@ import {
 } from '~~/server/database/schema'
 
 /**
- * Export complet du site, sous shape de données.
+ * Full site export, as data.
  *
- * Ce qui N'EST PAS exporté, et c'est délibéré :
- *  - la table `secret`, qui ne contient que des tokens tiers chiffrés. Les
- *    réexporter reviendrait à sortir des identifiants d'accès d'un système
- *    pour les set dans un file qu'on va télécharger ;
- *  - les FICHIERS eux-mêmes, qui vivent dans R2. C'est all l'intérêt de
- *    l'avoir externalisé : l'archive ne transporte que des références, et
- *    reste légère.
+ * What is NOT exported, deliberately:
+ *  - the `secret` table, which holds nothing but encrypted third-party
+ *    tokens. Re-exporting them would mean taking access credentials out of
+ *    a system to put them in a file about to be downloaded;
+ *  - the FILES themselves, which live in R2. That is the whole point of
+ *    having moved them out: the archive carries only references, and stays
+ *    light.
  *
- * Version de schéma en tête : un import saura dire qu'il ne sait pas read
- * une archive plus récente, au lieu d'écrire n'importe quoi.
+ * Schema version up front: an import can then say it cannot read a newer
+ * archive, instead of writing nonsense.
  */
 /**
- * 2 : l'archive emporte désormais `social_account`. Sans elle, une
- * restauration sur base vierge échouerait, `social_post.account_id`
- * pointant vers des accounts inexistants.
+ * 2: the archive now carries `social_account`. Without it, restoring onto a
+ * blank database would fail, `social_post.account_id` pointing at accounts
+ * that do not exist.
  */
-export const VERSION_SCHEMA = 2
+export const SCHEMA_VERSION = 2
 
 export interface Archive {
   manifest: {
     version: number
-    exporteLe: string
-    comptages: Record<string, number>
+    exportedAt: string
+    counts: Record<string, number>
   }
   articles: unknown[]
   tags: unknown[]
-  liaisonsTags: unknown[]
+  tagLinks: unknown[]
   media: unknown[]
   socialAccounts: unknown[]
   socialPosts: unknown[]
-  liaisonsSocial: unknown[]
+  socialLinks: unknown[]
   settings: unknown[]
   users: unknown[]
   views: unknown[]
@@ -58,11 +58,11 @@ export async function buildExport(): Promise<Archive> {
   const [
     articles,
     tags,
-    liaisonsTags,
+    tagLinks,
     mediaItems,
-    comptesSociaux,
+    socialAccountRows,
     publications,
-    liaisonsSocial,
+    socialLinks,
     settings,
     accounts,
     views,
@@ -75,8 +75,8 @@ export async function buildExport(): Promise<Archive> {
     db.select().from(socialPost).orderBy(asc(socialPost.id)),
     db.select().from(articleSocialPost),
     db.select().from(setting).orderBy(asc(setting.key)),
-    // Le rôle et l'adresse, pas davantage : il n'y a rien d'autre à
-    // exporter d'un account, et surtout pas de quoi s'y connecter.
+    // The role and the address, nothing more: there is nothing else worth
+    // exporting from an account, and certainly no way to sign in as it.
     db
       .select({
         email: appUser.email,
@@ -91,13 +91,13 @@ export async function buildExport(): Promise<Archive> {
 
   return {
     manifest: {
-      version: VERSION_SCHEMA,
-      exporteLe: new Date().toISOString(),
-      comptages: {
+      version: SCHEMA_VERSION,
+      exportedAt: new Date().toISOString(),
+      counts: {
         articles: articles.length,
         tags: tags.length,
         media: mediaItems.length,
-        socialAccounts: comptesSociaux.length,
+        socialAccounts: socialAccountRows.length,
         socialPosts: publications.length,
         settings: settings.length,
         users: accounts.length,
@@ -106,18 +106,18 @@ export async function buildExport(): Promise<Archive> {
     },
     articles,
     tags: tags,
-    liaisonsTags,
+    tagLinks,
     media: mediaItems,
-    socialAccounts: comptesSociaux,
+    socialAccounts: socialAccountRows,
     socialPosts: publications,
-    liaisonsSocial,
+    socialLinks,
     settings: settings,
     users: accounts,
     views: views,
   }
 }
 
-/** Le front-matter YAML d'un article, pour la lisibilité de l'archive. */
+/** An article's YAML front matter, for the archive's readability. */
 export function articleToMarkdown(a: Record<string, unknown>, tags: string[]): string {
   const escaped = (v: unknown): string => `"${String(v ?? '').replace(/"/g, '\\"')}"`
   return `---
@@ -135,27 +135,27 @@ ${a.bodyMd ?? ''}
 }
 
 /**
- * Réécrit la base à partir d'une archive.
+ * Rewrites the database from an archive.
  *
- * `secret` n'est jamais touché : un import ne doit pas pouvoir remplacer
- * les tokens d'accès aux accounts tiers.
+ * `secret` is never touched: an import must not be able to replace the
+ * access tokens of third-party accounts.
  */
 export async function applyImport(
   archive: Archive,
-  options: { vider: boolean },
+  options: { wipe: boolean },
 ): Promise<Record<string, number>> {
   const db = useDatabase()
 
-  if (archive.manifest?.version !== VERSION_SCHEMA) {
+  if (archive.manifest?.version !== SCHEMA_VERSION) {
     throw createError({
       statusCode: 422,
-      statusMessage: `Archive de version ${archive.manifest?.version}, attendue ${VERSION_SCHEMA}`,
+      statusMessage: `Archive de version ${archive.manifest?.version}, attendue ${SCHEMA_VERSION}`,
     })
   }
 
-  if (options.vider) {
-    // `secret` est ABSENTE de cette list, volontairement : un import ne
-    // doit pas pouvoir effacer les tokens d'accès aux accounts tiers.
+  if (options.wipe) {
+    // `secret` is ABSENT from this list, on purpose: an import must not be
+    // able to erase the access tokens of third-party accounts.
     await db.execute(sql`truncate table
       article_view, article_social_post, article_tag, social_post,
       social_account, article, tag, media, setting, app_user
@@ -163,9 +163,8 @@ export async function applyImport(
   }
 
   /**
-   * Les dates traversent l'archive en chaînes ISO ; Drizzle attend des
-   * objets Date. Sans cette conversion, l'insertion échoue sur chaque
-   * timestamps.
+   * Dates cross the archive as ISO strings; Drizzle expects Date objects.
+   * Without this conversion, the insert fails on every timestamp.
    */
   const DATE_FIELDS = new Set([
     'createdAt',
@@ -199,26 +198,26 @@ export async function applyImport(
     written[name] = lines.length
   }
 
-  // L'ordre suit les dépendances : ce qui est référencé d'abord.
+  // The order follows the dependencies: whatever is referenced comes first.
   await insert('users', appUser as never, archive.users as never[])
   await insert('media', media as never, archive.media as never[])
   await insert('tags', tag as never, archive.tags as never[])
   await insert('articles', article as never, archive.articles as never[])
-  // Les accounts AVANT les publications : celles-ci les référencent.
+  // Accounts BEFORE posts: the latter reference the former.
   await insert('socialAccounts', socialAccount as never, archive.socialAccounts as never[])
   await insert('socialPosts', socialPost as never, archive.socialPosts as never[])
-  await insert('liaisonsTags', articleTag as never, archive.liaisonsTags as never[])
-  await insert('liaisonsSocial', articleSocialPost as never, archive.liaisonsSocial as never[])
+  await insert('tagLinks', articleTag as never, archive.tagLinks as never[])
+  await insert('socialLinks', articleSocialPost as never, archive.socialLinks as never[])
   await insert('settings', setting as never, archive.settings as never[])
   await insert('views', articleView as never, archive.views as never[])
 
   /**
-   * Remet les séquences au-delà du plus grand identifiant importé.
+   * Moves the sequences past the highest imported identifier.
    *
-   * Sans cela, la prochaine création repartirait de 1 et entrerait en
-   * collision avec une row restaurée — une panne qui n'apparaîtrait
-   * qu'au first article écrit APRÈS l'import, donc longtemps après qu'on
-   * ait cru l'opération réussie.
+   * Without this, the next creation would restart at 1 and collide with a
+   * restored row — a failure that would only surface on the first article
+   * written AFTER the import, long after the operation was believed to have
+   * succeeded.
    */
   for (const table of ['article', 'tag', 'media', 'social_account', 'social_post', 'app_user']) {
     await db.execute(

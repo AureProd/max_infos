@@ -157,7 +157,7 @@ const EXPECTED: Record<string, Pending> = {
     editor: 403,
     tech: 200,
     // Simulation : n'écrit rien, ce qui laisse la matrice sans effet de bord.
-    body: { archive: { manifest: { version: 1 } }, simulation: true },
+    body: { archive: { manifest: { version: 1 } }, dryRun: true },
   },
 }
 

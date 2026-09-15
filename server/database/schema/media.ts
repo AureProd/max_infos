@@ -4,22 +4,22 @@ import { MEDIA_KIND, type MediaKind, oneOf } from './enums'
 import { appUser } from './user'
 
 /**
- * Images et PDF. Les files eux-mêmes vivent dans Cloudflare R2 : la base
- * ne porte que la référence, ce qui est all l'intérêt de l'externaliser —
- * l'archive d'export ne transporte alors que des clés.
+ * Images and PDFs. The files themselves live in Cloudflare R2: the database
+ * carries only the reference, which is the whole point of moving them out —
+ * the export archive then carries nothing but keys.
  */
 export const media = pgTable(
   'media',
   {
     id: integer().generatedByDefaultAsIdentity().primaryKey(),
-    // Nullable : un média peut être référencé AVANT d'être hébergé dans R2.
-    // C'est le cas des covers importées de Substack, qui vivent again
-    // sur son CDN et seront ré-hébergées au lot 5. Inventer une fausse clé
-    // pour satisfaire une contrainte aurait rendered le day du transfert
-    // impossible à distinguer.
+    // Nullable: a medium can be referenced BEFORE being hosted in R2. That
+    // is the case of covers imported from Substack, which still live on its
+    // CDN and will be re-hosted in lot 5. Inventing a fake key to satisfy a
+    // constraint would have made the day of the transfer impossible to tell
+    // apart.
     //
-    // L'index unique reste valable : sous PostgreSQL les NULL sont
-    // distincts, donc plusieurs médias sans clé R2 coexistent.
+    // The unique index still holds: under PostgreSQL NULLs are distinct, so
+    // several media without an R2 key coexist.
     r2Key: text(),
     url: text().notNull(),
     mime: text().notNull(),
@@ -28,8 +28,8 @@ export const media = pgTable(
     bytes: integer(),
     alt: text(),
     kind: text().$type<MediaKind>().notNull().default('image'),
-    // Supprimer un account ne doit pas emporter les images qu'il a
-    // téléversées : elles appartiennent au site, pas à la personne.
+    // Deleting an account must not take the images it uploaded with it:
+    // they belong to the site, not to the person.
     uploadedBy: integer().references(() => appUser.id, { onDelete: 'set null' }),
     ...timestamps,
   },

@@ -4,42 +4,42 @@ import { type Archive, applyImport, buildExport } from '~~/server/utils/export'
 
 const importBody = z.object({
   archive: z.record(z.string(), z.unknown()),
-  /** Vide les tables before d'écrire. Sans cela, on complète l'existing. */
-  vider: z.boolean().default(false),
-  /** N'écrit rien : renvoie ce qui SERAIT fait. */
-  simulation: z.boolean().default(false),
+  /** Empties the tables before writing. Without it, we add to what is there. */
+  wipe: z.boolean().default(false),
+  /** Writes nothing: returns what WOULD be done. */
+  dryRun: z.boolean().default(false),
 })
 
 /**
- * Réimporte une archive. Rôle `tech`.
+ * Re-imports an archive. Role `tech`.
  *
- * `simulation` affiche le différentiel before d'écrire. C'est le mode par
- * défaut de la commande en row : réimporter est une opération qu'on ne
- * lance pas two fois par curiosité.
+ * `dryRun` shows the difference before writing. It is the default of the
+ * command line: re-importing is not an operation you run twice out of
+ * curiosity.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'tech')
-  const { archive, vider, simulation } = await readValidatedBody(event, importBody.parse)
+  const { archive, wipe, dryRun } = await readValidatedBody(event, importBody.parse)
 
   const a = archive as unknown as Archive
 
-  if (simulation) {
-    const actuel = await buildExport()
+  if (dryRun) {
+    const current = await buildExport()
     return {
-      simulation: true as const,
-      before: actuel.manifest.comptages,
-      after: a.manifest?.comptages ?? {},
-      viderait: vider,
+      dryRun: true as const,
+      before: current.manifest.counts,
+      after: a.manifest?.counts ?? {},
+      wouldWipe: wipe,
     }
   }
 
   try {
-    const written = await applyImport(a, { vider })
-    return { simulation: false as const, written }
+    const written = await applyImport(a, { wipe })
+    return { dryRun: false as const, written }
   } catch (error) {
-    // Un import qui échoue par un 500 muet est inutilisable : l'opérateur
-    // a besoin de savoir CE QUI a bloqué pour décider s'il réessaie, s'il
-    // corrige l'archive, ou s'il restaure autrement.
+    // An import failing with a silent 500 is useless: the operator needs to
+    // know WHAT blocked, to decide whether to retry, fix the archive, or
+    // restore some other way.
     const message = error instanceof Error ? error.message : String(error)
     console.error('[import] échec :', message)
     throw createError({ statusCode: 422, statusMessage: `Import impossible : ${message}` })

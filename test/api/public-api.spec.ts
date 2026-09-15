@@ -48,9 +48,9 @@ describe('GET /api/articles', () => {
     expect(r.items[0]?.publishedAt).toBe('2026-09-10')
   })
 
-  it('joint la couverture et les sujets', async () => {
+  it('joint la cover et les sujets', async () => {
     const r = await $fetch('/api/articles')
-    expect(r.items[0]?.coverUrl).toContain('couverture.png')
+    expect(r.items[0]?.coverUrl).toContain('cover.png')
     expect(r.items[0]?.tags).toEqual([{ slug: 'geo', label: 'Géographie' }])
   })
 

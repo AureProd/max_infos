@@ -10,15 +10,15 @@ import { useDatabase } from '~~/server/database/client'
 import { setting } from '~~/server/database/schema'
 
 /**
- * Lit un réglage, TYPÉ par sa clé.
+ * Reads a setting, TYPED by its key.
  *
- * `readSetting('cv').education.entries[0].org` est vérifié par le
- * compilateur ; une clé inexistante ne compile pas. C'est ce que permet
- * l'indexation du schéma par clé.
+ * `readSetting('cv').education.entries[0].org` is checked by the compiler; a
+ * key that does not exist does not compile. That is what indexing the
+ * schema by key buys.
  *
- * Un réglage absent ou mal formé retombe sur les values par défaut du
- * schéma plutôt que de faire échouer la page : un site dont le CV n'est pas
- * again rempli doit s'afficher.
+ * A missing or malformed setting falls back to the schema defaults rather
+ * than failing the page: a site whose CV is not filled in yet must still
+ * render.
  */
 export async function readSetting<K extends SettingKey>(key: K): Promise<SettingValue<K>> {
   const [row] = await useDatabase()
@@ -28,13 +28,13 @@ export async function readSetting<K extends SettingKey>(key: K): Promise<Setting
     .limit(1)
 
   const result = SETTING_SCHEMAS[key].safeParse(row?.value ?? {})
-  // Repli sur une value par défaut EXPLICITE : `parse({})` échouerait sur
-  // les réglages à fields obligatoires, et transformerait un réglage non
-  // renseigné en error 500.
+  // Falls back to an EXPLICIT default: `parse({})` would throw on the
+  // settings with required fields, and would turn an unset setting into a
+  // 500 error.
   return (result.success ? result.data : SETTING_DEFAULTS[key]) as SettingValue<K>
 }
 
-/** Écrit un réglage, après validation. Sa portée vient du schéma, jamais du client. */
+/** Writes a setting, after validation. Its scope comes from the schema, never from the client. */
 export async function writeSetting<K extends SettingKey>(
   key: K,
   value: unknown,
@@ -47,9 +47,9 @@ export async function writeSetting<K extends SettingKey>(
     .values({
       key: key,
       value: valid,
-      // La portée n'est PAS prise dans la requête : un client qui
-      // enverrait scope:'public' sur un réglage technique le rendrait
-      // visible de all.
+      // The scope is NOT taken from the request: a client sending
+      // scope:'public' on a technical setting would make it visible to
+      // everyone.
       scope: SETTING_SCOPE[key],
       updatedBy: parQui,
     })

@@ -78,7 +78,7 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
             <label for="a-tags">Sujets, séparés par des virgules</label>
             <input id="a-tags" v-model="tags" type="text" />
           </div>
-          <MediaPicker v-model="draft.coverMediaId" libelle="Image de couverture" />
+          <MediaPicker v-model="draft.coverMediaId" libelle="Image de cover" />
           <div class="field">
             <label for="a-body">
               Texte

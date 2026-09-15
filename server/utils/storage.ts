@@ -3,12 +3,12 @@ import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 /**
- * Stockage des médias sur Cloudflare R2, compatible S3.
+ * Media storage on Cloudflare R2, S3-compatible.
  *
- * Le téléversement se fait par URL PRÉSIGNÉE : le navigateur envoie le
- * file directement à R2, sans passer par notre serveur. Trois raisons —
- * le file ne traverse pas Nitro, la mémoire du conteneur ne monte pas
- * avec la size des images, et le serveur ne devient pas un relais ouvert.
+ * Uploads go through a PRESIGNED URL: the browser sends the file straight
+ * to R2, without passing through our server. Three reasons — the file does
+ * not cross Nitro, container memory does not grow with image size, and the
+ * server does not become an open relay.
  */
 
 const ALLOWED_TYPES = new Set([
@@ -29,11 +29,11 @@ export function kindOf(contentType: string): 'image' | 'pdf' {
 }
 
 /**
- * Fabrique la clé de stockage.
+ * Builds the storage key.
  *
- * Préfixée par la date pour que le bucket reste navigable, suffixée d'un
- * identifiant aléatoire pour que two files du même name ne s'écrasent
- * pas — ce qui arriverait au first « capture.png ».
+ * Prefixed with the date so the bucket stays browsable, suffixed with a
+ * random identifier so that two files of the same name do not overwrite
+ * each other — which would happen on the very first « capture.png ».
  */
 export function keyOf(filename: string): string {
   const clean = filename
@@ -67,13 +67,13 @@ function useS3(): S3Client {
   return client
 }
 
-/** Le stockage est-il configuré ? Permet à l'admin de le dire clairement. */
+/** Is storage configured? Lets the admin say so plainly. */
 export function storageConfigured(): boolean {
   const c = useRuntimeConfig()
   return Boolean(c.r2Endpoint && c.r2AccessKeyId && c.r2SecretAccessKey && c.r2Bucket)
 }
 
-/** URL de téléversement direct, valable dix minutes. */
+/** Direct upload URL, valid for ten minutes. */
 export async function uploadUrl(key: string, contentType: string): Promise<string> {
   const c = useRuntimeConfig()
   return await getSignedUrl(
@@ -83,7 +83,7 @@ export async function uploadUrl(key: string, contentType: string): Promise<strin
   )
 }
 
-/** L'adresse publique d'un média, servie par media.unmaxdinfo.fr. */
+/** A medium's public address, served by media.unmaxdinfo.fr. */
 export function publicUrl(key: string): string {
   const base = useRuntimeConfig().public.r2BaseUrl.replace(/\/+$/, '')
   return `${base}/${key}`
@@ -94,7 +94,7 @@ export async function removeFromStorage(key: string): Promise<void> {
   await useS3().send(new DeleteObjectCommand({ Bucket: c.r2Bucket, Key: key }))
 }
 
-/** Remet le client à zéro. Utilisé par les tests. */
+/** Resets the client. Used by the tests. */
 export function resetStorage(): void {
   client = undefined
 }

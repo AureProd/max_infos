@@ -87,7 +87,7 @@ export async function seedTestData(db: TestDatabase): Promise<void> {
 
   const [img] = await db
     .insert(s.media)
-    .values({ url: 'https://exemple.test/couverture.png', mime: 'image/png', alt: 'Couverture' })
+    .values({ url: 'https://exemple.test/cover.png', mime: 'image/png', alt: 'Couverture' })
     .returning()
 
   const [publie] = await db

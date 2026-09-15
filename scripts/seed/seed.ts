@@ -62,7 +62,7 @@ async function main(): Promise<void> {
 
   // --- Articles et leurs covers --------------------------------------
   for (const a of ARTICLES) {
-    // La couverture vit again sur le CDN de Substack : on enregistre son
+    // La cover vit again sur le CDN de Substack : on enregistre son
     // URL sans clé R2, en attendant le ré-hébergement du lot 5.
     let coverId: number | null = null
     if (a.cover) {

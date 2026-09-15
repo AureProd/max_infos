@@ -2,13 +2,13 @@ import { sql } from 'drizzle-orm'
 import { timestamp } from 'drizzle-orm/pg-core'
 
 /**
- * Horodatage commun, toujours en UTC. Reprend le TimestampMixin du lot 1.
+ * The shared timestamps, always UTC. Carries over the TimestampMixin of
+ * lot 1.
  *
- * Attention : `$onUpdate` est APPLICATIF, pas SQL — un UPDATE passé à la
- * main dans psql ne le déclencherait pas. Comme le projet prévoit un
- * import/export et des scripts de migration de content, la migration
- * initiale ajoute en plus un déclencheur `moddatetime` pour que la colonne
- * reste vraie quoi qu'il arrive.
+ * Careful: `$onUpdate` is APPLICATION-level, not SQL — an UPDATE typed by
+ * hand in psql would not trigger it. Since the project plans an
+ * import/export and content migration scripts, the initial migration also
+ * adds a `moddatetime` trigger so the column stays true whatever happens.
  */
 export const timestamps = {
   createdAt: timestamp({ withTimezone: true, mode: 'date' }).notNull().defaultNow(),
@@ -18,5 +18,5 @@ export const timestamps = {
     .$onUpdate(() => new Date()),
 }
 
-/** Déclencheur SQL posé par la migration initiale, pour mémoire. */
+/** SQL trigger set by the initial migration, for the record. */
 export const UPDATED_AT_TRIGGER = sql`moddatetime`

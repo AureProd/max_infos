@@ -11,14 +11,14 @@ const FEED = `<?xml version="1.0" encoding="UTF-8"?>
     <link>https://unmaxdinfo.substack.com/p/ben-mhidi</link>
     <pubDate>Tue, 04 Mar 2026 08:00:00 GMT</pubDate>
     <description><![CDATA[<p>Une enquête sur la mémoire.</p>]]></description>
-    <enclosure url="https://substackcdn.com/image/fetch/couverture.jpg" type="image/jpeg"/>
+    <enclosure url="https://substackcdn.com/image/fetch/cover.jpg" type="image/jpeg"/>
     <content:encoded><![CDATA[<p>Le corps complet.</p>]]></content:encoded>
   </item>
   <item>
     <title>FIFA &amp; le pouvoir</title>
     <link>https://unmaxdinfo.substack.com/p/fifa</link>
     <pubDate>date illisible</pubDate>
-    <description>Sans couverture d&#39;origine.</description>
+    <description>Sans cover d&#39;origine.</description>
     <content:encoded><![CDATA[<p>Texte</p><img src="https://substackcdn.com/image/dans-le-corps.png"/>]]></content:encoded>
   </item>
   <item>
@@ -42,7 +42,7 @@ describe('flux Substack', () => {
 
   it('décode les entités sans les décoder deux fois', () => {
     expect(articles[1]?.title).toBe('FIFA & le pouvoir')
-    expect(articles[1]?.dek).toBe("Sans couverture d'origine.")
+    expect(articles[1]?.dek).toBe("Sans cover d'origine.")
   })
 
   it('ne confond pas le chapô et le corps', () => {
@@ -52,16 +52,16 @@ describe('flux Substack', () => {
     expect(articles[0]?.bodyHtml).toBe('<p>Le corps complet.</p>')
   })
 
-  it('prend la couverture de l’enclosure quand elle existe', () => {
-    expect(articles[0]?.couverture).toBe('https://substackcdn.com/image/fetch/couverture.jpg')
+  it('prend la cover de l’enclosure quand elle existe', () => {
+    expect(articles[0]?.cover).toBe('https://substackcdn.com/image/fetch/cover.jpg')
   })
 
   it('retombe sur la première image du corps sinon', () => {
-    expect(articles[1]?.couverture).toBe('https://substackcdn.com/image/dans-le-corps.png')
+    expect(articles[1]?.cover).toBe('https://substackcdn.com/image/dans-le-corps.png')
   })
 
   it('normalise la date, et tolère qu’elle soit illisible', () => {
-    expect(articles[0]?.publieLe).toBe('2026-03-04T08:00:00.000Z')
-    expect(articles[1]?.publieLe).toBeNull()
+    expect(articles[0]?.publishedAt).toBe('2026-03-04T08:00:00.000Z')
+    expect(articles[1]?.publishedAt).toBeNull()
   })
 })

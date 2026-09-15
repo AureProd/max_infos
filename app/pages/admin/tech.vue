@@ -20,7 +20,7 @@ const importState = ref<'repos' | 'en cours' | 'échec'>('repos')
 const importMessage = ref('')
 
 /**
- * L'import se fait TOUJOURS en simulation d'abord.
+ * L'import se fait TOUJOURS en dryRun d'abord.
  *
  * Restaurer une sauvegarde écrase le content : proposer le bouton sans
  * montrer le différentiel reviendrait à demander à quelqu'un de signer
@@ -35,11 +35,11 @@ async function stub(evenement: Event): Promise<void> {
     const archive = JSON.parse(await file.text())
     const summary = await $fetch('/api/admin/import', {
       method: 'POST',
-      body: { archive, simulation: true },
+      body: { archive, dryRun: true },
     })
     importState.value = 'repos'
     importMessage.value =
-      'simulation' in summary && summary.simulation
+      'dryRun' in summary && summary.dryRun
         ? `En base : ${JSON.stringify(summary.before)} — dans l'archive : ${JSON.stringify(summary.after)}`
         : 'Import appliqué.'
   } catch (e) {

@@ -4,8 +4,8 @@ export interface InstagramRef {
 }
 
 /**
- * Extrait l'identifiant d'une publication since une adresse Instagram.
- * Accepte /p/, /reel/, /reels/ et /tv/, avec ou sans paramètres.
+ * Extracts a post identifier from an Instagram address.
+ * Accepts /p/, /reel/, /reels/ and /tv/, with or without parameters.
  */
 export function parseInstagramUrl(entry: unknown): InstagramRef | null {
   const s = String(entry ?? '').trim()

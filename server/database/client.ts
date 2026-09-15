@@ -4,22 +4,22 @@ import postgres from 'postgres'
 import * as schema from './schema'
 
 /**
- * Connexion à PostgreSQL, ouverte une seule fois par processus.
+ * The PostgreSQL connection, opened once per process.
  *
- * La connection est paresseuse : rien ne s'ouvre à l'import, sans quoi les
- * tests et le build tenteraient de joindre une base qui n'existe pas.
+ * The connection is lazy: nothing opens on import, otherwise the tests and
+ * the build would try to reach a database that does not exist.
  */
 let client: postgres.Sql | undefined
-let base: ReturnType<typeof createDatabase> | undefined
+let db: ReturnType<typeof createDatabase> | undefined
 
 function createDatabase(connection: postgres.Sql) {
-  // casing doit être déclaré ICI ET dans drizzle.config.ts : sinon la
-  // génération des migrations et l'exécution divergent silencieusement.
+  // casing must be declared HERE AND in drizzle.config.ts: otherwise
+  // migration generation and runtime drift apart silently.
   return drizzle(connection, { schema, casing: 'snake_case' })
 }
 
 export function useDatabase() {
-  if (!base) {
+  if (!db) {
     const { databaseUrl } = useRuntimeConfig()
     if (!databaseUrl) {
       throw new Error("NUXT_DATABASE_URL n'est pas renseignée")
@@ -27,24 +27,24 @@ export function useDatabase() {
     client = postgres(databaseUrl, {
       max: 10,
       onnotice: () => {},
-      // Sans borne, une base injoignable fait attendre la requête
-      // indéfiniment — et la sonde de disponibilité, censée répondre vite
-      // « ça ne va pas », ne répond alors jamais. Un orchestrateur qui
-      // attend un verdict n'en reçoit aucun.
+      // Unbounded, an unreachable database makes the query wait forever —
+      // and the readiness probe, meant to answer « not well » quickly, then
+      // never answers at all. An orchestrator waiting for a verdict gets
+      // none.
       connect_timeout: 5,
     })
-    base = createDatabase(client)
+    db = createDatabase(client)
   }
-  return base
+  return db
 }
 
 /**
- * Vérifie que la base répond, et en combien de temps.
- * Utilisée par /api/health/ready et par rien d'autre : le reste du code
- * n'a pas à se demander si la base est joignable, il échoue s'il le faut.
+ * Checks that the database answers, and how fast.
+ * Used by /api/health/ready and nothing else: the rest of the code has no
+ * business wondering whether the database is reachable, it fails if it must.
  */
-export async function checkDatabase(): Promise<{ ok: boolean; latenceMs: number }> {
+export async function checkDatabase(): Promise<{ ok: boolean; latencyMs: number }> {
   const start = performance.now()
   await useDatabase().execute(sql`select 1`)
-  return { ok: true, latenceMs: Math.round(performance.now() - start) }
+  return { ok: true, latencyMs: Math.round(performance.now() - start) }
 }

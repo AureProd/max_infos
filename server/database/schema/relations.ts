@@ -6,8 +6,8 @@ import { articleSocialPost, socialAccount, socialPost } from './social'
 import { appUser } from './user'
 
 /**
- * Les relations alimentent l'API `db.query.*` de Drizzle. Elles ne créent
- * aucune contrainte SQL : celles-ci sont déjà dans les tables.
+ * The relations feed Drizzle's `db.query.*` API. They create no SQL
+ * constraint: those already live in the tables.
  */
 
 export const articleRelations = relations(article, ({ one, many }) => ({

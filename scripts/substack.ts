@@ -5,7 +5,7 @@
  *   pnpm substack <url> --dry     n'écrit rien, montre ce qui serait fait
  *
  * Ce que ce script fait, et RIEN d'autre : rattacher chaque article déjà en
- * base à son billet Substack (`substack_url`) et lui donner sa couverture
+ * base à son billet Substack (`substack_url`) et lui donner sa cover
  * d'origine si elle lui manque. Il n'importe pas les corps de texte — le
  * flux les donne en HTML, les articles du site sont en Markdown, et une
  * conversion automatique produirait du balisage que Max devrait relire
@@ -102,8 +102,8 @@ async function principal(): Promise<void> {
       lies++
     }
 
-    if (!cible.coverMediaId && b.couverture) {
-      console.log(`  couv.   ${cible.slug} → ${b.couverture.slice(0, 70)}…`)
+    if (!cible.coverMediaId && b.cover) {
+      console.log(`  couv.   ${cible.slug} → ${b.cover.slice(0, 70)}…`)
       if (!dryRun) {
         // Recherche avant insertion, et non `onConflictDoUpdate` : `url`
         // ne porte PAS d'index unique (seul `r2_key` en a un), et viser
@@ -113,7 +113,7 @@ async function principal(): Promise<void> {
         const [existant] = await db
           .select({ id: schema.media.id })
           .from(schema.media)
-          .where(eq(schema.media.url, b.couverture))
+          .where(eq(schema.media.url, b.cover))
           .limit(1)
 
         const m =
@@ -123,7 +123,7 @@ async function principal(): Promise<void> {
               .insert(schema.media)
               .values({
                 r2Key: null,
-                url: b.couverture,
+                url: b.cover,
                 mime: 'image/jpeg',
                 bytes: 0,
                 kind: 'image',
@@ -152,7 +152,7 @@ async function principal(): Promise<void> {
     )
   }
 
-  console.log(`\n${lies} lien(s), ${couvertures} couverture(s)${dryRun ? ' (essai à blanc)' : ''}.`)
+  console.log(`\n${lies} lien(s), ${couvertures} cover(s)${dryRun ? ' (essai à blanc)' : ''}.`)
   if (orphelins.length) {
     console.log(`\n${orphelins.length} billet(s) sans article correspondant, à créer à la main :`)
     for (const o of orphelins) console.log(`  - ${o}`)

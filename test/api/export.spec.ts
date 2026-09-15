@@ -6,7 +6,7 @@ import { appUser, secret } from '../../server/database/schema'
 import { base, connection, migrate, seedTestData, type TestDatabase } from '../setup/db'
 
 /**
- * L'aller-back prévu au plan : exporter, vider, réimporter, comparer
+ * L'aller-back prévu au plan : exporter, wipe, réimporter, comparer
  * terme à terme.
  *
  * C'est le seul test qui prouve qu'on peut déménager le site ou repartir
@@ -77,11 +77,11 @@ describe('export', () => {
     )
   })
 
-  it('porte une version de schéma et des comptages', async () => {
+  it('porte une version de schéma et des counts', async () => {
     const files = await downloadArchive()
     const manifest = JSON.parse(files['manifest.json'] ?? '{}')
     expect(manifest.version).toBe(2)
-    expect(manifest.comptages.articles).toBeGreaterThan(0)
+    expect(manifest.counts.articles).toBeGreaterThan(0)
   })
 
   it('contient les articles en MARKDOWN, lisibles tels quels', async () => {
@@ -117,7 +117,7 @@ describe('export', () => {
   })
 })
 
-describe('simulation d’import', () => {
+describe('dryRun d’import', () => {
   it('n’écrit RIEN et montre le différentiel', async () => {
     const beforeTest = await archiveToObject()
 
@@ -125,17 +125,17 @@ describe('simulation d’import', () => {
       method: 'POST',
       headers: auth(),
       body: {
-        archive: { manifest: { version: 1, comptages: { articles: 99 } } },
-        vider: true,
-        simulation: true,
+        archive: { manifest: { version: 1, counts: { articles: 99 } } },
+        wipe: true,
+        dryRun: true,
       },
     })
-    expect(r.simulation).toBe(true)
+    expect(r.dryRun).toBe(true)
     expect(r.after).toEqual({ articles: 99 })
 
     const afterTest = await archiveToObject()
-    expect((afterTest.manifest as { comptages: unknown }).comptages).toEqual(
-      (beforeTest.manifest as { comptages: unknown }).comptages,
+    expect((afterTest.manifest as { counts: unknown }).counts).toEqual(
+      (beforeTest.manifest as { counts: unknown }).counts,
     )
   })
 
@@ -144,7 +144,7 @@ describe('simulation d’import', () => {
     const r = await fetch('/api/admin/import', {
       method: 'POST',
       headers: auth(),
-      body: JSON.stringify({ archive: { manifest: { version: 99 } }, simulation: false }),
+      body: JSON.stringify({ archive: { manifest: { version: 99 } }, dryRun: false }),
     })
     expect(r.status).toBe(422)
   })
@@ -159,8 +159,8 @@ async function archiveToObject(): Promise<Record<string, unknown>> {
     manifest: read('manifest.json'),
     articles: read('data/articles.json'),
     tags: read('data/tags.json'),
-    liaisonsTags: links.tags,
-    liaisonsSocial: links.social,
+    tagLinks: links.tags,
+    socialLinks: links.social,
     media: read('media/manifest.json'),
     socialAccounts: read('data/social_accounts.json'),
     socialPosts: read('data/social_posts.json'),
@@ -180,31 +180,31 @@ describe('aller-retour complet', () => {
     expect(accounts.map((c) => c.username)).toContain('maxinfo')
   })
 
-  it('exporter, vider, réimporter : les données sont identiques', async () => {
+  it('exporter, wipe, réimporter : les données sont identiques', async () => {
     const before = await archiveToObject()
 
     const written = await $fetch('/api/admin/import', {
       method: 'POST',
       headers: auth(),
-      body: { archive: before, vider: true, simulation: false },
+      body: { archive: before, wipe: true, dryRun: false },
     })
-    expect(written.simulation).toBe(false)
+    expect(written.dryRun).toBe(false)
 
     const after = await archiveToObject()
 
     // Terme à terme, et non « à peu près » : un import qui perd une
     // liaison ou un réglage ne se verrait pas autrement.
-    expect((after.manifest as { comptages: unknown }).comptages).toEqual(
-      (before.manifest as { comptages: unknown }).comptages,
+    expect((after.manifest as { counts: unknown }).counts).toEqual(
+      (before.manifest as { counts: unknown }).counts,
     )
     for (const key of [
       'articles',
       'tags',
-      'liaisonsTags',
+      'tagLinks',
       'media',
       'socialAccounts',
       'socialPosts',
-      'liaisonsSocial',
+      'socialLinks',
       'settings',
       'users',
       'views',

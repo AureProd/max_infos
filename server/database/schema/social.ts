@@ -23,27 +23,26 @@ import {
 } from './enums'
 
 /**
- * Un account de réseau social connecté.
+ * A connected social network account.
  *
- * Il n'existait pas tant qu'il n'y en avait qu'un : le « account Instagram »
- * se réduisait alors à un token dans `secret` et à un profile figé dans
- * `setting`. Plusieurs accounts en font une entité — c'est elle qui porte le
- * token (par sa clé), l'identité affichée et la façon dont sa section paraît
- * sur l'accueil.
+ * It did not exist as long as there was only one: the « Instagram account »
+ * was then just a token in `secret` and a frozen profile in `setting`.
+ * Several accounts make it an entity — one that carries the token (through
+ * its key), the displayed identity, and how its section appears on the home
+ * page.
  *
- * L'identité affichée (`username`, `displayName`, `biography`, `avatarUrl`,
- * les compteurs) est TOUJOURS reprise du profile Meta à la synchronisation :
- * elle ne se saisit pas à la main, et une correction faite sur Instagram
- * arrive here toute seule.
+ * The displayed identity (`username`, `displayName`, `biography`,
+ * `avatarUrl`, the counters) is ALWAYS taken from the Meta profile at sync
+ * time: it is not typed in by hand, and a correction made on Instagram
+ * arrives here on its own.
  */
 export const socialAccount = pgTable(
   'social_account',
   {
     id: integer().generatedByDefaultAsIdentity().primaryKey(),
     network: text().$type<SocialNetwork>().notNull(),
-    // L'identifiant du account chez Meta. Nullable : la reprise de l'unique
-    // account d'before peut ne pas le connaître, la première synchronisation
-    // le renseigne.
+    // The account's identifier at Meta. Nullable: carrying over the single
+    // account from before may not know it, the first sync fills it in.
     externalId: text(),
     username: text(),
     displayName: text(),
@@ -51,21 +50,20 @@ export const socialAccount = pgTable(
     avatarUrl: text(),
     followers: integer(),
     mediaCount: integer(),
-    /** L'interrupteur de Max : le account est connecté, mais paraît-il ? */
+    /** Max's switch: the account is connected, but does it show? */
     visible: boolean().notNull().default(true),
-    /** L'ordre des sections sur l'accueil. */
+    /** The order of sections on the home page. */
     position: integer().notNull().default(0),
-    /** Combien de publications la section montre. */
+    /** How many posts the section shows. */
     postsOnHome: integer().notNull().default(6),
     lastSyncAt: timestamp({ withTimezone: true, mode: 'date' }),
     ...timestamps,
   },
   (t) => [
-    // La target de l'onConflictDoUpdate de la connection et de la syncTask :
-    // reconnecter un account déjà known doit retomber sur SA row, et donc
-    // préserver l'ordre, la visibilité et le count de publications que Max
-    // a choisis. Sans contrainte d'unicité, l'upsert échouerait seulement à
-    // l'exécution.
+    // The target of the connect and sync onConflictDoUpdate: reconnecting
+    // an already known account must land on ITS row, and therefore preserve
+    // the order, the visibility and the post count Max chose. Without a
+    // uniqueness constraint, the upsert would only fail at runtime.
     uniqueIndex('uq_social_account_network_external_id').on(t.network, t.externalId),
     check('social_account_network', oneOf(t.network, SOCIAL_NETWORK)),
   ],
@@ -76,13 +74,13 @@ export const socialPost = pgTable(
   {
     id: integer().generatedByDefaultAsIdentity().primaryKey(),
     network: text().$type<SocialNetwork>().notNull(),
-    // De quel account vient la publication. Nul pour LinkedIn et pour les
-    // saisies manuelles, qui n'en ont pas. En cascade : déconnecter un
-    // account emporte ses publications, c'est ce qui a été décidé.
+    // Which account the post comes from. Null for LinkedIn and for manual
+    // entries, which have none. On cascade: disconnecting an account takes
+    // its posts with it, as decided.
     accountId: integer().references(() => socialAccount.id, { onDelete: 'cascade' }),
-    // Nul pour les publications LinkedIn saisies à la main : leur
-    // découverte automatique est impossible (le scope r_member_social est
-    // fermé aux fresh applications).
+    // Null for LinkedIn posts entered by hand: discovering them
+    // automatically is impossible (the r_member_social scope is closed to
+    // new applications).
     externalId: text(),
     url: text(),
     shortcode: text(),
@@ -94,19 +92,19 @@ export const socialPost = pgTable(
     source: text().$type<SocialSource>().notNull().default('manual'),
     hidden: boolean().notNull().default(false),
     position: integer().notNull().default(0),
-    // Charge brute renvoyée par Meta. Volontairement peu typée : elle
-    // change sans prévenir, et elle n'est JAMAIS exposée publiquement.
+    // The raw payload returned by Meta. Deliberately loosely typed: it
+    // changes without warning, and it is NEVER exposed publicly.
     raw: jsonb().$type<Record<string, unknown>>(),
     ...timestamps,
   },
   (t) => [
-    // LA contrainte qui rend la synchronisation Instagram idempotente : le
-    // worker fait un onConflictDoUpdate dessus, si bien qu'une publication
-    // déjà connue est mise à day au lieu d'être dupliquée.
+    // THE constraint that makes the Instagram sync idempotent: the worker
+    // does an onConflictDoUpdate on it, so an already known post is updated
+    // instead of duplicated.
     //
-    // externalId étant nul pour LinkedIn, et les NULL étant DISTINCTS sous
-    // PostgreSQL, plusieurs publications LinkedIn sans identifiant external
-    // coexistent sans conflit. C'est le comportement voulu.
+    // externalId being null for LinkedIn, and NULLs being DISTINCT under
+    // PostgreSQL, several LinkedIn posts without an external identifier
+    // coexist without conflict. That is the intended behaviour.
     uniqueIndex('uq_social_post_network_external_id').on(t.network, t.externalId),
     index('ix_social_post_posted').on(t.network, t.postedAt.desc()),
     check('social_post_network', oneOf(t.network, SOCIAL_NETWORK)),
@@ -116,10 +114,10 @@ export const socialPost = pgTable(
 )
 
 /**
- * Le link article ↔ publication, FACULTATIF DES DEUX CÔTÉS.
+ * The article ↔ post link, OPTIONAL ON BOTH SIDES.
  *
- * Table à part, jamais une clé étrangère sur `article` : un article peut
- * n'avoir aucune déclinaison, et une publication peut exister sans article.
+ * A separate table, never a foreign key on `article`: an article may have
+ * no variant at all, and a post may exist without an article.
  */
 export const articleSocialPost = pgTable(
   'article_social_post',

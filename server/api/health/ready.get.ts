@@ -24,8 +24,8 @@ import { checkDatabase } from '~~/server/database/client'
  */
 export default defineEventHandler(async (event) => {
   try {
-    const { latenceMs } = await checkDatabase()
-    return { status: 'ok' as const, database: 'ok' as const, latenceMs }
+    const { latencyMs } = await checkDatabase()
+    return { status: 'ok' as const, database: 'ok' as const, latencyMs }
   } catch (error) {
     setResponseStatus(event, 503)
     return {

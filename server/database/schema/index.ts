@@ -1,9 +1,10 @@
 /**
- * Point d'import unique du schéma.
+ * The single import point of the schema.
  *
- * C'est ce que pointe drizzle.config.ts et ce que consomme `drizzle()` pour
- * l'API relationnelle. Tout nouveau file de schéma doit être réexporté
- * here, sinon drizzle-kit ne le verra pas et générera une migration vide.
+ * This is what drizzle.config.ts points at and what `drizzle()` consumes
+ * for the relational API. Every new schema file must be re-exported here,
+ * otherwise drizzle-kit will not see it and will generate an empty
+ * migration.
  */
 
 export * from './analytics'

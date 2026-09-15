@@ -5,12 +5,11 @@ import { article, articleTag, tag } from '~~/server/database/schema'
 import { countCharacters, readingMinutes, renderMarkdown } from './markdown'
 
 /**
- * Rattache un article à une list de tags, en créant ceux qui manquent.
+ * Attaches an article to a list of tags, creating the missing ones.
  *
- * Remplace l'ensemble plutôt que d'add : c'est ce qu'attend un
- * formulaire où l'on retire un tag. Les tags devenus orphans ne sont
- * pas supprimés — ils resservent, et les effacer ferait disparaître une
- * color choisie à la main.
+ * Replaces the whole set rather than adding to it: that is what a form
+ * where you remove a tag expects. Tags left orphaned are not deleted — they
+ * get reused, and erasing them would lose a hand-picked colour.
  */
 export async function replaceTags(articleId: number, labels: string[]): Promise<void> {
   const db = useDatabase()
@@ -41,10 +40,10 @@ export async function replaceTags(articleId: number, labels: string[]): Promise<
 }
 
 /**
- * Les fields dérivés du body, recalculés à chaque record.
+ * The fields derived from the body, recomputed on every save.
  *
- * Le HTML est rendered ICI et nulle part ailleurs : c'est ce qui garantit que
- * rien de non assaini n'entre en base.
+ * The HTML is rendered HERE and nowhere else: that is what guarantees no
+ * unsanitised markup ever enters the database.
  */
 export function derivedFields(bodyMd: string) {
   return {
@@ -55,16 +54,16 @@ export function derivedFields(bodyMd: string) {
 }
 
 /**
- * Trouve un slug libre à partir d'un title : `mon-title`, then `mon-title-2`…
+ * Finds a free slug from a title: `my-title`, then `my-title-2`…
  *
- * Sans cela, publier two articles au title proche renverrait une violation
- * de contrainte à la figure de Max, qui n'y peut rien.
+ * Without this, publishing two articles with close titles would throw a
+ * constraint violation in Max's face, and he can do nothing about it.
  */
 export async function freeSlug(title: string, sauf?: number): Promise<string> {
   const db = useDatabase()
   const raw = slugify(title) || 'article'
-  // Un slug réservé est décalé d'emblée : `accueil` devient `accueil-2`,
-  // plutôt que d'être rendered inaccessible par le routage du back-office.
+  // A reserved slug is shifted straight away: `home` becomes `home-2`,
+  // rather than being made unreachable by the back-office routing.
   const base = (RESERVED_SLUGS as readonly string[]).includes(raw) ? `${raw}-2` : raw
   for (let n = 1; n < 200; n++) {
     const candidate = n === 1 ? base : `${base}-${n}`
@@ -78,7 +77,7 @@ export async function freeSlug(title: string, sauf?: number): Promise<string> {
   return `${base}-${Date.now()}`
 }
 
-/** Supprime les tags qui ne portent plus aucun article. */
+/** Deletes the tags that no longer carry any article. */
 export async function cleanOrphanTags(): Promise<number> {
   const db = useDatabase()
   const used = db.selectDistinct({ id: articleTag.tagId }).from(articleTag)
@@ -86,7 +85,7 @@ export async function cleanOrphanTags(): Promise<number> {
   return removed.length
 }
 
-/** Les identifiants de tags d'un article, pour l'API d'administration. */
+/** An article's tag identifiers, for the admin API. */
 export async function tagsOf(articleId: number) {
   return await useDatabase()
     .select({ slug: tag.slug, label: tag.label })

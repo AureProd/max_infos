@@ -3,14 +3,13 @@ import { oneOf, SETTING_SCOPE, type SettingScope } from './enums'
 import { appUser } from './user'
 
 /**
- * Tout ce que Max peut modifier sans coder : identité, contact, CV,
- * accueil, thème, référencement, templates de déclinaison. En JSON, donc
- * intégralement exportable.
+ * Everything Max can change without writing code: identity, contact, CV,
+ * home page, theme, SEO, variant templates. As JSON, and therefore fully
+ * exportable.
  *
- * `scope` est ce qui sépare ce que Max voit de ce que seul JB voit. La
- * portée est aussi une donnée TypeScript (SETTING_SCOPE côté shared/), ce
- * qui permettra au test d'autorisations de l'énumérer plutôt que de la
- * recopier à la main.
+ * `scope` is what separates what Max sees from what only JB sees. The scope
+ * is also TypeScript data (SETTING_SCOPE on the shared/ side), which lets
+ * the authorization test enumerate it rather than copy it by hand.
  */
 export const setting = pgTable(
   'setting',
@@ -25,15 +24,14 @@ export const setting = pgTable(
 )
 
 /**
- * Les tokens tiers, chiffrés (AES-256-GCM, clé en variable
- * d'environnement). Rien d'autre n'entre here.
+ * Third-party tokens, encrypted (AES-256-GCM, key in an environment
+ * variable). Nothing else goes in here.
  *
- * N'est JAMAIS exporté et n'apparaît JAMAIS dans une réponse d'API — un
- * test vérifie qu'aucune réponse ne contient le mot « ciphertext ».
+ * NEVER exported and NEVER present in an API response — a test checks that
+ * no response contains the word « ciphertext ».
  *
- * Les clés d'infrastructure (R2, base, Google) restent en variables
- * d'environnement : elles sont nécessaires AU DÉMARRAGE, donc before que la
- * base ne soit lisible.
+ * Infrastructure keys (R2, database, Google) stay in environment variables:
+ * they are needed AT STARTUP, so before the database can be read.
  */
 export const secret = pgTable('secret', {
   key: text().primaryKey(),

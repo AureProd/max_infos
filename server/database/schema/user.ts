@@ -4,11 +4,11 @@ import { timestamps } from '../columns'
 import { oneOf, USER_ROLE, type UserRole } from './enums'
 
 /**
- * Les accounts autorisés. Liste blanche : personne ne se crée de account,
- * c'est JB qui inscrit une adresse.
+ * The authorized accounts. An allow list: nobody signs themselves up, JB
+ * adds an address.
  *
- * Deux rôles aux pouvoirs opposés : `tech` (JB) voit l'infrastructure,
- * `editor` (Max) ne doit JAMAIS voir un field technique.
+ * Two roles with opposite powers: `tech` (JB) sees the infrastructure,
+ * `editor` (Max) must NEVER see a technical field.
  */
 export const appUser = pgTable(
   'app_user',
@@ -23,9 +23,9 @@ export const appUser = pgTable(
     ...timestamps,
   },
   (t) => [
-    // Index d'EXPRESSION, et non index simple : Google renvoie les adresses
-    // avec une casse variable, et la list blanche doit y être insensible.
-    // Sans cela, « Max@gmail.com » créerait un second account.
+    // An EXPRESSION index, not a plain one: Google returns addresses with
+    // varying case, and the allow list must be insensitive to it. Without
+    // this, « Max@gmail.com » would create a second account.
     uniqueIndex('uq_app_user_email').on(sql`lower(${t.email})`),
     check('app_user_role', oneOf(t.role, USER_ROLE)),
   ],

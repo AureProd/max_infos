@@ -24,7 +24,7 @@ interface Alert {
  * dans l'écran Technique, qui est fait pour ça.
  *
  * Les alerts sont des choses SUR LESQUELLES AGIR, pas des statistiques :
- * un article publié sans image de couverture s'affichera mal partout où il
+ * un article publié sans image de cover s'affichera mal partout où il
  * sera partagé, et personne ne s'en aperçoit since la list d'articles.
  */
 export default defineEventHandler(async (event) => {
@@ -102,7 +102,7 @@ export default defineEventHandler(async (event) => {
   if ((sansCouverture[0]?.n ?? 0) > 0) {
     alerts.push({
       niveau: 'attention',
-      message: `${sansCouverture[0]?.n} article(s) publié(s) sans image de couverture`,
+      message: `${sansCouverture[0]?.n} article(s) publié(s) sans image de cover`,
       link: '/admin',
     })
   }
