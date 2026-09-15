@@ -50,37 +50,55 @@ export const SECRETS_PATH: Record<
   },
 }
 
+/**
+ * A configuration string, AS NITRO REALLY HANDS IT OVER.
+ *
+ * Nitro runs every environment variable through `destr` before putting it
+ * into runtimeConfig: a purely numeric value comes back as a number, and
+ * « true » / « false » as booleans. A Meta application identifier is
+ * sixteen digits, so `z.string()` refused it — and the site failed to start
+ * in production only, where that variable is set.
+ *
+ * Not `z.coerce.string()`: that one turns `undefined` into the string
+ * « undefined », which is truthy, and the production completeness check
+ * would then see a missing variable as present.
+ */
+const text = z.preprocess(
+  (v) => (typeof v === 'number' || typeof v === 'boolean' ? String(v) : v),
+  z.string(),
+)
+
 const configSchema = z.object({
-  databaseUrl: z.string(),
-  secretEncryptionKey: z.string(),
+  databaseUrl: text,
+  secretEncryptionKey: text,
   session: z.object({
     // nuxt-auth-utils mandates this path and at least 32 characters.
-    password: z.string(),
-    name: z.string().min(1).optional(),
+    password: text,
+    name: text.refine((v) => v.length > 0).optional(),
   }),
   oauth: z.object({
     google: z.object({
-      clientId: z.string(),
-      clientSecret: z.string(),
-      redirectURL: z.string().optional(),
+      clientId: text,
+      clientSecret: text,
+      redirectURL: text.optional(),
     }),
   }),
-  bootstrapTechEmail: z.string(),
-  r2AccountId: z.string(),
-  r2AccessKeyId: z.string(),
-  r2SecretAccessKey: z.string(),
-  r2Bucket: z.string(),
-  r2Endpoint: z.string(),
-  instagramAppId: z.string(),
-  instagramAppSecret: z.string(),
+  bootstrapTechEmail: text,
+  r2AccountId: text,
+  r2AccessKeyId: text,
+  r2SecretAccessKey: text,
+  r2Bucket: text,
+  r2Endpoint: text,
+  instagramAppId: text,
+  instagramAppSecret: text,
   instagramSyncIntervalMinutes: z.coerce.number().int().min(5),
   schedulerEnabled: z.coerce.boolean(),
   // The only block that travels all the way to the browser.
   public: z.object({
-    version: z.string().min(1),
+    version: text.refine((v) => v.length > 0),
     appEnv: z.enum(ENVIRONMENTS),
-    baseUrl: z.string().min(1),
-    r2BaseUrl: z.string(),
+    baseUrl: text.refine((v) => v.length > 0),
+    r2BaseUrl: text,
   }),
 })
 

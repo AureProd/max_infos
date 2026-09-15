@@ -115,3 +115,61 @@ describe('configuration', () => {
     ])
   })
 })
+
+describe('what Nitro really hands over', () => {
+  /**
+   * Nitro runs every environment variable through `destr` before putting it
+   * in runtimeConfig. A purely numeric value therefore arrives as a NUMBER,
+   * and « true » / « false » as booleans — whatever the schema expects.
+   *
+   * A Meta application identifier is exactly that: sixteen digits. The site
+   * refused to start, in production only, with « instagramAppId: expected
+   * string, received number ».
+   */
+  it('accepts a numeric identifier, and gives it back as a string', () => {
+    const config = parseConfig({
+      ...MINIMAL_CONFIG,
+      instagramAppId: 1234567890123456,
+    })
+    expect(config.instagramAppId).toBe('1234567890123456')
+  })
+
+  it('accepts the same treatment on every secret that could be all digits', () => {
+    // A password, a hexadecimal key or a bucket name made only of digits is
+    // rare but perfectly legal — and would take the site down the same way.
+    const config = parseConfig({
+      ...MINIMAL_CONFIG,
+      session: { password: 123456789012345, name: 'umdi_session' },
+      r2AccountId: 987654321,
+      instagramAppSecret: 42,
+    })
+    expect(config.session.password).toBe('123456789012345')
+    expect(config.r2AccountId).toBe('987654321')
+    expect(config.instagramAppSecret).toBe('42')
+  })
+
+  it('cannot save a digits-only secret longer than Number.MAX_SAFE_INTEGER', () => {
+    // A LIMIT, written down rather than hidden: destr has already turned the
+    // text into a number by the time the schema sees it, and the lost digits
+    // are lost. Recovering them would mean reading process.env ourselves,
+    // behind Nitro's back.
+    //
+    // In practice this bites a purely numeric secret of more than fifteen
+    // digits. Meta application identifiers sit just under that ceiling; a
+    // hand-picked password must simply not be digits only.
+    // Through Number(), not as a literal: written out, the number loses its
+    // precision at parse time and the linter rightly says so.
+    const tooLong = Number('12345678901234567890')
+    const config = parseConfig({ ...MINIMAL_CONFIG, instagramAppId: tooLong })
+    expect(config.instagramAppId).not.toBe('12345678901234567890')
+    expect(Number.MAX_SAFE_INTEGER).toBe(9007199254740991)
+  })
+
+  it('still refuses an absent value, which is not a numeric one', () => {
+    // The coercion must not turn a missing variable into the string
+    // « undefined »: the production check tests presence, and « undefined »
+    // is truthy.
+    expect(() => parseConfig({ ...MINIMAL_CONFIG, instagramAppId: undefined })).toThrow()
+    expect(() => parseConfig({ ...MINIMAL_CONFIG, r2Bucket: null })).toThrow()
+  })
+})
