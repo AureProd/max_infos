@@ -3,16 +3,16 @@ import { useDatabase } from '~~/server/database/client'
 import { article, media } from '~~/server/database/schema'
 import { readSetting } from '~~/server/utils/settings'
 
-/** Échappement XML. Un title contenant « & » casserait le feed sans cela. */
+/** XML escaping. A title containing « & » would break the feed without it. */
 const x = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 /**
- * Flux RSS des articles publiés.
+ * RSS feed of the published articles.
  *
- * Écrit à la main plutôt qu'avec une bibliothèque : le format est stable
- * since vingt ans, et une dépendance de plus pour produire quarante lines
- * de XML n'est pas un bon échange. Le validateur du W3C reste le juge.
+ * Written by hand rather than with a library: the format has been stable
+ * for twenty years, and one more dependency to produce forty lines of XML
+ * is a poor trade. The W3C validator remains the judge.
  */
 export default defineEventHandler(async (event) => {
   const { public: pub } = useRuntimeConfig()

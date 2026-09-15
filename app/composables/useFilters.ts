@@ -6,15 +6,15 @@ export interface FiltersState {
 }
 
 /**
- * Filtrage de la list d'articles : recherche libre et tag.
+ * Filtering the article list: free-text search and tag.
  *
- * Le filtrage se fait désormais EN SQL, côté serveur : le navigateur ne
- * télécharge plus all les articles pour en cacher la plupart. C'est le
- * gain direct du passage en base.
+ * Filtering now happens IN SQL, server-side: the browser no longer
+ * downloads every article to hide most of them. That is the direct gain of
+ * moving to a database.
  *
- * `useState` et NON un état au niveau du module : ce last serait
- * instancié une seule fois par processus Node, et la recherche d'un
- * visiteur apparaîtrait chez le next.
+ * `useState` and NOT module-level state: the latter would be instantiated
+ * once per Node process, and one visitor's search would show up for the
+ * next.
  */
 export function useFilters() {
   const state = useState<FiltersState>('filtres', () => ({ q: '', tag: null }))
@@ -29,8 +29,8 @@ export function useFilters() {
   const { data, status } = useFetch('/api/articles', {
     key: 'articles-filtres',
     query,
-    // Le serveur ne rend que la list non filtrée ; les filtres sont une
-    // action du visiteur, donc la requête ne part qu'au navigateur.
+    // The server only renders the unfiltered list; filters are a visitor
+    // action, so the request only leaves from the browser.
     watch: [query],
   })
 

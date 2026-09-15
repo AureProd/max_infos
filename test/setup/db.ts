@@ -52,7 +52,7 @@ export function base(sql: postgres.Sql): TestDatabase {
  *
  * Drizzle enveloppe l'error PostgreSQL : son message ne contient que la
  * requête, et le name de la contrainte vit dans `cause`. Se contenter de
- * « ça a échoué » laisserait passer un échec pour une all autre raison —
+ * « ça a échoué » laisserait passer un échec pour une all autre reason —
  * une faute de frappe dans le test, par exemple.
  */
 export async function rejectedByConstraint(

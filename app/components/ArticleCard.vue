@@ -4,13 +4,13 @@ import { frDate } from '#shared/utils/format'
 import type listArticles from '~~/server/api/articles/index.get'
 
 /**
- * Le type est INFÉRÉ du handler, il n'est pas recopié : renommer une
- * colonne dans le schéma Drizzle fait échouer `pnpm typecheck` here même.
- * C'est précisément ce qu'on achète avec la bascule en TypeScript, et ce
- * que FastAPI + Vue en JavaScript nu ne pouvaient pas donner.
+ * The type is INFERRED from the handler, not copied: renaming a column in
+ * the Drizzle schema makes `pnpm typecheck` fail right here. That is
+ * precisely what the move to TypeScript buys, and what FastAPI plus plain
+ * JavaScript Vue could not give.
  *
- * `import type` est effacé à la compilation : aucun code serveur n'entre
- * dans le paquet envoyé au navigateur.
+ * `import type` is erased at compile time: no server code enters the bundle
+ * sent to the browser.
  */
 type ArticleList = Awaited<ReturnType<typeof listArticles>>['items'][number]
 

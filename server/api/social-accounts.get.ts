@@ -4,14 +4,14 @@ import { socialAccount, socialPost } from '~~/server/database/schema'
 import { iso } from '~~/server/utils/serialize'
 
 /**
- * Les accounts affichés sur l'accueil, chacun avec ses dernières publications.
+ * The accounts shown on the home page, each with its latest posts.
  *
- * Une section par account : c'est cette réponse qui la dessine. Le libellé, la
- * photo et les compteurs viennent du account tel qu'Instagram le donne — rien
- * n'est saisi à la main, donc rien ne peut être falsy longtemps.
+ * One section per account: this response is what draws it. The label, the
+ * picture and the counters come from the account as Instagram gives it —
+ * nothing is typed in by hand, so nothing can stay wrong for long.
  *
- * Les colonnes sont énumérées une à une : ni le token, ni `raw`, la charge
- * brute de Meta, ne doivent pouvoir sortir par inadvertance.
+ * The columns are listed one by one: neither the token nor `raw`, Meta's
+ * payload, must be able to slip out by accident.
  */
 export default defineEventHandler(async () => {
   const db = useDatabase()
@@ -33,9 +33,9 @@ export default defineEventHandler(async () => {
 
   if (accounts.length === 0) return []
 
-  // Une seule requête pour toutes les sections, et le filtre des publications
-  // masquées EN SQL. La troncature à `postsOnHome`, elle, se fait ensuite :
-  // c'est une décision d'affichage, sur quelques dizaines de lines.
+  // A single query for every section, and the hidden-post filter IN SQL.
+  // Truncating to `postsOnHome` happens afterwards: that is a display
+  // decision, over a few dozen rows.
   const publications = await db
     .select({
       id: socialPost.id,
@@ -67,6 +67,6 @@ export default defineEventHandler(async () => {
     publications: publications
       .filter((p) => p.accountId === account.id)
       .slice(0, postsOnHome)
-      .map(({ accountId: _compte, ...p }) => ({ ...p, postedAt: iso(p.postedAt) })),
+      .map(({ accountId: _accountId, ...p }) => ({ ...p, postedAt: iso(p.postedAt) })),
   }))
 })

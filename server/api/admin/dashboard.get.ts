@@ -3,7 +3,7 @@ import { useDatabase } from '~~/server/database/client'
 import { article, articleSocialPost, articleView, socialPost } from '~~/server/database/schema'
 import { requireRole } from '~~/server/utils/auth'
 
-/** Le day, en ISO short, décalé de `jours` — la colonne `day` est une date nue. */
+/** The day, as a short ISO string, shifted by `days` — the `day` column is a bare date. */
 function isoDay(jours: number): string {
   const d = new Date(Date.now() + jours * 86_400_000)
   return d.toISOString().slice(0, 10)
@@ -16,16 +16,16 @@ interface Alert {
 }
 
 /**
- * Ce que Max doit voir en ouvrant la rédaction. Rôle `editor`.
+ * What Max must see when he opens the editorial area. Role `editor`.
  *
- * Rien de technique here, pas même conditionnellement : un array de bord
- * qui change de shape selon le rôle est un array de bord qu'on ne peut
- * pas décrire à son user. L'état d'Instagram et des sauvegardes vit
- * dans l'écran Technique, qui est fait pour ça.
+ * Nothing technical here, not even conditionally: a dashboard that changes
+ * shape with the role is a dashboard you cannot describe to its user. The
+ * state of Instagram and of the backups lives in the Tech screen, which is
+ * made for it.
  *
- * Les alerts sont des choses SUR LESQUELLES AGIR, pas des statistiques :
- * un article publié sans image de cover s'affichera mal partout où il
- * sera partagé, et personne ne s'en aperçoit since la list d'articles.
+ * The alerts are things to ACT ON, not statistics: an article published
+ * without a cover image will look wrong everywhere it gets shared, and
+ * nobody notices that from the article list.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')
@@ -46,9 +46,8 @@ export default defineEventHandler(async (event) => {
         .orderBy(desc(article.updatedAt))
         .limit(5),
 
-      // Une publication sans article rattaché est du travail resté en
-      // suspens : elle existe sur Instagram, mais le site ne sait pas à
-      // quel tag elle se rapporte.
+      // A post without an attached article is unfinished work: it exists on
+      // Instagram, but the site does not know what subject it relates to.
       db
         .select({
           id: socialPost.id,
@@ -128,7 +127,7 @@ export default defineEventHandler(async (event) => {
       ...p,
       postedAt: p.postedAt?.toISOString() ?? null,
     })),
-    // `sum` rend une chaîne en SQL : le total peut dépasser l'entier sûr.
+    // `sum` returns a string in SQL: the total can exceed the safe integer.
     vuesSemaine: Number(views[0]?.total ?? 0),
     populaires,
     alerts,

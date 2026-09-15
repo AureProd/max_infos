@@ -2,16 +2,15 @@
 import { nb } from '#shared/utils/format'
 
 /**
- * Les accounts Instagram, une section chacun.
+ * The Instagram accounts, one section each.
  *
- * Tout vient d'une seule réponse : les accounts que Max a chosen d'afficher,
- * dans l'ordre qu'il a fixé, chacun tronqué au count de publications qu'il
- * a chosen. Le name, la photo et la bio sont ceux du account tel qu'Instagram
- * les donne — plus rien n'est écrit à la main, donc plus rien ne peut être
- * falsy.
+ * Everything comes from a single response: the accounts Max chose to
+ * display, in the order he set, each truncated to the post count he chose.
+ * The name, the picture and the bio are the account's as Instagram gives
+ * them — nothing is written by hand any more, so nothing can be wrong.
  *
- * Les compteurs passent par `nb()`, jamais par `toLocaleString` : `Intl`
- * rend U+202F ou U+00A0 selon l'ICU embarquée, et l'hydratation casse.
+ * The counters go through `nb()`, never `toLocaleString`: `Intl` renders
+ * U+202F or U+00A0 depending on the bundled ICU, and hydration breaks.
  */
 const { data: accounts } = await useFetch('/api/social-accounts', { key: 'comptes-sociaux-public' })
 </script>

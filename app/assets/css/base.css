@@ -1,29 +1,29 @@
 /* ============================================================
-   Un Max d'info — feuille de style
-   Direction : éditoriale, angles francs, portée par la typographie.
-   Palette : neutres façon Discord, accent = le bleu du logo (#2462E9),
-   complémentaire ambre employé avec parcimonie.
+   Un Max d'info — stylesheet
+   Direction: editorial, sharp angles, carried by the typography.
+   Palette: Discord-like neutrals, accent = the logo blue (#2462E9),
+   amber complement used sparingly.
    ============================================================ */
 :root {
-  /* Neutres façon Discord, légèrement tirés vers le bleu du logo (221°),
-     pour que les gris se lisent comme un choix et non comme un défaut. */
+  /* Discord-like neutrals, pulled slightly towards the logo blue (221°),
+     so the greys read as a choice and not as a default. */
   --ink: #17191d; /* fond de page      (Discord : #1E1F22) */
-  --surface: #1e2127; /* surfaces posées   (Discord : #2B2D31) */
-  --raised: #272b33; /* surfaces relevées (Discord : #313338) */
+  --surface: #1e2127; /* resting surfaces  (Discord: #2B2D31) */
+  --raised: #272b33; /* raised surfaces   (Discord: #313338) */
   --line: #343842;
   --line-soft: rgba(255, 255, 255, 0.055);
   --text: #dbdee1; /* Discord : texte normal */
-  --muted: #949ba4; /* Discord : texte atténué */
+  --muted: #949ba4; /* Discord: muted text */
   --faint: #6b727c;
 
-  /* Bleu du logo, relevé pour rester lisible sur fond sombre —
-     comme Discord relève son blurple. */
+  /* The logo blue, lifted to stay legible on a dark background —
+     the way Discord lifts its blurple. */
   --accent: #4a81f5;
   --accent-solid: #2462e9; /* bleu exact du logo, pour les aplats */
   --accent-lo: rgba(74, 129, 245, 0.14);
 
-  /* Complémentaire du bleu (221° → 41°). Employé avec parcimonie :
-     les chiffres clés et la mention « à la une ». */
+  /* Complement of the blue (221° → 41°). Used sparingly: the key
+     figures and the « à la une » label. */
   --gold: #e9ab24;
   --gold-lo: rgba(233, 171, 36, 0.13);
 
@@ -88,7 +88,7 @@ button {
   background: var(--surface);
 }
 
-/* image de cover : cadrage conservé, repli sur la plaque générée */
+/* cover image: framing preserved, falls back to the generated plate */
 .cover {
   width: 100%;
   height: 100%;
@@ -101,10 +101,10 @@ button {
   overflow: hidden;
   background: var(--surface);
 }
-/* Tes couvertures sont déjà bâties sur le bleu du logo : elles sont donc
-   raccord avec le thème. Seul leur fond gris clair éblouit sur fond sombre,
-   on l'éteint sans toucher aux photographies ni au bleu.
-   Retirer la classe .tinted sur un article pour le laisser tel quel. */
+/* The covers are already built on the logo blue, so they match the theme.
+   Only their light grey background glares against a dark one, and we turn
+   that down without touching the photographs or the blue.
+   Remove the .tinted class on an article to leave it untouched. */
 .frame.tinted .cover {
   filter: brightness(0.74) contrast(1.06) saturate(0.92);
 }
@@ -126,7 +126,7 @@ button {
   background: linear-gradient(180deg, transparent 45%, rgba(23, 25, 29, 0.6));
 }
 
-/* ---------- bandeau supérieur ---------- */
+/* ---------- masthead ---------- */
 .mast {
   position: sticky;
   top: 0;
@@ -186,7 +186,7 @@ button {
   margin-top: 5px;
 }
 
-/* ---------- hero porté par la typo ---------- */
+/* ---------- hero carried by the type ---------- */
 .hero {
   padding-block: 72px 0;
 }
@@ -209,7 +209,7 @@ button {
   font-weight: 300;
 }
 
-/* grappe d'images de formats différents, comme chez Sphères */
+/* cluster of images in different formats, as Sphères does */
 .cluster {
   display: grid;
   gap: 14px;
@@ -264,7 +264,7 @@ button {
   height: 14px;
 }
 
-/* ---------- bandeau défilant de titres ---------- */
+/* ---------- scrolling title banner ---------- */
 .marquee {
   margin-top: 56px;
   border-block: 1px solid var(--line);
@@ -324,7 +324,7 @@ button {
   }
 }
 
-/* ---------- la une : article vedette à gauche, rail à droite ---------- */
+/* ---------- front page: featured article left, rail right ---------- */
 .front {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
@@ -472,7 +472,7 @@ button {
   min-width: 20px;
 }
 
-/* ---------- cartes : image en haut, titre, chapô ---------- */
+/* ---------- cards: image on top, title, dek ---------- */
 .cards {
   list-style: none;
   margin: 0;
@@ -481,8 +481,8 @@ button {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 34px 22px;
 }
-/* titres et chapôs tronqués au même nombre de lignes : les méta
-   de chaque carte retombent alors sur la même ligne de base. */
+/* titles and deks truncated to the same number of lines: the meta of
+   every card then land on the same baseline. */
 .card {
   display: flex;
   flex-direction: column;
@@ -571,7 +571,7 @@ button {
   background: var(--gold-lo);
 }
 
-/* ---------- méta ---------- */
+/* ---------- meta ---------- */
 .meta {
   font-family: var(--display);
   font-size: 0.82rem;
@@ -657,7 +657,7 @@ button {
   font-weight: 600;
 }
 
-/* ---------- liste d'articles réglée ---------- */
+/* ---------- tuned article list ---------- */
 .list {
   list-style: none;
   margin: 0;
@@ -823,7 +823,7 @@ button {
   cursor: default;
 }
 
-/* vignettes carrées jointives, comme la grille d'un profil */
+/* square thumbnails butted together, like a profile grid */
 .igp-strip {
   display: flex;
   gap: 3px;
@@ -895,7 +895,7 @@ button {
   opacity: 0;
 }
 
-/* repère sur un contenu encore à remplir */
+/* marker on content still to be filled in */
 .todo {
   display: inline-flex;
   align-items: center;
@@ -908,7 +908,7 @@ button {
   padding: 3px 9px;
 }
 
-/* ---------- banc d'essai de l'intégration ---------- */
+/* ---------- integration test bench ---------- */
 .ig-connect {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -974,9 +974,9 @@ button {
 }
 
 /* ---------- publications Instagram ---------- */
-/* Instagram sert ses embeds en thème clair et l'iframe ne sait pas se
-   redimensionner : on lui réserve sa hauteur. Un Reel vertical fait 9:16,
-   auquel s'ajoutent l'en-tête du compte et le pied du cadre. */
+/* Instagram serves its embeds in a light theme and the iframe cannot
+   resize itself: we reserve its height. A vertical Reel is 9:16, plus the
+   account header and the frame footer. */
 .ig-live {
   list-style: none;
   margin: 0 0 8px;
@@ -1102,7 +1102,7 @@ button {
   hyphenate-limit-chars: 7 4 3;
   word-spacing: -0.012em;
 }
-/* on ne justifie jamais un titre ni une légende : seul le corps de texte */
+/* never justify a title or a caption: only the body text */
 .prose h2,
 .prose h3,
 .prose blockquote,
@@ -1302,7 +1302,7 @@ button {
   margin: 26px 0 18px;
 }
 
-/* ---------- à propos ---------- */
+/* ---------- about ---------- */
 .about {
   padding-block: 60px 80px;
 }
@@ -1618,11 +1618,11 @@ button {
 }
 
 /* ---------------------------------------------------------------------------
-   Cartes de publication sociale (lot 6)
+   Social post cards (lot 6)
 
-   Remplacent les embeds officiels d'Instagram, servis en thème clair sans
-   moyen de le changer. Dessinées avec les variables du site, elles
-   s'intègrent au thème sombre au lieu d'y percer des trous blancs.
+   They replace Instagram's official embeds, served in a light theme with no
+   way to change it. Drawn with the site's variables, they fit into the dark
+   theme instead of punching white holes in it.
 --------------------------------------------------------------------------- */
 .pubs {
   list-style: none;
@@ -1630,7 +1630,7 @@ button {
   margin: 24px 0 0;
   display: grid;
   gap: 18px;
-  /* Rythme distinct de celui des articles longs : plus dense, plus carré. */
+  /* A rhythm distinct from the long articles': denser, squarer. */
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 }
 
@@ -1678,7 +1678,7 @@ button {
   font-size: 14px;
   line-height: 1.5;
   color: var(--text, #dbdee1);
-  /* Trois lignes au plus : au-delà, la grille perd son rythme. */
+  /* Three lines at most: beyond that, the grid loses its rhythm. */
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -1690,10 +1690,10 @@ button {
 }
 
 /* ---------------------------------------------------------------------------
-   Back-office (lots 5 à 8)
+   Back-office (lots 5 to 8)
 
-   Le back-office n'a pas à être joli — il a à être lisible et à ne pas
-   tromper. D'où des règles minimales, qui réutilisent les variables du site.
+   The back-office does not have to be pretty — it has to be legible and not
+   misleading. Hence minimal rules, reusing the site's variables.
 --------------------------------------------------------------------------- */
 .cnav {
   display: flex;
@@ -1726,8 +1726,8 @@ button {
   flex-wrap: wrap;
 }
 
-/* Un message d'erreur doit se voir sans être lu : la couleur fait la moitié
-   du travail, notamment pour l'avertissement sur les données personnelles. */
+/* An error message must be seen without being read: colour does half the
+   work, notably for the warning about personal data. */
 .err {
   color: #e4604f;
   font-size: 14px;

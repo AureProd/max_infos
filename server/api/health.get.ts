@@ -1,12 +1,12 @@
 /**
- * Sonde de vivacité. Aucune entrée-output : elle répond « le processus
- * tourne », rien de plus.
+ * Liveness probe. No input, no output: it answers « the process is
+ * running », nothing more.
  *
- * C'est elle qu'interroge le HEALTHCHECK de l'image et, par voie de
- * conséquence, Traefik — qui refuse de router vers un conteneur unhealthy.
- * La faire dépendre de la base rendrait le site injoignable à la moindre
- * hoquet de PostgreSQL, alors que la plupart des pages n'en ont pas besoin.
- * L'état de la base se lit sur /api/health/ready.
+ * This is what the image's HEALTHCHECK queries and, as a consequence,
+ * Traefik — which refuses to route to an unhealthy container. Making it
+ * depend on the database would render the site unreachable on the slightest
+ * PostgreSQL hiccup, when most pages do not need it. The database state is
+ * read on /api/health/ready.
  */
 export default defineEventHandler(() => {
   const config = useRuntimeConfig()

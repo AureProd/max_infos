@@ -1,14 +1,13 @@
 import { parseConfig } from '#shared/schemas/config'
 
 /**
- * Valide la configuration au démarrage du serveur.
+ * Validates the configuration when the server starts.
  *
- * Le préfixe « 00. » garantit l'ordre : les plugins Nitro sont chargés par
- * ordre alphabétique, et rien d'autre ne doit s'exécuter before ce contrôle.
+ * The « 00. » prefix guarantees the order: Nitro plugins load
+ * alphabetically, and nothing else must run before this check.
  *
- * En production, un secret manquant fait échouer le démarrage plutôt que
- * d'ouvrir un site à moitié configuré. C'est la règle posée au lot 1 et
- * reconduite telle quelle.
+ * In production, a missing secret fails the startup rather than opening a
+ * half-configured site. That is the rule set in lot 1, carried over as is.
  */
 export default defineNitroPlugin(() => {
   const config = useRuntimeConfig()

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * Aide à la déclinaison d'un article publié.
+ * Helps turn a published article into social variants.
  *
- * Le site NE PUBLIE JAMAIS : il prépare un text que Max copied, colle et
- * publie lui-même. Puis il recolle here l'adresse de sa publication, ce qui
- * crée la liaison — seule voie possible pour LinkedIn, dont la découverte
- * automatique est hors de portée.
+ * The site NEVER PUBLISHES: it prepares a text Max copies, pastes and
+ * publishes himself. He then pastes the address of his post back here,
+ * which creates the link — the only possible path for LinkedIn, whose
+ * automatic discovery is out of reach.
  */
 const props = defineProps<{ slug: string; publie: boolean }>()
 
@@ -39,7 +39,7 @@ async function copy(quoi: 'linkedin' | 'reel'): Promise<void> {
   }, 2000)
 }
 
-// --- Recoller l'adresse de la publication ---------------------------------
+// --- Pasting the post address back ----------------------------------------
 const url = ref('')
 const network = ref<'linkedin' | 'instagram'>('linkedin')
 const state = ref<'repos' | 'envoi' | 'lié' | 'échec'>('repos')

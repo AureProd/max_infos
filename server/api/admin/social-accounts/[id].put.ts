@@ -5,11 +5,11 @@ import { socialAccount } from '~~/server/database/schema'
 import { requireRole } from '~~/server/utils/auth'
 
 /**
- * L'affichage d'un account sur l'accueil. Rôle `editor`.
+ * How an account shows on the home page. Role `editor`.
  *
- * Ne touche QUE ce que Max décide : visibilité, ordre, count de
- * publications. L'identité du account vient d'Instagram et n'est pas
- * modifiable here — c'est ce qui garantit qu'elle reste vraie.
+ * Touches ONLY what Max decides: visibility, order, post count. The account
+ * identity comes from Instagram and cannot be edited here — that is what
+ * guarantees it stays true.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')

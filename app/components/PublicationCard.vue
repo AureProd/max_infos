@@ -2,13 +2,12 @@
 import { frShort } from '#shared/utils/format'
 
 /**
- * Carte maison d'une publication sociale.
+ * Home-made card for a social post.
  *
- * Remplace l'embed officiel d'Instagram, servi en THÈME CLAIR sans moyen de
- * le changer — des blocs blancs au milieu d'un site sombre. La carte est
- * dessinée avec le CSS du site à partir des données de l'API : elle
- * s'intègre, elle se charge sans iframe, et elle n'envoie rien à Meta tant
- * que le visiteur ne clique pas.
+ * Replaces Instagram's official embed, served in a LIGHT THEME with no way
+ * to change it — white blocks in the middle of a dark site. The card is
+ * drawn with the site's CSS from the API data: it fits in, it loads without
+ * an iframe, and it sends nothing to Meta until the visitor clicks.
  */
 interface Publication {
   id: number
@@ -32,7 +31,7 @@ const LABELS: Record<string, string> = {
 
 const kind = computed(() => LABELS[props.publication.mediaType ?? 'post'] ?? 'Publication')
 
-/** Tronquée sur un mot entier : couper au milieu d'un mot se voit. */
+/** Truncated on a whole word: cutting mid-word shows. */
 const caption = computed(() => {
   const t = props.publication.caption ?? ''
   if (t.length <= 140) return t

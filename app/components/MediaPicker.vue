@@ -1,12 +1,11 @@
 <script setup lang="ts">
 /**
- * Choix d'une image : bibliothèque existante ou téléversement.
+ * Picking an image: existing library or upload.
  *
- * Le téléversement se fait EN DEUX TEMPS : le serveur enregistre le média
- * et renvoie une URL signée, then le navigateur envoie le file
- * directement à R2. Le file ne traverse jamais Nitro — la mémoire du
- * conteneur ne monte pas avec la size des images, et le serveur ne
- * devient pas un relais ouvert.
+ * The upload happens IN TWO STEPS: the server records the medium and
+ * returns a signed URL, then the browser sends the file straight to R2. The
+ * file never crosses Nitro — container memory does not grow with image
+ * size, and the server does not become an open relay.
  */
 interface Media {
   id: number
@@ -48,8 +47,8 @@ async function upload(evenement: Event): Promise<void> {
       body: { filename: file.name, contentType: file.type, bytes: file.size },
     })
 
-    // Envoi direct à R2. Le Content-Type doit être EXACTEMENT celui signé,
-    // sinon R2 refuse la requête — la signature le couvre.
+    // Direct send to R2. The Content-Type must be EXACTLY the one signed,
+    // otherwise R2 refuses the request — the signature covers it.
     const response = await fetch(uploadUrl, {
       method: 'PUT',
       body: file,

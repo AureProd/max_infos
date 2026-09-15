@@ -4,9 +4,9 @@ definePageMeta({ middleware: 'admin' })
 const { peut } = useUser()
 const seesTech = peut('tech')
 
-// Le serveur refuse de toute façon : cet call échouerait en 403 pour un
-// account `editor`. La garde ci-dessous évite seulement d'afficher une page
-// d'error à quelqu'un qui n'a rien demandé.
+// The server refuses anyway: this call would fail with a 403 for an
+// `editor` account. The guard below only avoids showing an error page to
+// someone who asked for nothing.
 const { data: accounts, error } = await useFetch('/api/admin/users', {
   key: 'admin-users',
   immediate: false,
@@ -20,11 +20,11 @@ const importState = ref<'repos' | 'en cours' | 'échec'>('repos')
 const importMessage = ref('')
 
 /**
- * L'import se fait TOUJOURS en dryRun d'abord.
+ * An import ALWAYS runs as a dry run first.
  *
- * Restaurer une sauvegarde écrase le content : proposer le bouton sans
- * montrer le différentiel reviendrait à demander à quelqu'un de signer
- * sans read.
+ * Restoring a backup overwrites the content: offering the button without
+ * showing the difference would amount to asking someone to sign without
+ * reading.
  */
 async function stub(evenement: Event): Promise<void> {
   const file = (evenement.target as HTMLInputElement).files?.[0]

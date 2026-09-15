@@ -4,10 +4,10 @@ import { appUser } from '~~/server/database/schema'
 import { requireRole } from '~~/server/utils/auth'
 
 /**
- * Les accounts autorisés. Rôle `tech` EXIGÉ.
+ * The authorized accounts. Role `tech` REQUIRED.
  *
- * C'est typiquement l'écran que Max ne doit jamais voir : savoir qui a
- * accès et avec quel rôle relève de l'infrastructure.
+ * This is exactly the screen Max must never see: knowing who has access,
+ * and with which role, belongs to the infrastructure.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'tech')

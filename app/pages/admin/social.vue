@@ -4,16 +4,15 @@ import { nb } from '#shared/utils/format'
 definePageMeta({ middleware: 'admin' })
 
 /**
- * Les accounts de réseaux sociaux, réglés par Max.
+ * The social network accounts, configured by Max.
  *
- * Connecter, ordonner, masquer, déconnecter : all ce qui décide de ce que
- * l'accueil montre. L'identité affichée — name, photo, bio — n'est PAS
- * éditable here : elle vient d'Instagram, et c'est ce qui la garde vraie.
- * Le rattachement d'une publication à un article, lui, reste dans l'écran
- * Publications.
+ * Connect, order, hide, disconnect: everything that decides what the home
+ * page shows. The displayed identity — name, picture, bio — is NOT editable
+ * here: it comes from Instagram, and that is what keeps it true. Attaching
+ * a post to an article stays in the Publications screen.
  */
 const route = useRoute()
-/** Message de back du feed OAuth, porté par l'URL. */
+/** Return message from the OAuth flow, carried by the URL. */
 const back = computed(() => route.query.instagram as string | undefined)
 
 const { data: accounts, refresh } = await useFetch('/api/admin/social-accounts', {
@@ -24,9 +23,9 @@ const state = ref<'repos' | 'enregistrement' | 'enregistré' | 'échec'>('repos'
 const message = ref('')
 
 /**
- * Pas de type explicit sur `$fetch` : celui de Nitro est déduit du
- * handler, si bien qu'un field renommé côté serveur fait échouer
- * `pnpm typecheck` here. Un type écrit à la main aurait all accepté.
+ * No explicit type on `$fetch`: Nitro's is inferred from the handler, so
+ * that a field renamed server-side makes `pnpm typecheck` fail here. A type
+ * written by hand would have accepted anything.
  */
 async function set(
   id: number,
@@ -43,7 +42,7 @@ async function set(
   }
 }
 
-/** Échange two accounts de place, en n'écrivant que les two positions. */
+/** Swaps two accounts, writing only the two positions. */
 async function move(i: number, sens: -1 | 1): Promise<void> {
   const list = accounts.value ?? []
   const here = list[i]
@@ -76,11 +75,10 @@ async function syncPosts(account?: number): Promise<void> {
 }
 
 /**
- * Déconnecter EFFACE les publications du account et leurs rattachements.
+ * Disconnecting ERASES the account's posts and their attachments.
  *
- * D'où la confirmation qui annonce le count exact : c'est définitif, et une
- * resynchronisation après reconnexion ne rendrait pas les rattachements aux
- * articles.
+ * Hence the confirmation announcing the exact count: it is final, and
+ * resyncing after reconnecting would not give the article attachments back.
  */
 async function signOut(account: {
   id: number

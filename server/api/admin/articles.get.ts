@@ -3,7 +3,7 @@ import { useDatabase } from '~~/server/database/client'
 import { article } from '~~/server/database/schema'
 import { requireRole } from '~~/server/utils/auth'
 
-/** Tous les articles, brouillons compris. Rôle `editor` suffisant. */
+/** Every article, drafts included. Role `editor` is enough. */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')
 

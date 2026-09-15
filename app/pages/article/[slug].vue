@@ -10,15 +10,15 @@ const { data: article, error } = await useFetch(() => `/api/articles/${slug.valu
 })
 
 /**
- * Le 404 de l'API ne se propage PAS all seul : useFetch le range dans
- * `error` et rend la page avec `data` à null, ce qui produirait un 200 sur
- * un article inexistant. Les robots l'indexeraient comme une page valid,
- * et c'est précisément ce que le plan cherche à éviter.
+ * The API's 404 does NOT propagate on its own: useFetch files it under
+ * `error` and renders the page with `data` at null, which would produce a
+ * 200 on a non-existent article. Robots would index it as a valid page, and
+ * that is precisely what the plan seeks to avoid.
  *
- * À savoir : le serveur de DÉVELOPPEMENT de Nuxt sert la page d'error avec
- * un code 200 malgré cela. Le build de production, lui, répond bien 404 —
- * c'est vérifié par test/api/seo.spec.ts, qui tourne contre un vrai build.
- * Inutile de « corriger » ce qu'on observe en développement.
+ * Worth knowing: Nuxt's DEVELOPMENT server serves the error page with a 200
+ * regardless. The production build does answer 404 — checked by
+ * test/api/seo.spec.ts, which runs against a real build. No need to « fix »
+ * what you observe in development.
  */
 if (error.value || !article.value) {
   throw createError({
@@ -42,13 +42,12 @@ useSeoMeta({
 /**
  * JSON-LD Article.
  *
- * Ce que lisent Google et les agrégateurs pour comprendre qu'il s'agit d'un
- * article, de qui et de quand — là où les tagNames Open Graph ne servent
- * qu'à l'aperçu de partage. Les two sont nécessaires, ils ne s'adressent
- * pas aux mêmes lecteurs.
+ * What Google and aggregators read to understand this is an article, by
+ * whom and when — where the Open Graph tags only serve the sharing
+ * preview. Both are needed; they do not address the same readers.
  */
-// Lu ICI et non dans la fonction ci-dessous : useRuntimeConfig doit être
-// appelé dans le context du composant, pas au moment du rendered de l'entête.
+// Read HERE and not in the function below: useRuntimeConfig must be called
+// in the component context, not while the head is being rendered.
 const baseUrl = useRuntimeConfig().public.baseUrl.replace(/\/+$/, '')
 
 useHead({
@@ -84,12 +83,12 @@ useHead({
   },
 })
 
-// Compteur de views : anonyme, sans cookie ni adresse IP. Uniquement côté
-// navigateur, sinon chaque rendered serveur — y compris ceux des robots —
-// gonflerait le compteur.
+// View counter: anonymous, no cookie and no IP address. Browser side only,
+// otherwise every server render — including the robots' — would inflate the
+// counter.
 onMounted(() => {
   $fetch(`/api/articles/${slug.value}/view`, { method: 'POST' }).catch(() => {
-    /* un compteur n'est pas une raison de casser la page */
+    /* a counter is no reason to break the page */
   })
 })
 </script>
@@ -124,7 +123,7 @@ onMounted(() => {
         moment de l'enregistrement, jamais ici. Rien de non assaini ne peut
         entrer en base, donc rien de non assaini ne peut en sortir.
         app/pages/article/[slug].vue reste inscrit dans la liste autorisée de
-        check-v-html.sh pour cette seule raison.
+        check-v-html.sh pour cette seule reason.
       -->
       <div class="prose" v-html="article.bodyHtml" />
 

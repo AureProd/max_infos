@@ -5,11 +5,11 @@ import { article, articleTag, media, tag } from '~~/server/database/schema'
 import { day } from '~~/server/utils/serialize'
 
 /**
- * Liste paginée des articles publiés.
+ * Paginated list of published articles.
  *
- * Le filtrage se fait en SQL et non en mémoire : c'est le gain direct du
- * passage en base, et la seule façon que cela tienne quand le count
- * d'articles grandira.
+ * Filtering happens in SQL and not in memory: that is the direct gain of
+ * moving to a database, and the only way this holds up as the article count
+ * grows.
  */
 export default defineEventHandler(async (event) => {
   const { tag: tagSlug, q, page, size } = await getValidatedQuery(event, listArticlesQuery.parse)
@@ -18,8 +18,8 @@ export default defineEventHandler(async (event) => {
   const conditions = [eq(article.status, 'published')]
 
   if (tagSlug) {
-    // Sous-requête plutôt que jointure : une jointure dupliquerait les
-    // lines d'un article portant plusieurs tags, et fausserait le total.
+    // A subquery rather than a join: a join would duplicate the rows of an
+    // article carrying several tags, and skew the total.
     const ids = db
       .select({ id: articleTag.articleId })
       .from(articleTag)

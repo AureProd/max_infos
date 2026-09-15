@@ -9,16 +9,16 @@ const { data: publications, refresh } = await useFetch('/api/admin/social-posts'
 const { data: articles } = await useFetch('/api/admin/articles', { key: 'admin-articles-liste' })
 const { data: linked } = await useFetch('/api/social-posts', { key: 'publications-liees' })
 
-/** Les publications découvertes et non again rattachées : le travail à faire. */
+/** Posts discovered and not yet attached: the work left to do. */
 const toAttach = computed(
   () => (publications.value ?? []).filter((p) => !p.hidden && !p.articleSlug).length,
 )
 
 /**
- * Le filtre par account.
+ * The per-account filter.
  *
- * Purement local : la list est déjà chargée, et la trier côté serveur
- * coûterait une requête par clic.
+ * Purely local: the list is already loaded, and sorting it server-side
+ * would cost a request per click.
  */
 const filterCount = ref('')
 
@@ -55,7 +55,7 @@ async function remove(id: number): Promise<void> {
   await refresh()
 }
 
-// --- Saisie manuelle -------------------------------------------------------
+// --- Manual entry ----------------------------------------------------------
 const input = ref({ network: 'linkedin' as 'linkedin' | 'instagram', url: '', caption: '' })
 const inputError = ref('')
 

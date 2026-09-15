@@ -5,39 +5,38 @@ import { media } from '~~/server/database/schema'
 import { readSetting } from '~~/server/utils/settings'
 
 /**
- * Ramasse all ce qui ressemble à `…MediaId` dans les réglages.
+ * Collects everything that looks like `…MediaId` in the settings.
  *
- * Un réglage ne stocke qu'un identifiant : sans résolution, la photo du CV
- * et le PDF téléchargeable ne sont qu'un count que le navigateur ne sait
- * pas afficher. Le balayage est GÉNÉRIQUE, par name de field, pour qu'un
- * futur `bannerMediaId` soit servi sans qu'on y repense.
+ * A setting stores only an identifier: without resolution, the CV photo and
+ * the downloadable PDF are just a number the browser cannot display. The
+ * sweep is GENERIC, by field name, so that a future `bannerMediaId` gets
+ * served without anyone having to think about it again.
  */
-function mediaIds(value: unknown, trouves = new Set<number>()): Set<number> {
+function mediaIds(value: unknown, found = new Set<number>()): Set<number> {
   if (Array.isArray(value)) {
-    for (const v of value) mediaIds(v, trouves)
+    for (const v of value) mediaIds(v, found)
   } else if (value && typeof value === 'object') {
     for (const [key, v] of Object.entries(value)) {
-      if (key.endsWith('MediaId') && typeof v === 'number') trouves.add(v)
-      else mediaIds(v, trouves)
+      if (key.endsWith('MediaId') && typeof v === 'number') found.add(v)
+      else mediaIds(v, found)
     }
   }
-  return trouves
+  return found
 }
 
 /**
- * Tous les réglages de portée PUBLIQUE.
+ * Every setting of PUBLIC scope.
  *
- * Le filtre sur `scope` est la frontière entre ce que Max règle et ce que
- * seul JB voit. Il est appliqué en SQL, et non en filtrant la réponse après
- * coup : un oubli de filtrage côté JavaScript serait invisible à la
- * relecture, alors qu'here la requête ne ramène jamais les réglages
- * technical.
+ * The `scope` filter is the border between what Max configures and what
+ * only JB sees. It is applied in SQL, not by filtering the response
+ * afterwards: a missing filter on the JavaScript side would be invisible on
+ * review, whereas here the query never brings back the technical settings.
  */
 export default defineEventHandler(async () => {
-  // La list des clés publicOnes vient de SETTING_SCOPE, pas de ce qui se
-  // trouve en base : un réglage jamais enregistré renvoie sa value par
-  // défaut au lieu d'être absent, et le site s'affiche dès la première
-  // installation.
+  // The list of public keys comes from SETTING_SCOPE, not from what
+  // happens to be in the database: a setting never saved returns its
+  // default instead of being absent, and the site renders from the very
+  // first install.
   const publicOnes = SETTING_KEYS.filter((key) => SETTING_SCOPE[key] === 'public')
 
   const output: Record<string, unknown> = {}
@@ -51,8 +50,8 @@ export default defineEventHandler(async () => {
         .where(inArray(media.id, ids))
     : []
 
-  // Une table indexée par identifiant plutôt qu'une list : la page lit
-  // `mediaItems[cv.photoMediaId]` sans avoir à chercher.
+  // A table indexed by identifier rather than a list: the page reads
+  // `mediaItems[cv.photoMediaId]` without having to search.
   return {
     ...output,
     mediaItems: Object.fromEntries(files.map((f) => [f.id, f])),

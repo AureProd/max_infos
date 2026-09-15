@@ -9,15 +9,14 @@ import {
 } from '~~/server/utils/instagram'
 
 /**
- * Synchronise les publications Instagram. Rôle `editor`.
+ * Synchronises the Instagram posts. Role `editor`.
  *
- * Elle relevait du technique quand la connection elle-même en relevait. Les
- * accounts appartiennent désormais à Max : il les signedIn, il les affiche,
- * il les resynchronise. Les secrets de l'application Meta, eux, ne quittent
- * toujours pas le serveur.
+ * It was technical back when the connection itself was. The accounts now
+ * belong to Max: he connects them, displays them, resynchronises them. The
+ * Meta application secrets, for their part, still never leave the server.
  *
- * Un account en échec — token expiré, quota atteint — est SIGNALÉ, il
- * n'interrompt pas les autres.
+ * A failing account — expired token, quota reached — is REPORTED; it does
+ * not interrupt the others.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')
@@ -43,8 +42,8 @@ export default defineEventHandler(async (event) => {
         continue
       }
       const summary = await syncPosts(await readMedia(token), account.id)
-      // Le profile aussi : c'est lui qui porte le libellé et la photo de la
-      // section, et il change sans prévenir.
+      // The profile too: it carries the section's label and picture, and it
+      // changes without warning.
       await saveAccount(await readProfile(token))
       summaries.push({ ...account, ...summary, error: null })
     } catch (e) {

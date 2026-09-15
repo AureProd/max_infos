@@ -5,18 +5,18 @@ import { useDatabase } from '~~/server/database/client'
 import { article, articleView } from '~~/server/database/schema'
 
 /**
- * Incrémente le compteur de views d'un article.
+ * Increments an article's view counter.
  *
- * Aucune adresse IP, aucun cookie, aucun identifiant de visiteur : un
- * entier par article et par day, et rien d'autre. L'incrément se fait en
- * une seule statement, sans lecture préalable, donc sans course entre
- * two requêtes simultanées.
+ * No IP address, no cookie, no visitor identifier: one integer per article
+ * and per day, and nothing else. The increment is a single statement,
+ * without a prior read, and therefore without a race between two concurrent
+ * requests.
  */
 export default defineEventHandler(async (event) => {
-  // getValidatedRouterParams et non slugParam.parse() : le first traduit
-  // un échec de validation en 400, le second laisse remonter une ZodError
-  // que Nitro transforme en 500. Un slug mal formé est une error du
-  // client, pas une panne du serveur — et un 500 réveille une astreinte.
+  // getValidatedRouterParams and not slugParam.parse(): the former turns a
+  // validation failure into a 400, the latter lets a ZodError bubble up,
+  // which Nitro turns into a 500. A malformed slug is a client error, not a
+  // server failure — and a 500 wakes someone on call.
   const { slug } = await getValidatedRouterParams(event, z.object({ slug: slugParam }).parse)
   const db = useDatabase()
 

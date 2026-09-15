@@ -5,10 +5,10 @@ import { article, articleSocialPost, socialAccount, socialPost } from '~~/server
 import { iso } from '~~/server/utils/serialize'
 
 /**
- * Les publications sociales visible.
+ * The visible social posts.
  *
- * `raw` n'est JAMAIS renvoyé : c'est la charge brute de Meta, elle peut
- * contenir des fields qui n'ont rien à faire sur une page publique.
+ * `raw` is NEVER returned: it is Meta's payload, and it can hold fields
+ * that have no business on a public page.
  */
 export default defineEventHandler(async (event) => {
   const { network, article: slug } = await getValidatedQuery(event, listSocialQuery.parse)
@@ -28,8 +28,8 @@ export default defineEventHandler(async (event) => {
       thumbnailUrl: socialPost.thumbnailUrl,
       permalink: socialPost.permalink,
       postedAt: socialPost.postedAt,
-      // Le account d'origine, pour que la page d'une publication sache sous
-      // quel @ la signer. Le name d'user est public par nature.
+      // The originating account, so a post's page knows which @ to sign it
+      // with. The username is public by nature.
       accountUsername: socialAccount.username,
     })
     .from(socialPost)

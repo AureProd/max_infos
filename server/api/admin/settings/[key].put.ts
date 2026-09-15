@@ -4,12 +4,12 @@ import { requireRole } from '~~/server/utils/auth'
 import { writeSetting } from '~~/server/utils/settings'
 
 /**
- * Écrit un réglage. Le rôle exigé DÉPEND DE LA CLÉ.
+ * Writes a setting. The required role DEPENDS ON THE KEY.
  *
- * C'est le point le plus délicat du projet : une seule route sert des
- * réglages de two portées. Le contrôle se fait donc par clé, à partir de
- * la même table que la lecture — add un réglage technique le protège
- * sans rien écrire de plus.
+ * This is the trickiest point of the project: a single route serves
+ * settings of two scopes. The check is therefore done by key, from the same
+ * table as the read — adding a technical setting protects it with nothing
+ * else to write.
  */
 export default defineEventHandler(async (event) => {
   const { key } = await getValidatedRouterParams(

@@ -6,10 +6,10 @@ import { socialPost } from '~~/server/database/schema'
 import { requireRole } from '~~/server/utils/auth'
 
 /**
- * Masque ou réaffiche une publication.
+ * Hides a post or shows it again.
  *
- * La synchronisation Instagram ne touche JAMAIS ce field : c'est une
- * décision de Max, qu'un passage automatique n'a pas à défaire.
+ * The Instagram sync NEVER touches this field: it is Max's decision, and an
+ * automatic run has no business undoing it.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')

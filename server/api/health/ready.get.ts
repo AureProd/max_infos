@@ -1,26 +1,25 @@
 import { checkDatabase } from '~~/server/database/client'
 
 /**
- * Sonde de disponibilité : « la base répond-elle ? ».
+ * Readiness probe: « does the database answer? ».
  *
- * Séparée de /api/health à dessein. La vivacité conditionne le routage
- * Traefik — un conteneur unhealthy ne reçoit plus de trafic — et l'y lier
- * rendrait le site injoignable au moindre hoquet de PostgreSQL. Celle-ci
- * sert aux vérifications de déploiement et à la supervision.
+ * Deliberately separate from /api/health. Liveness drives Traefik routing —
+ * an unhealthy container stops receiving traffic — and tying it to this one
+ * would make the site unreachable on the slightest PostgreSQL hiccup. This
+ * probe serves deployment checks and monitoring.
  *
- * Renvoie 503 quand la base est injoignable : c'est le code que lisent les
- * orchestrateurs, et il ne doit pas être confondu avec une error 500 de
- * l'application.
+ * Returns 503 when the database is unreachable: that is the code
+ * orchestrators read, and it must not be confused with an application 500.
  *
- * Ce path n'a pas de test automatisé, et c'est délibéré : @nuxt/test-utils
- * attend que « / » réponde 200 before de lancer les tests, or le rendered de
- * l'accueil appelle /api/site — donc avec une base coupée, le serveur de
- * test ne démarre jamais. Le comportement a été vérifié à la main.
+ * This path has no automated test, deliberately: @nuxt/test-utils waits for
+ * « / » to answer 200 before running the tests, and rendering the home page
+ * calls /api/site — so with the database down, the test server never
+ * starts. The behaviour was checked by hand.
  *
- * Ce que cet échec a révélé mérite une décision au lot 9 : aujourd'hui, une
- * base indisponible fait tomber le SITE ENTIER, y compris les pages qui
- * pourraient s'en passer. Les `routeRules` de Nitro (cache SWR) permettraient
- * de continuer à servir la dernière version rendue.
+ * What that failure revealed deserves a decision in lot 9: today an
+ * unavailable database brings down the WHOLE SITE, including the pages that
+ * could do without it. Nitro's `routeRules` (SWR cache) would let us keep
+ * serving the last rendered version.
  */
 export default defineEventHandler(async (event) => {
   try {
@@ -30,8 +29,8 @@ export default defineEventHandler(async (event) => {
     setResponseStatus(event, 503)
     return {
       status: 'degraded' as const,
-      database: 'injoignable' as const,
-      raison: error instanceof Error ? error.message : String(error),
+      database: 'unreachable' as const,
+      reason: error instanceof Error ? error.message : String(error),
     }
   }
 })

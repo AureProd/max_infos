@@ -20,8 +20,8 @@ async function saveAll(): Promise<void> {
 }
 
 /**
- * Les rubriques du CV, dans l'ordre où elles s'affichent.
- * Chaque section ET chaque entrée porte son clean interrupteur.
+ * The CV sections, in the order they appear.
+ * Each section AND each entry carries its own switch.
  */
 const SECTIONS = [
   { key: 'education' as const, label: 'Formations' },
@@ -39,11 +39,11 @@ function removeEntry(section: 'education' | 'experience' | 'engagements', i: num
 }
 
 /**
- * Les fields de contact dont la publication mérite réflexion.
+ * The contact fields whose publication deserves a second thought.
  *
- * Le CV comporte des données personnelles qui n'ont rien à faire sur une
- * page publique indexée. L'avertissement s'affiche au moment de rendre
- * l'un d'eux visible, pas après.
+ * The CV holds personal data that has no place on an indexed public page.
+ * The warning shows when one of them is about to be made visible, not
+ * afterwards.
  */
 const SENSITIVE = /t[ée]l[ée]phone|adresse|naissance|portable|mobile|domicile/i
 
@@ -56,8 +56,8 @@ function addContact(): void {
     key: '',
     label: '',
     value: '',
-    // Par défaut MASQUÉ : un field ajouté ne doit pas devenir public par
-    // inadvertance.
+    // HIDDEN by default: a field added must not become public by
+    // accident.
     visible: false,
     sensitive: false,
   })

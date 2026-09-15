@@ -5,11 +5,11 @@ import { requireRole } from '~~/server/utils/auth'
 import { allowedType, keyOf, kindOf, publicUrl, uploadUrl } from '~~/server/utils/storage'
 
 /**
- * Prépare un téléversement : enregistre le média et renvoie une URL signée.
+ * Prepares an upload: records the medium and returns a signed URL.
  *
- * La row est créée AVANT le transfert. Un file téléversé sans row
- * serait invisible et impossible à nettoyer ; une row sans file se
- * repère et se supprime. On préfère la seconde panne à la première.
+ * The row is created BEFORE the transfer. A file uploaded without a row
+ * would be invisible and impossible to clean up; a row without a file is
+ * easy to spot and delete. We prefer the second failure to the first.
  */
 export default defineEventHandler(async (event) => {
   const u = await requireRole(event, 'editor')

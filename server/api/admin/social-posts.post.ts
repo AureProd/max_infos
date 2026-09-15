@@ -5,11 +5,11 @@ import { requireRole } from '~~/server/utils/auth'
 import { parseInstagramUrl } from '~~/server/utils/links'
 
 /**
- * Enregistre une publication input à la main.
+ * Records a post entered by hand.
  *
- * C'est la seule voie pour LinkedIn : le scope `r_member_social` est fermé
- * aux fresh applications, donc read ses propres publications est
- * impossible. Contrainte vérifiée, à ne pas réapprendre.
+ * It is the only path for LinkedIn: the `r_member_social` scope is closed
+ * to new applications, so reading one's own posts is impossible. A
+ * verified constraint, not to be learnt twice.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')
@@ -21,8 +21,8 @@ export default defineEventHandler(async (event) => {
     .insert(socialPost)
     .values({
       network: d.network,
-      // Pas d'externalId : il vient de l'API. Les NULL étant distincts sous
-      // PostgreSQL, plusieurs saisies manuelles coexistent sans conflit.
+      // No externalId: that comes from the API. NULLs being distinct under
+      // PostgreSQL, several manual entries coexist without conflict.
       externalId: null,
       shortcode: ref?.shortcode ?? null,
       url: d.url,

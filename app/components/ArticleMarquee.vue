@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Bandeau défilant des titres — la signature visuelle du site. */
+/** Scrolling banner of titles — the site's visual signature. */
 const { data } = await useFetch('/api/articles', { key: 'marquee', query: { size: 50 } })
 const run = computed(() => {
   const items = data.value?.items ?? []

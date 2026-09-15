@@ -5,14 +5,14 @@ import { requireRole } from '~~/server/utils/auth'
 import { tokenKey } from '~~/server/utils/instagram'
 
 /**
- * Les accounts connectés, masqués COMPRIS. Rôle `editor`.
+ * The connected accounts, hidden ones INCLUDED. Role `editor`.
  *
- * Masqués compris, sans quoi un account retiré de l'accueil deviendrait
- * impossible à y remettre.
+ * Hidden ones included, otherwise an account removed from the home page
+ * would become impossible to put back.
  *
- * L'état du token est joint here : c'est le même écran qui prévient qu'une
- * reconnexion approche. Sa DATE seule est lue — le `ciphertext` ne quitte
- * jamais la base.
+ * The token state is joined here: it is the same screen that warns a
+ * reconnection is coming. Only its DATE is read — the `ciphertext` never
+ * leaves the database.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')
@@ -49,9 +49,9 @@ export default defineEventHandler(async (event) => {
 
   return accounts.map((account) => {
     const token = tokens.find((j) => j.key === tokenKey(account.id))
-    // Le token longue durée vaut 60 jours. On alerte à 15 jours de la fin :
-    // passé l'expiration, il ne se rafraîchit plus et il faut refaire l'OAuth
-    // à la main.
+    // The long-lived token lasts 60 days. We warn 15 days before the end:
+    // past expiry it cannot be refreshed any more, and the OAuth dance has
+    // to be redone by hand.
     const ageDays = token ? Math.floor((Date.now() - token.updatedAt.getTime()) / 86_400_000) : null
 
     return {

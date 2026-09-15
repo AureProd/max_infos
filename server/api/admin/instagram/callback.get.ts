@@ -9,11 +9,12 @@ import {
 } from '~~/server/utils/instagram'
 
 /**
- * Retour d'Instagram : échange le code contre un token long, chiffré en base.
+ * Return from Instagram: exchanges the code for a long-lived token,
+ * encrypted in the database.
  *
- * Le rôle est exigé here AUSSI, et pas seulement à l'aller : sans cela,
- * n'importe qui connaissant l'URL pourrait y faire aboutir un code et
- * remplacer le token d'un account.
+ * The role is required here TOO, not only on the way out: without that,
+ * anyone knowing the URL could land a code on it and replace an account's
+ * token.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')
@@ -44,10 +45,10 @@ export default defineEventHandler(async (event) => {
   )
   const token = await extendToken(short, config.instagramAppSecret)
 
-  // Lire le profile AVANT d'save le token : c'est lui qui dit QUEL
-  // account vient d'être autorisé. Sans cette lecture, on saurait qu'un
-  // account a été connecté sans savoir lequel — et reconnecter un account
-  // known en créerait un doublon.
+  // Read the profile BEFORE saving the token: it is what says WHICH
+  // account was just authorized. Without that read, we would know an
+  // account was connected without knowing which one — and reconnecting a
+  // known account would create a duplicate.
   const account = await saveAccount(await readProfile(token))
   await saveToken(account, token)
 

@@ -6,9 +6,9 @@ import { article } from '~~/server/database/schema'
 import { requireRole } from '~~/server/utils/auth'
 
 /**
- * Publie ou dépublie. Séparé de l'record à dessein : publier est un
- * geste dont on doit pouvoir dater et tracer la décision, pas un field parmi
- * d'autres dans un formulaire qu'on enregistre machinalement.
+ * Publishes or unpublishes. Deliberately separate from saving: publishing
+ * is an act whose decision must be datable and traceable, not one field
+ * among others in a form saved out of habit.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')
@@ -23,8 +23,8 @@ export default defineEventHandler(async (event) => {
     .limit(1)
   if (!existing) throw createError({ statusCode: 404, statusMessage: 'Article introuvable' })
 
-  // La contrainte SQL l'exige : publié implique une date. On la fournit
-  // plutôt que de laisser PostgreSQL renvoyer une error à Max.
+  // The SQL constraint requires it: published implies a date. We supply it
+  // rather than letting PostgreSQL throw an error at Max.
   const date =
     status === 'published'
       ? publishedAt

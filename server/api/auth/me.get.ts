@@ -1,10 +1,10 @@
 import { currentUser } from '~~/server/utils/auth'
 
 /**
- * L'user courant, ou null.
+ * The current user, or null.
  *
- * Répond 200 avec null plutôt que 401 : le site est public, « personne
- * n'est connecté » est un état normal, pas une error.
+ * Answers 200 with null rather than 401: the site is public, « nobody is
+ * signed in » is a normal state, not an error.
  */
 export default defineEventHandler(async (event) => {
   return { user: await currentUser(event) }

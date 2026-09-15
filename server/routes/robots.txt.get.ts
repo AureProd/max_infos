@@ -1,8 +1,9 @@
 /**
  * robots.txt.
  *
- * Le back-office et la connection sont explicitement écartés : ils portent
- * déjà `noindex`, mais un robot qui ne lit pas la page ne le verra jamais.
+ * The back-office and the sign-in page are excluded explicitly: they
+ * already carry `noindex`, but a robot that does not read the page will
+ * never see it.
  */
 export default defineEventHandler((event) => {
   const { public: pub } = useRuntimeConfig()
@@ -10,8 +11,8 @@ export default defineEventHandler((event) => {
 
   setHeader(event, 'content-type', 'text/plain; charset=utf-8')
 
-  // Sur un site non publié, on interdit all : une préproduction indexée
-  // fait doublon avec la production et lui nuit.
+  // On an unpublished site we disallow everything: an indexed staging
+  // environment duplicates production and hurts it.
   if (pub.appEnv !== 'prod') {
     return `User-agent: *\nDisallow: /\n`
   }

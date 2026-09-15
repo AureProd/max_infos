@@ -2,12 +2,11 @@
 const { user, peut, signOut } = useUser()
 
 /**
- * Les écrans technical ne sont PAS dans le menu de Max.
+ * The technical screens are NOT in Max's menu.
  *
- * Ce masquage est du confort, pas une sécurité : le serveur refuse de
- * toute façon, et c'est lui seul qui protège. Mais un menu qui propose des
- * écrans interdits donne le sentiment d'un outil qui n'est pas fait pour
- * soi.
+ * This hiding is comfort, not security: the server refuses anyway, and it
+ * alone protects. But a menu offering forbidden screens makes a tool feel
+ * like it was not built for you.
  */
 const seesTech = peut('tech')
 

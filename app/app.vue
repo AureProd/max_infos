@@ -2,11 +2,11 @@
 const { data: site } = await useSite()
 
 /**
- * La palette est injectée EN RENDU SERVEUR.
+ * The palette is injected DURING SERVER RENDERING.
  *
- * Le style part avec le HTML : la page ne s'affiche jamais avec le thème
- * par défaut avant de basculer sur celui de Max. Un chargement côté
- * navigateur aurait produit ce clignotement à chaque visite.
+ * The style leaves with the HTML: the page never shows with the default
+ * theme before switching to Max's. Loading it in the browser would have
+ * produced that flicker on every visit.
  */
 const variables = computed(() => {
   const v = site.value?.theme?.variables ?? {}

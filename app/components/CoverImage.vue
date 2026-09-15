@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
- * Couverture d'article. Les visuels d'origine sont en portrait 4:5 sur fond
- * gris plain : on conserve leur cadrage natif par défaut et on éteint le
- * fond plain, qui éblouit sur un thème sombre.
+ * Article cover. The original artwork is 4:5 portrait on a flat grey
+ * background: we keep its native framing by default and turn off the flat
+ * background, which glares on a dark theme.
  */
 const props = withDefaults(
   defineProps<{

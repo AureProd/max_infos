@@ -1,7 +1,7 @@
 import type { RouterConfig } from '@nuxt/schema'
 
-// Remplace le `scrollBehavior` de l'ancien src/router/index.js : toute
-// navigation ramène en haut de page.
+// Replaces the `scrollBehavior` of the old src/router/index.js: every
+// navigation returns to the top of the page.
 export default {
   scrollBehavior: () => ({ top: 0 }),
 } satisfies RouterConfig

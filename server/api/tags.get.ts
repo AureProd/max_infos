@@ -3,13 +3,12 @@ import { useDatabase } from '~~/server/database/client'
 import { article, articleTag, tag } from '~~/server/database/schema'
 
 /**
- * Les tags, avec le count d'articles publiés qui les portent.
+ * The tags, with the count of published articles carrying them.
  *
- * Le tri se fait ICI, en JavaScript, et non par un ORDER BY : les images
- * alpine de PostgreSQL n'embarquent pas les locales ICU complètes, et
- * l'ordre des tags changerait selon l'image utilisée. `localeCompare`
- * donne le même résultat partout, et c'est déjà l'ordre qu'affichait la
- * maquette.
+ * Sorting happens HERE, in JavaScript, and not through an ORDER BY: the
+ * alpine PostgreSQL images do not ship the full ICU locales, and the order
+ * of tags would change with the image used. `localeCompare` gives the same
+ * result everywhere, and it is already the order the mock-up displayed.
  */
 export default defineEventHandler(async () => {
   const db = useDatabase()

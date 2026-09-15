@@ -4,7 +4,7 @@ import { article } from '~~/server/database/schema'
 import { derivedFields, freeSlug, replaceTags, tagsOf } from '~~/server/utils/articles'
 import { requireRole } from '~~/server/utils/auth'
 
-/** Crée un article, toujours en draft. */
+/** Creates an article, always as a draft. */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')
   const body = await readValidatedBody(event, articleCreation.parse)
@@ -19,8 +19,8 @@ export default defineEventHandler(async (event) => {
       dek: body.dek ?? null,
       bodyMd: body.bodyMd,
       ...derivedFields(body.bodyMd),
-      // Un article naît TOUJOURS en draft : publier est un geste
-      // explicit, jamais un effet de bord de la création.
+      // An article is ALWAYS born a draft: publishing is an explicit act,
+      // never a side effect of creation.
       status: 'draft',
       coverMediaId: body.coverMediaId ?? null,
       seoTitle: body.seoTitle ?? null,

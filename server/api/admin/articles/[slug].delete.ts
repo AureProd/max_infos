@@ -6,9 +6,8 @@ import { article } from '~~/server/database/schema'
 import { requireRole } from '~~/server/utils/auth'
 
 /**
- * Supprime un article. Les links (tags, déclinaisons, views) partent en
- * cascade ; les publications sociales et les médias RESTENT — ils existent
- * indépendamment.
+ * Deletes an article. The links (tags, variants, views) go on cascade;
+ * social posts and media STAY — they exist independently.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')

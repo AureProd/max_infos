@@ -6,11 +6,11 @@ import { article, articleSocialPost, socialPost } from '~~/server/database/schem
 import { requireRole } from '~~/server/utils/auth'
 
 /**
- * Rattache une publication à un article, ou la détache.
+ * Attaches a post to an article, or detaches it.
  *
- * Le link est FACULTATIF des two côtés : un article peut n'avoir aucune
- * déclinaison, une publication peut exister sans article. D'où une table de
- * jonction et non une clé étrangère.
+ * The link is OPTIONAL on both sides: an article may have no variant, a
+ * post may exist without an article. Hence a junction table rather than a
+ * foreign key.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
     .limit(1)
   if (!pub) throw createError({ statusCode: 404, statusMessage: 'Publication introuvable' })
 
-  // Détacher : on retire toute liaison existante et on s'arrête.
+  // Detaching: remove any existing link and stop there.
   await db.delete(articleSocialPost).where(eq(articleSocialPost.socialPostId, id))
   if (!articleSlug) return { linked: null }
 

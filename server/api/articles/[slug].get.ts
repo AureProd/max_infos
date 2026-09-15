@@ -12,12 +12,12 @@ import {
 } from '~~/server/database/schema'
 import { day, iso } from '~~/server/utils/serialize'
 
-/** Un article publié, avec ses tags et ses déclinaisons sociales. */
+/** A published article, with its tags and its social variants. */
 export default defineEventHandler(async (event) => {
-  // getValidatedRouterParams et non slugParam.parse() : le first traduit
-  // un échec de validation en 400, le second laisse remonter une ZodError
-  // que Nitro transforme en 500. Un slug mal formé est une error du
-  // client, pas une panne du serveur — et un 500 réveille une astreinte.
+  // getValidatedRouterParams and not slugParam.parse(): the former turns a
+  // validation failure into a 400, the latter lets a ZodError bubble up,
+  // which Nitro turns into a 500. A malformed slug is a client error, not a
+  // server failure — and a 500 wakes someone on call.
   const { slug } = await getValidatedRouterParams(event, z.object({ slug: slugParam }).parse)
   const db = useDatabase()
 
@@ -42,8 +42,8 @@ export default defineEventHandler(async (event) => {
     .where(eq(article.slug, slug))
     .limit(1)
 
-  // Un draft doit être introuvable, pas « interdit » : répondre 403
-  // révélerait son existence.
+  // A draft must be not found, not « forbidden »: answering 403 would
+  // reveal its existence.
   if (!trouve || !trouve.publishedAt) {
     throw createError({ statusCode: 404, statusMessage: 'Article introuvable' })
   }

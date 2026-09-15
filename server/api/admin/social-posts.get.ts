@@ -4,10 +4,10 @@ import { socialAccount, socialPost } from '~~/server/database/schema'
 import { requireRole } from '~~/server/utils/auth'
 
 /**
- * Toutes les publications, masquées comprises. Rôle `editor`.
+ * Every post, hidden ones included. Role `editor`.
  *
- * `raw` reste exclu même here : Max n'a rien à faire de la charge brute de
- * Meta, et la laisser passer serait une habitude à ne pas prendre.
+ * `raw` stays excluded even here: Max has no use for Meta's payload, and
+ * letting it through would be a habit not worth starting.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')
@@ -25,15 +25,15 @@ export default defineEventHandler(async (event) => {
       hidden: socialPost.hidden,
       position: socialPost.position,
       source: socialPost.source,
-      // De quel account vient la publication : avec plusieurs accounts, une
-      // list qui ne le dit pas devient illisible. Jointure EXTERNE — une
-      // input manuelle n'a pas de account.
+      // Which account the post comes from: with several accounts, a list
+      // that does not say becomes unreadable. An OUTER join — a manual
+      // entry has no account.
       accountId: socialPost.accountId,
       accountUsername: socialAccount.username,
       accountAvatarUrl: socialAccount.avatarUrl,
-      // L'article rattaché, en SOUS-REQUÊTE et non en jointure : la table de
-      // liaison autorise plusieurs articles par publication, et une jointure
-      // dupliquerait alors la row. L'écran n'en attached qu'un.
+      // The attached article, as a SUBQUERY rather than a join: the link
+      // table allows several articles per post, and a join would then
+      // duplicate the row. The screen only attaches one.
       articleSlug: sql<string | null>`(
         select a.slug
         from article_social_post asp

@@ -1,11 +1,11 @@
 import { signInOrReject } from '~~/server/utils/auth'
 
 /**
- * Connexion Google : départ et back sur la même route.
+ * Google sign-in: departure and return on the same route.
  *
- * nuxt-auth-utils tient all le feed OAuth — l'état anti-CSRF, l'échange du
- * code, la récupération du profile. Il ne reste que la décision qui nous
- * appartient : cette adresse est-elle sur la list blanche ?
+ * nuxt-auth-utils handles the whole OAuth flow — the anti-CSRF state, the
+ * code exchange, fetching the profile. All that is left is the decision
+ * that belongs to us: is this address on the allow list?
  */
 export default defineOAuthGoogleEventHandler({
   config: { scope: ['email', 'profile'] },
@@ -22,9 +22,9 @@ export default defineOAuthGoogleEventHandler({
       avatarUrl: profile.picture ?? null,
     })
 
-    // Seul l'IDENTIFIANT est scellé dans le cookie. Le rôle est relu en base
-    // à chaque requête : un droit retiré prend effet all de suite, et non
-    // au bout des quatorze jours de la session.
+    // Only the IDENTIFIER is sealed in the cookie. The role is re-read from
+    // the database on every request: a revoked right takes effect straight
+    // away, not after the session's fourteen days.
     await setUserSession(event, { user: { id: signedIn.id } })
 
     return sendRedirect(event, '/admin')

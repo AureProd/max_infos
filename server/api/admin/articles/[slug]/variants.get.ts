@@ -7,11 +7,11 @@ import { requireRole } from '~~/server/utils/auth'
 import { DEFAULT_TEMPLATES, resolve, VARIABLES } from '~~/server/utils/templates'
 
 /**
- * Les squelettes de déclinaison d'un article, variables déjà résolues.
+ * An article's variant skeletons, variables already resolved.
  *
- * Le but est que Max parte d'un text à corriger plutôt que d'une page
- * blanche. Le site ne publie rien : il prépare, Max copied et publie
- * lui-même.
+ * The point is that Max starts from a text to fix rather than a blank page.
+ * The site publishes nothing: it prepares, Max copies and publishes
+ * himself.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')

@@ -4,7 +4,7 @@ const { data: list } = await useFetch('/api/articles', { key: 'a-propos', query:
 
 const links = computed(() => site.value?.contact.fields.filter((f) => f.visible) ?? [])
 
-/** Les identifiants de média sont résolus par /api/site ; here on ne fait que read. */
+/** Media identifiers are resolved by /api/site; here we only read. */
 const mediaItems = computed(() => site.value?.mediaItems ?? {})
 const photo = computed(() => {
   const id = site.value?.cv.photoMediaId

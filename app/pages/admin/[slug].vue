@@ -18,7 +18,7 @@ const tags = computed({
   },
 })
 
-// Enregistrement automatique : Max écrit, il n'a pas à penser à sauvegarder.
+// Automatic saving: Max writes, he does not have to think about saving.
 let timer: ReturnType<typeof setTimeout> | undefined
 watch(modified, (change) => {
   if (!change) return
@@ -26,7 +26,7 @@ watch(modified, (change) => {
   timer = setTimeout(save, 1500)
 })
 
-// Un départ de page avec des modifications non parties perdrait du text.
+// Leaving the page with unsent edits would lose text.
 onBeforeRouteLeave(async () => {
   if (modified.value) await save()
 })
@@ -94,7 +94,7 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
             Le HTML vient du SERVEUR, rendu et assaini par le même moteur que
             l'enregistrement. Ce que Max voit ici est exactement ce qui sera
             publié. app/pages/admin/[slug].vue est inscrit dans la liste
-            autorisée de scripts/hooks/check-v-html.sh pour cette raison.
+            autorisée de scripts/hooks/check-v-html.sh pour cette reason.
           -->
           <div class="prose" v-html="preview.html" />
         </div>

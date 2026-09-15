@@ -7,7 +7,7 @@ await load()
 const { data: articles } = await useFetch('/api/admin/articles', { key: 'accueil-articles' })
 const published = computed(() => (articles.value ?? []).filter((a) => a.status === 'published'))
 
-/** Les sections de la page d'accueil, dans l'ordre où elles s'affichent. */
+/** The home page sections, in the order they appear. */
 const LABELS: Record<string, string> = {
   hero: 'Accroche',
   front: 'À la une',

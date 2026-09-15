@@ -5,10 +5,10 @@ import { article } from '~~/server/database/schema'
 const x = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 
 /**
- * Plan du site : les pages publicOnes et les articles publiés.
+ * Sitemap: the public pages and the published articles.
  *
- * /admin et /login n'y figurent PAS — elles portent déjà
- * `noindex`, et les lister reviendrait à indiquer où frapper.
+ * /admin and /login are NOT in it — they already carry `noindex`, and
+ * listing them would amount to pointing at where to knock.
  */
 export default defineEventHandler(async (event) => {
   const { public: pub } = useRuntimeConfig()

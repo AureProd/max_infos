@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     .orderBy(desc(media.createdAt))
     .limit(200)
 
-  // Dit clairement si le stockage est configuré, pour que l'admin affiche
-  // « R2 n'est pas branché » plutôt qu'un bouton qui échoue.
+  // States plainly whether storage is configured, so the admin can show
+  // « R2 is not plugged in » rather than a button that fails.
   return { items, stockage: storageConfigured() }
 })

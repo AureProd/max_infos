@@ -10,11 +10,11 @@ export interface User {
 }
 
 /**
- * L'user connecté, chargé une fois et partagé.
+ * The signed-in user, loaded once and shared.
  *
- * On interroge /api/auth/me plutôt que de read le cookie : le rôle qui
- * account est celui de la BASE, relu à chaque requête. Un droit retiré
- * prend ainsi effet all de suite.
+ * We query /api/auth/me rather than read the cookie: the role that counts
+ * is the one in the DATABASE, re-read on every request. A revoked right
+ * therefore takes effect straight away.
  */
 export function useUser() {
   const { data, refresh } = useFetch<{ user: User | null }>('/api/auth/me', {
@@ -27,11 +27,11 @@ export function useUser() {
     user,
     signedIn: computed(() => user.value !== null),
     /**
-     * Masque ce que l'user n'a pas le droit de voir.
+     * Hides what the user is not allowed to see.
      *
-     * CE N'EST PAS UNE SÉCURITÉ : c'est du confort, pour que Max ne voie
-     * pas des écrans qui ne le concernent pas. La sécurité est le refus du
-     * serveur, vérifié par test/api/authorization.spec.ts.
+     * THIS IS NOT SECURITY: it is comfort, so that Max is not shown screens
+     * that do not concern him. Security is the server's refusal, checked by
+     * test/api/authorization.spec.ts.
      */
     peut: (required: Role) => computed(() => isAllowed(user.value?.role, required)),
     refresh: refresh,

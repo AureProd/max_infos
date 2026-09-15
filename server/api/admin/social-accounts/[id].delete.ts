@@ -5,12 +5,12 @@ import { requireRole } from '~~/server/utils/auth'
 import { removeToken } from '~~/server/utils/instagram'
 
 /**
- * Déconnecte un account. Rôle `editor`.
+ * Disconnects an account. Role `editor`.
  *
- * DÉFINITIF : le token est oublié, la row supprimée, et ses publications
- * partent avec elle par la cascade de la clé étrangère — leurs rattachements
- * aux articles compris. C'est la décision prise ; l'écran prévient en
- * annonçant le count de publications concernées.
+ * FINAL: the token is forgotten, the row deleted, and its posts go with it
+ * through the foreign key cascade — including their attachments to
+ * articles. That is the decision taken; the screen warns by announcing how
+ * many posts are affected.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')
@@ -20,9 +20,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Identifiant de compte invalide' })
   }
 
-  // Le token d'abord : si la suppression de la row échouait ensuite, mieux
-  // vaut un account sans token — reconnectable — qu'un token orphelin que
-  // plus rien ne attached à un account.
+  // The token first: should deleting the row fail afterwards, an account
+  // without a token — reconnectable — beats an orphaned token nothing
+  // attaches to an account any more.
   await removeToken(id)
 
   const [row] = await useDatabase()

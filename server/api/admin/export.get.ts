@@ -6,21 +6,19 @@ import { requireRole } from '~~/server/utils/auth'
 import { articleToMarkdown, buildExport } from '~~/server/utils/export'
 
 /**
- * Export complet, sous shape d'ARCHIVE ZIP.
+ * Full export, as a ZIP ARCHIVE.
  *
- * Les articles y figurent DEUX FOIS : en JSON pour le réimport, et en
- * Markdown avec front-matter pour la lecture. Ce n'est pas une redondance
- * inutile — une archive qu'on ne peut ouvrir qu'avec le logiciel qui l'a
- * produite n'est pas une sauvegarde, c'est une dépendance. Les .md
- * s'ouvrent dans n'importe quel éditeur, dans dix ans.
+ * Articles appear in it TWICE: as JSON for re-import, and as Markdown with
+ * front matter for reading. That is not useless redundancy — an archive you
+ * can only open with the software that produced it is not a backup, it is a
+ * dependency. The .md files open in any editor, ten years from now.
  *
- * N'y figurent PAS : la table `secret`, et les files eux-mêmes, qui
- * vivent dans R2 — l'archive ne transporte que leurs références.
+ * What is NOT in it: the `secret` table, and the files themselves, which
+ * live in R2 — the archive carries only their references.
  *
- * Archive construite EN MÉMOIRE : elle ne contient que du text, quelques
- * centaines de kilo-bytes même avec des centaines d'articles. Un feed
- * compliquerait le code sans rien apporter — les files lourds, eux, ne
- * sont pas dedans.
+ * The archive is built IN MEMORY: it holds nothing but text, a few hundred
+ * kilobytes even with hundreds of articles. A stream would complicate the
+ * code for nothing — the heavy files are not in there.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'tech')
@@ -29,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const day = new Date().toISOString().slice(0, 10)
   const root = `export-${day}`
 
-  // Les tags de chaque article, pour le front-matter des .md.
+  // Each article's tags, for the front matter of the .md files.
   const db = useDatabase()
   const links = await db
     .select({ articleId: articleTag.articleId, label: tag.label })
@@ -55,7 +53,7 @@ export default defineEventHandler(async (event) => {
   add('data/settings.json', archive.settings)
   add('data/users.json', archive.users)
   add('data/views.json', archive.views)
-  // Les clés R2 et les dimensions, pas les bytes.
+  // The R2 keys and the dimensions, not the bytes.
   add('media/manifest.json', archive.media)
 
   for (const a of archive.articles as Record<string, unknown>[]) {
@@ -63,8 +61,8 @@ export default defineEventHandler(async (event) => {
     add(`articles/${a.slug}.md`, articleToMarkdown(a, tags))
   }
 
-  // README dans l'archive : dans two ans, personne ne se souviendra de ce
-  // que contient chaque folder.
+  // A README inside the archive: two years from now, nobody will remember
+  // what each folder holds.
   add(
     'LISEZ-MOI.txt',
     `Export de unmaxdinfo.fr — ${archive.manifest.exportedAt}

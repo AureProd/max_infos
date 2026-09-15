@@ -5,11 +5,11 @@ const { value: theme, state, load, save } = useSetting('theme')
 await load()
 
 /**
- * Les variables CSS qu'on expose au réglage.
+ * The CSS variables exposed for tweaking.
  *
- * Volontairement peu nombreuses : base.css en définit bien davantage, mais
- * les exposer toutes reviendrait à demander à Max de comprendre une feuille
- * de style. Celles-ci suffisent à changer l'allure du site.
+ * Deliberately few: base.css defines many more, but exposing them all would
+ * amount to asking Max to understand a stylesheet. These are enough to
+ * change the look of the site.
  */
 const SETTABLE = [
   { key: 'ink', label: 'Fond', defaut: '#11161C' },
@@ -34,9 +34,9 @@ function reset(key: string): void {
 }
 
 /**
- * Aperçu en direct : les variables sont posées sur un conteneur, pas sur
- * :root. Modifier la vraie root changerait aussi l'apparence du
- * back-office pendant qu'on règle, ce qui rend le réglage illisible.
+ * Live preview: the variables are set on a container, not on :root.
+ * Changing the real root would also change the look of the back-office
+ * while tweaking, which makes tweaking unreadable.
  */
 const previewStyle = computed(() =>
   Object.fromEntries(Object.entries(variables.value).map(([c, v]) => [`--${c}`, v])),

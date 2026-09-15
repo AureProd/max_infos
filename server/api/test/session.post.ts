@@ -1,23 +1,22 @@
 import { z } from 'zod'
 
 /**
- * Fabrique une session pour un identifiant donné. RÉSERVÉ AUX TESTS.
+ * Creates a session for a given identifier. TESTS ONLY.
  *
- * Cette route est une porte dérobée par nature : elle ouvre une session
- * sans aucune preuve d'identité. Elle existe parce que le test
- * d'autorisations doit pouvoir se présenter comme `editor` then comme
- * `tech` sans passer par Google — et ce test est le garde-fou le plus
- * important du projet.
+ * This route is a back door by nature: it opens a session without any proof
+ * of identity. It exists because the authorization test must be able to
+ * present itself as `editor` then as `tech` without going through Google —
+ * and that test is the most important guard rail of the project.
  *
- * Deux verrous INDÉPENDANTS la maintiennent hors de la production :
+ * Two INDEPENDENT locks keep it out of production:
  *
- *  1. Le bundle. `nitro.ignore` retire all server/api/test/ de la
- *     compilation, sauf si NUXT_TEST_ROUTES vaut « true » AU MOMENT DU
- *     BUILD. Par défaut la route n'existe donc même pas dans l'image.
- *  2. L'exécution. Même compilée, elle refuse de répondre si
- *     l'environnement n'est pas « dev ».
+ *  1. The bundle. `nitro.ignore` removes all of server/api/test/ from the
+ *     build, unless NUXT_TEST_ROUTES is « true » AT BUILD TIME. By default
+ *     the route does not even exist in the image.
+ *  2. Runtime. Even when compiled, it refuses to answer if the environment
+ *     is not « dev ».
  *
- * Un seul verrou suffirait ; two protègent d'une error sur l'un des two.
+ * One lock would do; two protect against a mistake in either.
  */
 export default defineEventHandler(async (event) => {
   const { public: pub } = useRuntimeConfig()

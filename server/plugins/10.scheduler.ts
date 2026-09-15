@@ -10,17 +10,16 @@ import {
 } from '~~/server/utils/instagram'
 
 /**
- * Tâches planifiées : synchronisation Instagram et rafraîchissement du token.
+ * Scheduled tasks: Instagram sync and token refresh.
  *
- * Un plugin conditionné par `schedulerEnabled`, et NON `nitro.scheduledTasks`.
- * La raison est concrète : le dédoublonnage des tâches Nitro se fait PAR
- * INSTANCE de serveur. Avec two répliques et des tâches activées au build,
- * Instagram serait synchronisé two fois par hour, et le quota Meta
- * consommé pour rien.
+ * A plugin gated by `schedulerEnabled`, and NOT `nitro.scheduledTasks`. The
+ * reason is concrete: Nitro deduplicates tasks PER SERVER INSTANCE. With
+ * two replicas and tasks enabled at build time, Instagram would be synced
+ * twice an hour, and the Meta quota spent for nothing.
  *
- * Ici l'interrupteur est une variable d'environnement : extraire un day un
- * conteneur « worker » se fera avec la MÊME image, en posant
- * NUXT_SCHEDULER_ENABLED=true sur lui seul.
+ * Here the switch is an environment variable: pulling out a « worker »
+ * container one day will use the SAME image, setting
+ * NUXT_SCHEDULER_ENABLED=true on it alone.
  */
 export default defineNitroPlugin(() => {
   const config = useRuntimeConfig()
@@ -33,10 +32,10 @@ export default defineNitroPlugin(() => {
   )
 
   /**
-   * Chaque account est traité SÉPARÉMENT, échec compris.
+   * Each account is handled SEPARATELY, failures included.
    *
-   * Un token expiré sur un account ne doit pas priver les autres de leur
-   * synchronisation : l'error est journalisée, la boucle continue.
+   * An expired token on one account must not deprive the others of their
+   * sync: the error is logged, the loop goes on.
    */
   const syncTask = async (): Promise<void> => {
     for (const account of await instagramAccounts()) {
@@ -49,19 +48,19 @@ export default defineNitroPlugin(() => {
         }
         await saveAccount(await readProfile(token))
       } catch (e) {
-        // Une synchronisation en échec ne doit pas arrêter le serveur : la
-        // next retentera dans une hour.
+        // A failed sync must not stop the server: the next one will try
+        // again in an hour.
         console.error(`[instagram] @${account.username} en échec :`, (e as Error).message)
       }
     }
   }
 
   /**
-   * Rafraîchissement quotidien des tokens.
+   * Daily token refresh.
    *
-   * À faire AVANT l'expiration : passé les 60 jours, un token ne se
-   * rafraîchit plus et il faut refaire l'OAuth à la main. Quotidien laisse
-   * donc soixante occasions de réussir.
+   * To be done BEFORE expiry: past the 60 days, a token cannot be refreshed
+   * any more and the OAuth dance has to be redone by hand. Daily therefore
+   * leaves sixty chances to succeed.
    */
   const refresh = async (): Promise<void> => {
     for (const account of await instagramAccounts()) {

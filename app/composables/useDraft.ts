@@ -7,11 +7,11 @@ interface Preview {
 }
 
 /**
- * L'édition d'un article : draft local, aperçu serveur, record.
+ * Editing an article: local draft, server preview, saving.
  *
- * L'aperçu vient du SERVEUR, par le même engine que l'record. Un
- * rendered fait dans le navigateur finirait par diverger de ce qui est publié,
- * et Max verrait autre chose que ses lecteurs.
+ * The preview comes from the SERVER, through the same engine as saving. A
+ * rendering done in the browser would eventually drift from what is
+ * published, and Max would see something other than his readers.
  */
 export function useDraft(slug: Ref<string | null>) {
   const draft = ref<ArticleDraft>({
@@ -70,7 +70,7 @@ export function useDraft(slug: Ref<string | null>) {
     () => draft.value.bodyMd,
     () => {
       modified.value = true
-      // Débattu : on n'envoie pas une requête à chaque frappe.
+      // Debounced: we do not send a request on every keystroke.
       clearTimeout(previewTimer)
       previewTimer = setTimeout(refreshPreview, 300)
     },
@@ -108,8 +108,8 @@ export function useDraft(slug: Ref<string | null>) {
   }
 
   async function changeStatus(vers: 'draft' | 'published'): Promise<void> {
-    // On enregistre d'abord : publier un draft dont les dernières
-    // modifications ne sont pas parties publierait l'ancienne version.
+    // Save first: publishing a draft whose latest edits have not been sent
+    // would publish the older version.
     if (modified.value || !slug.value) await save()
     if (!slug.value) return
     await $fetch(`/api/admin/articles/${slug.value}/status`, {

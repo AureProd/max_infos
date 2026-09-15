@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const { data: site } = await useSite()
 
-/** Seuls les fields dont Max a activé la visibilité sont affichés. */
+/** Only the fields whose visibility Max turned on are displayed. */
 const links = computed(() => site.value?.contact.fields.filter((f) => f.visible) ?? [])
 </script>
 

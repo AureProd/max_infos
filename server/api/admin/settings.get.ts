@@ -4,11 +4,11 @@ import { requireRole } from '~~/server/utils/auth'
 import { readSetting } from '~~/server/utils/settings'
 
 /**
- * Tous les réglages que l'user a le droit de voir.
+ * Every setting the user is allowed to see.
  *
- * Le filtrage se fait sur SETTING_SCOPE, la même donnée qui sert à écrire.
- * Un réglage technique n'est donc pas renvoyé à un `editor`, et add une
- * clé technique la protège automatiquement.
+ * Filtering goes through SETTING_SCOPE, the same data used for writing. A
+ * technical setting is therefore not returned to an `editor`, and adding a
+ * technical key protects it automatically.
  */
 export default defineEventHandler(async (event) => {
   const u = await requireRole(event, 'editor')

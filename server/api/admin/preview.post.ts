@@ -3,10 +3,10 @@ import { requireRole } from '~~/server/utils/auth'
 import { countCharacters, readingMinutes, renderMarkdown } from '~~/server/utils/markdown'
 
 /**
- * Aperçu du rendered, par le MÊME engine que l'record.
+ * Preview of the rendering, through the SAME engine as saving.
  *
- * C'est ce qui garantit que ce que Max voit en écrivant est exactement ce
- * qui sera publié. Un aperçu rendered côté navigateur finirait par diverger.
+ * That is what guarantees what Max sees while writing is exactly what will
+ * be published. A preview rendered in the browser would drift eventually.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')

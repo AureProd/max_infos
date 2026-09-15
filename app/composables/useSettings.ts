@@ -1,11 +1,10 @@
 import type { SettingKey, SettingValue } from '#shared/schemas/settings'
 
 /**
- * Lecture et écriture d'un réglage since le back-office.
+ * Reading and writing a setting from the back-office.
  *
- * Le serveur refuse une clé technique à un `editor` : cette fonction ne
- * protège rien, elle rend simplement l'écriture commode et signale
- * l'record.
+ * The server refuses a technical key to an `editor`: this function protects
+ * nothing, it merely makes writing convenient and reports the save.
  */
 export function useSetting<K extends SettingKey>(key: K) {
   const value = ref<SettingValue<K> | null>(null)
