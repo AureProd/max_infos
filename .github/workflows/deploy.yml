@@ -206,6 +206,14 @@ jobs:
             echo "NUXT_PUBLIC_APP_ENV=prod"
             echo "NUXT_PUBLIC_BASE_URL=https://${URL_HOST}"
             echo "NUXT_PUBLIC_R2_BASE_URL=${NUXT_PUBLIC_R2_BASE_URL}"
+            echo ""
+            echo "# What Compose interpolates. They live here so that a plain"
+            echo "# \`docker compose -f docker-compose.yml -f docker-compose-prod-override.yml logs\`"
+            echo "# works on the server, without having to guess an incantation"
+            echo "# the day something goes wrong."
+            echo "APP_IMAGE=${APP_IMAGE}"
+            echo "MIGRATE_IMAGE=${MIGRATE_IMAGE}"
+            echo "INSTANCE_NAME=${INSTANCE_NAME}"
           )
 
           # Every `$` is DOUBLED, because Compose interpolates the contents
@@ -217,12 +225,6 @@ jobs:
           content=${content//\$/\$\$}
 
           printf 'ENV_B64=%s\n' "$(printf '%s\n' "$content" | base64 -w0)" >> "$GITHUB_ENV"
-          {
-            echo "APP_IMAGE=${APP_IMAGE}"
-            echo "MIGRATE_IMAGE=${MIGRATE_IMAGE}"
-            echo "INSTANCE_NAME=${INSTANCE_NAME}"
-            echo "URL_HOST=${URL_HOST}"
-          } >> "$GITHUB_ENV"
           echo "$(printf '%s\n' "$content" | wc -l) variables prepared."
 
       - name: Copier sur le serveur
@@ -246,7 +248,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
-          envs: ENV_B64,APP_IMAGE,MIGRATE_IMAGE,INSTANCE_NAME,URL_HOST
+          envs: ENV_B64
           script: |
             set -euo pipefail
             cd "${{ secrets.DEPLOY_PATH }}"
@@ -256,13 +258,12 @@ jobs:
             printf '%s' "$ENV_B64" | base64 -d > .env
             chmod 600 .env
 
-            # `--env-file /dev/null`: Compose otherwise reads .env for its
-            # own ${} interpolation, and a password holding a `$` would be
-            # mangled on the way. Interpolation therefore takes ONLY what is
-            # exported here; .env is left to do one job, feeding the
-            # containers verbatim through env_file.
-            export APP_IMAGE MIGRATE_IMAGE INSTANCE_NAME URL_HOST
-            compose="docker compose -p ${INSTANCE_NAME} --env-file /dev/null \
+            # No --env-file, no exported variable: the .env just written
+            # carries BOTH what the containers read through env_file and what
+            # Compose interpolates. So the command below is exactly the one to
+            # type on the server to read the logs — nothing to reconstruct at
+            # the worst possible moment.
+            compose="docker compose \
               -f docker-compose.yml -f docker-compose-prod-override.yml"
 
             $compose pull
