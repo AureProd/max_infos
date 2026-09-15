@@ -40,6 +40,9 @@ jobs:
     needs: [attendre-ci]
     outputs:
       image: ${{ steps.meta.outputs.tags }}
+      # The lowered name travels to the deployment job: recomputing it there
+      # would be a second chance to get it wrong.
+      repository: ${{ steps.meta.outputs.repository }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -50,8 +53,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - id: meta
+        # A Docker repository name MUST be lowercase, whereas a GitHub owner
+        # keeps the case it was created with: `AureProd/max_infos` is a valid
+        # repository and an invalid tag. Lowered ONCE here, then reused, so
+        # the two images and the deployment cannot drift apart.
         run: |
-          echo "tags=${{ env.REGISTRY }}/${{ github.repository }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          repository="${GITHUB_REPOSITORY,,}"
+          echo "repository=${repository}" >> "$GITHUB_OUTPUT"
+          echo "tags=${REGISTRY}/${repository}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Application image
         uses: docker/build-push-action@v6
@@ -61,8 +70,8 @@ jobs:
           target: prod
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ github.repository }}:latest
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.repository }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.repository }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -74,8 +83,8 @@ jobs:
           target: migrate
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository }}-migrate:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ github.repository }}-migrate:latest
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.repository }}-migrate:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.repository }}-migrate:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -93,8 +102,8 @@ jobs:
           URL_HOST: unmaxdinfo.fr
           APP_ENV: prod
           ENV_FILE: .env
-          APP_IMAGE: ${{ env.REGISTRY }}/${{ github.repository }}:${{ github.sha }}
-          MIGRATE_IMAGE: ${{ env.REGISTRY }}/${{ github.repository }}-migrate:${{ github.sha }}
+          APP_IMAGE: ${{ env.REGISTRY }}/${{ needs.publier.outputs.repository }}:${{ github.sha }}
+          MIGRATE_IMAGE: ${{ env.REGISTRY }}/${{ needs.publier.outputs.repository }}-migrate:${{ github.sha }}
         run: |
           docker compose -p "$INSTANCE_NAME" --project-directory . \
             -f deploy/docker-compose.yml \
