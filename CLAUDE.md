@@ -2,7 +2,7 @@
 
 Site **unmaxdinfo.fr** — Nuxt 4 full-stack, TypeScript, PostgreSQL, Drizzle.
 Le chantier est décrit dans `docs/PLAN.md`, l'état d'avancement dans
-`REPRISE.md`, la pile dans `docs/OUTILS.md`. **Les lire avant de coder.**
+`STATUS.md`, la pile dans `docs/STACK.md`. **Les lire avant de coder.**
 
 ## Langue
 

@@ -2,14 +2,14 @@
 
 > Dernière séance : **lundi 14 septembre 2026**. **Les onze lots sont écrits.**
 > Pour reprendre : lancer `claude` dans `~/Documents/perso/max_infos` et dire
-> « reprends le chantier, lis REPRISE.md ».
+> « reprends le chantier, lis STATUS.md ».
 
 ## Lire d'abord
 
-- **[`docs/MISE-EN-LIGNE.md`](docs/MISE-EN-LIGNE.md)** — **ce qui reste à
+- **[`docs/GOING-LIVE.md`](docs/GOING-LIVE.md)** — **ce qui reste à
   faire pour que le site existe** : Google, R2, Meta, GitHub, VPS
 - **[`README.md`](README.md)** — démarrage et commandes du quotidien
-- **[`docs/OUTILS.md`](docs/OUTILS.md)** — la pile, si elle est nouvelle pour toi
+- **[`docs/STACK.md`](docs/STACK.md)** — la pile, si elle est nouvelle pour toi
 - **[`docs/PLAN.md`](docs/PLAN.md)** — le cahier des charges, avec son bandeau de
   mise à jour : il a été écrit pour FastAPI, le projet est en TypeScript
 - **[`CLAUDE.md`](CLAUDE.md)** — les règles et ce qui casse en silence
@@ -68,7 +68,7 @@ une ligne par compte, un jeton par compte (`instagram_access_token:<id>`), et
 parlé aux vrais.
 
 La marche à suivre complète, dans l'ordre, avec les noms de variables exacts
-et les pièges de chaque fournisseur : **[`docs/MISE-EN-LIGNE.md`](docs/MISE-EN-LIGNE.md)**.
+et les pièges de chaque fournisseur : **[`docs/GOING-LIVE.md`](docs/GOING-LIVE.md)**.
 En résumé : dépôt GitHub public, OAuth Google, bucket Cloudflare R2, app
 Meta, domaine et DNS, secrets de déploiement.
 

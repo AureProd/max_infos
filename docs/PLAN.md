@@ -15,11 +15,11 @@
 > la bascule. Le dépôt est par ailleurs **public**, et non privé.
 >
 > La table de correspondance entre les deux piles est dans
-> **[`OUTILS.md`](OUTILS.md#correspondance-avec-lancienne-pile)**.
+> **[`STACK.md`](STACK.md#correspondance-avec-lancienne-pile)**.
 >
 > **Au 14 septembre 2026, les onze lots sont écrits et testés.** Ce qui reste
 > tient à des comptes tiers qui n'existent pas encore — Google, R2, Meta, le
-> domaine. Voir [`../REPRISE.md`](../REPRISE.md).
+> domaine. Voir [`../STATUS.md`](../STATUS.md).
 
 
 ## Context

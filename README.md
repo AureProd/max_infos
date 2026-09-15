@@ -7,12 +7,12 @@ LinkedIn.
 Le plan complet du chantier — architecture, modèle de données, découpage en
 lots, procédure de vérification — vit dans **[`docs/PLAN.md`](docs/PLAN.md)**.
 Si tu découvres la pile (pnpm, Nuxt, Biome, Drizzle, Vitest), commence par
-**[`docs/OUTILS.md`](docs/OUTILS.md)** : à quoi sert chaque outil, et les
+**[`docs/STACK.md`](docs/STACK.md)** : à quoi sert chaque outil, et les
 trois commandes qui comptent pour chacun.
 
 Pour **mettre le site en ligne** — comptes Google, Cloudflare R2, Meta,
 GitHub, VPS —, tout est dans
-**[`docs/MISE-EN-LIGNE.md`](docs/MISE-EN-LIGNE.md)**, dans l'ordre où chaque
+**[`docs/GOING-LIVE.md`](docs/GOING-LIVE.md)**, dans l'ordre où chaque
 étape débloque la suivante.
 
 ---
@@ -149,7 +149,7 @@ drizzle/                migrations SQL générées, relues à la main et version
 deploy/                 docker-compose et configuration Traefik
 scripts/seed/           contenu de la maquette, à passer en base au lot 3
 test/                   unit (rapide) · nuxt (composants) · api (vraie base)
-docs/                   PLAN.md (le chantier) · OUTILS.md (la pile)
+docs/                   PLAN.md (le chantier) · STACK.md (la pile)
 setup                   génère le docker-compose.yml de la racine
 ```
 
@@ -180,7 +180,7 @@ jamais la renommer d'un coup.
 Le serveur ne détient **que la clé SSH** : tous les secrets de production
 vivent dans l'environnement `production` de GitHub, et le `.env` du VPS est
 réécrit à chaque déploiement. La liste des secrets et variables attendus est
-dans [`docs/MISE-EN-LIGNE.md`](docs/MISE-EN-LIGNE.md).
+dans [`docs/GOING-LIVE.md`](docs/GOING-LIVE.md).
 
 ## Conventions
 
