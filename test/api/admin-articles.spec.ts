@@ -3,9 +3,9 @@ import { eq } from 'drizzle-orm'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { appUser, article } from '../../server/database/schema'
-import { base, connection, migrate, type TestDatabase } from '../setup/db'
+import { connection, database, migrate, type TestDatabase } from '../setup/db'
 
-/** Le back-office, contre une vraie base. */
+/** The back-office, against a real database. */
 let sqlClient: postgres.Sql
 let db: TestDatabase
 let cookie = ''
@@ -13,7 +13,7 @@ let cookie = ''
 beforeAll(async () => {
   sqlClient = connection()
   await migrate(sqlClient)
-  db = base(sqlClient)
+  db = database(sqlClient)
   await db.insert(appUser).values({ email: 'max@exemple.test', role: 'editor' })
 }, 60_000)
 
@@ -37,7 +37,7 @@ const auth = () => ({ cookie, 'content-type': 'application/json' })
 
 describe('cycle de vie d’un article', () => {
   it('naît TOUJOURS en brouillon', async () => {
-    // Publier doit être un geste explicit, jamais un effet de bord.
+    // Publishing must be an explicit act, never a side effect.
     const created = await $fetch('/api/admin/articles', {
       method: 'POST',
       headers: auth(),
@@ -87,8 +87,8 @@ describe('cycle de vie d’un article', () => {
       body: { status: 'published' },
     })
     expect(r?.status).toBe('published')
-    // La contrainte SQL exige une date : la route la fournit plutôt que de
-    // laisser PostgreSQL renvoyer une error à Max.
+    // The SQL constraint requires a date: the route supplies it rather than
+    // letting PostgreSQL throw an error at Max.
     expect(r?.publishedAt).toBeTruthy()
 
     const list = await $fetch('/api/articles')
@@ -103,8 +103,8 @@ describe('cycle de vie d’un article', () => {
     })
     const a = await $fetch('/api/admin/articles/mon-premier', { headers: auth() })
     expect(a.status).toBe('draft')
-    // La date reste : republier ne doit pas faire remonter l'article en
-    // tête de list comme s'il était neuf.
+    // The date stays: republishing must not push the article back to the
+    // top of the list as if it were new.
     expect(a.publishedAt).toBeTruthy()
   })
 
@@ -129,7 +129,7 @@ describe('slugs', () => {
       body: { title: 'Titre répété', bodyMd: '', tags: [] },
     })
     expect(a.slug).toBe('titre-repete')
-    // Sans cela, Max recevrait une violation de contrainte à la figure.
+    // Without this, Max would get a constraint violation in his face.
     expect(b.slug).toBe('titre-repete-2')
   })
 })
@@ -145,7 +145,7 @@ describe('sujets', () => {
   })
 
   it('REMPLACE les sujets, il ne les ajoute pas', async () => {
-    // C'est ce qu'attend un formulaire où l'on retire une étiquette.
+    // That is what a form where you remove a tag expects.
     const update = await $fetch('/api/admin/articles/avec-sujets', {
       method: 'PUT',
       headers: auth(),
@@ -187,13 +187,13 @@ describe('médias', () => {
         bytes: 100,
       }),
     })
-    // Le SVG est un vecteur de script : il n'est pas dans la list admise.
+    // SVG is a script vector: it is not on the allowed list.
     expect(r.status).toBe(415)
   })
 
   it('enregistre la ligne AVANT de renvoyer l’URL signée', async () => {
-    // Un file téléversé sans row serait invisible et impossible à
-    // nettoyer ; une row sans file se repère et se supprime.
+    // A file uploaded without a row would be invisible and impossible to
+    // clean up; a row without a file is easy to spot and delete.
     const r = await $fetch('/api/admin/media/upload-url', {
       method: 'POST',
       headers: auth(),
@@ -201,7 +201,7 @@ describe('médias', () => {
     })
     expect(r.media?.id).toBeGreaterThan(0)
     expect(r.uploadUrl).toContain('X-Amz-Signature')
-    // Nom de file normalisé, préfixé par la date, suffixé d'un aléa.
+    // Normalised file name, prefixed with the date, suffixed with a random.
     expect(r.media?.url).toMatch(
       /^https:\/\/media\.exemple\.test\/\d{4}-\d{2}-\d{2}\/\w+-photo-de-max\.png$/,
     )

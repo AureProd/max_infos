@@ -2,14 +2,14 @@ import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { appUser } from '../../server/database/schema'
-import { base, connection, migrate, seedTestData, type TestDatabase } from '../setup/db'
+import { connection, database, migrate, seedTestData, type TestDatabase } from '../setup/db'
 
 /**
- * Les accounts sociaux vus du back-office.
+ * The social accounts as seen from the back-office.
  *
- * C'est l'écran Réseaux qui se joue here : Max signedIn, ordonne, masque,
- * déconnecte. Les tests portent sur ce qu'il constate — l'accueil change —
- * et non sur la shape des requêtes.
+ * This is the Social screen at play: Max connects, orders, hides,
+ * disconnects. The tests are about what he observes — the home page changes
+ * — and not about the shape of the requests.
  */
 let sqlClient: postgres.Sql
 let db: TestDatabase
@@ -18,7 +18,7 @@ let editor = 0
 beforeAll(async () => {
   sqlClient = connection()
   await migrate(sqlClient)
-  db = base(sqlClient)
+  db = database(sqlClient)
   await seedTestData(db)
   const [e] = await db
     .insert(appUser)
@@ -52,7 +52,7 @@ describe('GET /api/admin/social-accounts', () => {
   })
 
   it('dit combien de publications chaque compte emporterait', async () => {
-    // L'écran prévient before de déconnecter : la suppression est définitive.
+    // The screen warns before disconnecting: the deletion is final.
     const accounts = await $fetch('/api/admin/social-accounts', {
       headers: { cookie: await cookieEditeur() },
     })
@@ -146,7 +146,7 @@ describe('DELETE /api/admin/social-accounts/[id]', () => {
 
     const remaining = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
     expect(remaining.map((c) => c.username)).toEqual(['maxinfo'])
-    // MASQ1 appartenait au account supprimé.
+    // MASQ1 belonged to the deleted account.
     expect((await $fetch('/api/social-posts')).map((p) => p.shortcode)).not.toContain('MASQ1')
   })
 

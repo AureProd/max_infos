@@ -57,8 +57,8 @@ describe('assainissement', () => {
   })
 
   it('pose rel="noopener" sur les liens sortants', () => {
-    // Sans lui, la page target accède à window.opener et peut rediriger la
-    // nôtre. Posé systématiquement plutôt que laissé à la vigilance.
+    // Without it, the target page reaches window.opener and can redirect
+    // ours. Set systematically rather than left to vigilance.
     const rendered = renderMarkdown('[x](https://exemple.test)')
     expect(rendered).toContain('rel="noopener noreferrer"')
     expect(rendered).toContain('target="_blank"')
@@ -91,9 +91,10 @@ describe('mesures', () => {
 })
 
 /**
- * LE TEST D'OR prévu au plan.
+ * THE GOLDEN TEST the plan calls for.
  *
- * Il ne compare pas les two moteurs — ils diffèrent, c'est le but. Il fixe
+ * It does not compare the two engines — they differ, that is the point. It
+ * pins
  * ce que le nouveau produit sur les VRAIS articles, pour que la bascule ne
  * casse rien en silence et qu'on sache ce que le CSS `.prose` doit couvrir.
  */
@@ -123,10 +124,10 @@ describe('les cinq articles réels', () => {
       const rendered = renderMarkdown(readFileSync(join(FOLDER, f), 'utf8'))
       for (const m of rendered.matchAll(/<([a-z0-9]+)[\s>]/g)) tagNames.add(m[1] as string)
     }
-    // Inventaire RÉEL des cinq articles, relevé et non supposé : ni gras ni
-    // citation n'y figurent aujourd'hui. Fixé volontairement — si le rendered
-    // se met à produire une tagName que `.prose` ne style pas, ce test le dit
-    // before que ça se voie en row.
+    // The REAL inventory of the five articles, observed and not assumed:
+    // neither bold nor blockquote appears in them today. Pinned on purpose —
+    // if the rendering starts producing a tag `.prose` does not style, this
+    // test says so before it shows up on the page.
     expect([...tagNames].sort()).toEqual(['a', 'em', 'h2', 'li', 'p', 'ul'])
   })
 })

@@ -10,8 +10,8 @@ type HttpClient = Parameters<typeof readMedia>[1]
 /**
  * Le client Instagram, contre un client HTTP SIMULÉ.
  *
- * Règle du projet : aucun test ne touche au réseau. Meta, Google et R2 sont
- * simulés, et la suite tourne sans connection.
+ * Project rule: no test touches the network. Meta, Google and R2 are
+ * stubbed, and the suite runs without a connection.
  */
 
 const media = (id: string, extra: Record<string, unknown> = {}) => ({
@@ -72,8 +72,8 @@ describe('pagination', () => {
   })
 
   it('ne passe les paramètres qu’au PREMIER appel', async () => {
-    // L'URL « next » de Meta porte déjà les siens : les renvoyer produirait
-    // une requête invalide.
+    // Meta's « next » URL already carries its own: sending them again would
+    // produce an invalid request.
     const calls: { url: string; query?: Record<string, string> }[] = []
     const pages = [{ data: [media('1')], paging: { next: 'https://suite?after=x' } }, { data: [] }]
     let i = 0
@@ -88,8 +88,8 @@ describe('pagination', () => {
   })
 
   it('S’ARRÊTE, même si la pagination boucle', async () => {
-    // Sans borne, une pagination qui se répète ferait tourner la
-    // synchronisation indéfiniment, en consommant le quota de l'API.
+    // Unbounded, a pagination that repeats itself would keep the sync
+    // running forever, burning the API quota.
     const http = vi.fn(async () => ({
       data: [media('boucle')],
       paging: { next: 'https://toujours-la-meme' },
@@ -106,8 +106,8 @@ describe('pagination', () => {
   })
 
   it('laisse remonter une erreur de l’API', async () => {
-    // Un token expiré ou un quota atteint doit interrompre la syncTask, pas
-    // la faire passer pour réussie avec zéro publication.
+    // An expired token or a reached quota must interrupt the sync, not make
+    // it look successful with zero posts.
     const http = vi.fn(async () => {
       throw new Error('OAuthException: token expired')
     }) as unknown as HttpClient

@@ -2,8 +2,8 @@ import { createCipheriv, randomBytes } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
- * Le chiffrement des tokens tiers, testé hors context Nuxt : on simule
- * useRuntimeConfig, qui est la seule dépendance du module.
+ * Encryption of third-party tokens, tested outside the Nuxt context: we
+ * stub useRuntimeConfig, the module's only dependency.
  */
 const KEY = randomBytes(32).toString('base64')
 let currentKey = KEY
@@ -30,9 +30,8 @@ describe('chiffrement des secrets', () => {
   })
 
   it('produit un texte chiffré DIFFÉRENT à chaque fois', () => {
-    // Un IV réutilisé avec GCM casse la confidentialité ET
-    // l'authentification d'un coup. Deux chiffrements du même plain
-    // doivent donc différer.
+    // An IV reused with GCM breaks confidentiality AND authentication at
+    // once. Two encryptions of the same plaintext must therefore differ.
     const a = encrypt('même valeur')
     const b = encrypt('même valeur')
     expect(a).not.toBe(b)
@@ -44,8 +43,8 @@ describe('chiffrement des secrets', () => {
   })
 
   it('REFUSE un message altéré', () => {
-    // C'est all l'intérêt d'un chiffrement authentifié : une modification
-    // est détectée, elle ne produit pas du bruit qu'on prendrait pour bon.
+    // That is the whole point of authenticated encryption: tampering is
+    // detected, it does not yield noise one might take for valid data.
     const sealed = encrypt('valeur')
     const parts = sealed.split('.')
     const altered = [parts[0], parts[1], parts[2], Buffer.from('autre').toString('base64')].join(

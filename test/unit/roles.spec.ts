@@ -18,8 +18,8 @@ describe('rôles', () => {
   })
 
   it('l’absence de rôle n’autorise rien', () => {
-    // Une session expirée, un account désactivé, un call anonyme : le
-    // défaut doit être le refus, jamais la permission.
+    // An expired session, a disabled account, an anonymous call: the
+    // default must be refusal, never permission.
     for (const required of ROLES) {
       expect(isAllowed(null, required)).toBe(false)
       expect(isAllowed(undefined, required)).toBe(false)
@@ -35,8 +35,8 @@ describe('rôles', () => {
   })
 
   it('n’a que deux rôles — en ajouter un doit casser ce test', () => {
-    // Un rôle ajouté sans réfléchir à sa place dans la hiérarchie serait
-    // silencieusement placé par ROLES.indexOf. Mieux vaut être averti.
+    // A role added without thinking about its place in the hierarchy would
+    // be silently positioned by ROLES.indexOf. Better to be warned.
     expect([...ROLES]).toEqual(['editor', 'tech'])
   })
 })

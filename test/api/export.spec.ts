@@ -3,14 +3,14 @@ import { strFromU8, unzipSync } from 'fflate'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { appUser, secret } from '../../server/database/schema'
-import { base, connection, migrate, seedTestData, type TestDatabase } from '../setup/db'
+import { connection, database, migrate, seedTestData, type TestDatabase } from '../setup/db'
 
 /**
- * L'aller-back prévu au plan : exporter, wipe, réimporter, comparer
- * terme à terme.
+ * The round trip the plan calls for: export, wipe, re-import, compare item
+ * by item.
  *
- * C'est le seul test qui prouve qu'on peut déménager le site ou repartir
- * d'une base vierge. Le reste n'est que de la confiance.
+ * It is the only test proving the site can be moved or restarted from a
+ * blank database. Everything else is trust.
  */
 let sqlClient: postgres.Sql
 let db: TestDatabase
@@ -19,10 +19,10 @@ let cookie = ''
 beforeAll(async () => {
   sqlClient = connection()
   await migrate(sqlClient)
-  db = base(sqlClient)
+  db = database(sqlClient)
   await seedTestData(db)
   await db.insert(appUser).values({ email: 'jb@exemple.test', role: 'tech' })
-  // Un token chiffré, pour vérifier qu'il ne sort JAMAIS.
+  // An encrypted token, to check it NEVER leaves.
   await db.insert(secret).values({
     key: 'instagram_access_token',
     ciphertext: 'v1.aaa.bbb.jeton-chiffre-a-ne-jamais-exporter',
@@ -47,7 +47,7 @@ beforeAll(async () => {
 
 const auth = () => ({ cookie, 'content-type': 'application/json' })
 
-/** Récupère l'archive et la décompresse réellement. */
+/** Fetches the archive and actually unzips it. */
 async function downloadArchive(): Promise<Record<string, string>> {
   const r = await fetch('/api/admin/export', { headers: auth() })
   expect(r.status).toBe(200)
@@ -63,8 +63,8 @@ async function downloadArchive(): Promise<Record<string, string>> {
 
 describe('export', () => {
   it('produit une VRAIE archive zip, qui s’ouvre', async () => {
-    // Une archive qui se télécharge mais ne s'ouvre pas n'est pas une
-    // sauvegarde. `unzipSync` échouerait sur un file mal formé.
+    // An archive that downloads but does not open is not a backup.
+    // `unzipSync` would fail on a malformed file.
     const files = await downloadArchive()
     expect(Object.keys(files).length).toBeGreaterThan(5)
   })
@@ -85,8 +85,8 @@ describe('export', () => {
   })
 
   it('contient les articles en MARKDOWN, lisibles tels quels', async () => {
-    // Une archive qu'on ne peut ouvrir qu'avec le logiciel qui l'a produite
-    // n'est pas une sauvegarde, c'est une dépendance.
+    // An archive you can only open with the software that produced it is
+    // not a backup, it is a dependency.
     const files = await downloadArchive()
     const md = Object.entries(files).filter(([n]) => n.startsWith('articles/'))
     expect(md.length).toBeGreaterThan(0)
@@ -102,8 +102,8 @@ describe('export', () => {
   })
 
   it('n’exporte JAMAIS les jetons tiers', async () => {
-    // Les réexporter reviendrait à sortir des identifiants d'accès d'un
-    // système pour les set dans un file qu'on va télécharger.
+    // Re-exporting them would mean taking access credentials out of a
+    // system to put them in a file about to be downloaded.
     const files = await downloadArchive()
     const all = Object.values(files).join('\n')
     expect(all).not.toContain('jeton-chiffre-a-ne-jamais-exporter')
@@ -140,7 +140,7 @@ describe('dryRun d’import', () => {
   })
 
   it('refuse une archive d’une AUTRE version de schéma', async () => {
-    // Écrire n'importe quoi serait pire que refuser.
+    // Writing nonsense would be worse than refusing.
     const r = await fetch('/api/admin/import', {
       method: 'POST',
       headers: auth(),
@@ -150,7 +150,7 @@ describe('dryRun d’import', () => {
   })
 })
 
-/** Reconstruit l'object d'import à partir des files de l'archive. */
+/** Rebuilds the import object from the archive's files. */
 async function archiveToObject(): Promise<Record<string, unknown>> {
   const f = await downloadArchive()
   const read = (n: string) => JSON.parse(f[n] ?? 'null')
@@ -172,9 +172,9 @@ async function archiveToObject(): Promise<Record<string, unknown>> {
 
 describe('aller-retour complet', () => {
   it('emporte les comptes sociaux — sinon les publications seraient orphelines', async () => {
-    // `social_post.account_id` pointe vers `social_account` : une archive
-    // qui oublierait les accounts rendrait la restauration impossible sur
-    // une base vierge, la clé étrangère refusant chaque publication.
+    // `social_post.account_id` points at `social_account`: an archive
+    // forgetting the accounts would make restoring onto a blank database
+    // impossible, the foreign key refusing every post.
     const archive = await archiveToObject()
     const accounts = archive.socialAccounts as { username: string }[]
     expect(accounts.map((c) => c.username)).toContain('maxinfo')
@@ -192,8 +192,8 @@ describe('aller-retour complet', () => {
 
     const after = await archiveToObject()
 
-    // Terme à terme, et non « à peu près » : un import qui perd une
-    // liaison ou un réglage ne se verrait pas autrement.
+    // Item by item, not « roughly »: an import losing a link or a setting
+    // would not show any other way.
     expect((after.manifest as { counts: unknown }).counts).toEqual(
       (before.manifest as { counts: unknown }).counts,
     )
@@ -214,8 +214,8 @@ describe('aller-retour complet', () => {
   })
 
   it('le jeton chiffré a SURVÉCU au vidage', async () => {
-    // `secret` est volontairement absente du truncate : un import ne doit
-    // pas effacer les accès aux accounts tiers.
+    // `secret` is deliberately absent from the truncate: an import must not
+    // erase the access to third-party accounts.
     const [restant] = await db.select().from(secret)
     expect(restant?.ciphertext).toContain('jeton-chiffre-a-ne-jamais-exporter')
   })

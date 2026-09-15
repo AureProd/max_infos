@@ -8,8 +8,8 @@ import {
 
 describe('URI de redirection', () => {
   it('se déduit de l’URL publique, sans double barre', () => {
-    // Une barre oblique d'écart avec ce qui est déclaré chez Meta suffit à
-    // faire échouer l'échange, sur un message qui ne dit pas pourquoi.
+    // One slash of difference from what is declared at Meta is enough to
+    // fail the exchange, on a message that does not say why.
     expect(redirectUrl('https://unmaxdinfo.fr')).toBe(
       'https://unmaxdinfo.fr/api/admin/instagram/callback',
     )
@@ -23,9 +23,9 @@ describe('URL d’autorisation', () => {
   const url = new URL(authorizationUrl('123', 'https://unmaxdinfo.fr/cb', 'etat-xyz'))
 
   it('ne demande QUE la lecture', () => {
-    // Le site ne publie jamais : il ne doit donc jamais demander la
-    // permission de publier. C'est une décision du projet, et elle se
-    // vérifie here, à l'endroit où la permission est demandée.
+    // Le site ne published jamais : il ne doit donc jamais demander la
+    // permission to publish. That is a project decision, and it is checked
+    // here, at the place where the permission is asked for.
     expect(url.searchParams.get('scope')).toBe('instagram_business_basic')
   })
 
@@ -37,7 +37,7 @@ describe('URL d’autorisation', () => {
 
 describe('échange du code', () => {
   it('envoie un formulaire, pas du JSON', async () => {
-    // Ce point d'entrée de Meta refuse application/json, et ne le dit que
+    // This Meta endpoint refuses application/json, and says so only
     // par un 400 sans explication.
     const http = vi.fn(async (_url: string, init?: RequestInit) => {
       expect(init?.body).toBeInstanceOf(URLSearchParams)
@@ -55,8 +55,8 @@ describe('échange du code', () => {
 
 describe('allongement du jeton', () => {
   it('demande bien un jeton LONG', async () => {
-    // Oublier ce second échange donne une intégration qui marche une hour
-    // then meurt : le token short n'est pas rafraîchissable.
+    // Forgetting this second exchange gives an integration that works for
+    // an hour then dies: the short-lived token cannot be refreshed.
     const http = vi.fn(async (_u: string, o?: { query?: Record<string, string> }) => {
       expect(o?.query?.grant_type).toBe('ig_exchange_token')
       return { access_token: 'long' } as never

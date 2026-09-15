@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { useFilters } from '~/composables/useFilters'
 
 /**
- * Le filtrage se fait désormais en SQL : ces tests portent donc sur l'ÉTAT
- * et son isolation, pas sur le résultat du filtre, qui est couvert par les
- * tests d'API contre une vraie base.
+ * Filtering now happens in SQL: these tests are therefore about the STATE
+ * and its isolation, not about the filter's result, which is covered by the
+ * API tests against a real database.
  */
 describe('useFilters', () => {
   it('part d’un état vide', () => {
@@ -34,9 +34,9 @@ describe('useFilters', () => {
   })
 
   it('partage l’état entre deux appels du même contexte', () => {
-    // Comportement voulu : les filtres survivent à la navigation. Ce qui ne
-    // doit PAS survivre, c'est le passage d'un visiteur à l'autre — d'où
-    // useState plutôt qu'un état au niveau du module.
+    // Intended behaviour: filters survive navigation. What must NOT survive
+    // is going from one visitor to the next — hence useState rather than
+    // module-level state.
     const a = useFilters()
     const b = useFilters()
     a.reset()

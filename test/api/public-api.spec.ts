@@ -2,16 +2,16 @@ import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { SETTING_SCOPE, type SettingKey } from '#shared/schemas/settings'
-import { base, connection, migrate, seedTestData, type TestDatabase } from '../setup/db'
+import { connection, database, migrate, seedTestData, type TestDatabase } from '../setup/db'
 
 /**
- * L'API publique, contre une VRAIE base.
+ * The public API, against a REAL database.
  *
- * Le pattern « une transaction annulée par test » ne vaut pas here : le
- * handler Nitro ouvre ses propres connexions et ne verrait rien de ce
- * qu'une transaction de test aurait écrit. On sème donc une fois, before le
- * démarrage du serveur, et les tests ne font que read — sauf le compteur de
- * views, qui vérifie justement une écriture.
+ * The « one rolled-back transaction per test » pattern does not hold here:
+ * the Nitro handler opens its own connections and would see nothing a test
+ * transaction had written. So we seed once, before the server starts, and
+ * the tests only read — except the view counter, which checks a write
+ * precisely.
  */
 let sqlClient: postgres.Sql
 let db: TestDatabase
@@ -19,7 +19,7 @@ let db: TestDatabase
 beforeAll(async () => {
   sqlClient = connection()
   await migrate(sqlClient)
-  db = base(sqlClient)
+  db = database(sqlClient)
   await seedTestData(db)
 }, 60_000)
 
@@ -33,8 +33,8 @@ describe('GET /api/articles', () => {
   it('ne renvoie que les articles publiés', async () => {
     const r = await $fetch('/api/articles')
     expect(r.total).toBe(2)
-    // Le draft ne doit apparaître nulle part : il n'est pas « interdit »,
-    // il n'existe pas pour le public.
+    // The draft must appear nowhere: it is not « forbidden », it does not
+    // exist for the public.
     expect(r.items.map((i) => i.slug)).not.toContain('article-brouillon')
   })
 
@@ -71,7 +71,7 @@ describe('GET /api/articles', () => {
     expect(p1.items).toHaveLength(1)
     expect(p2.items).toHaveLength(1)
     expect(p1.items[0]?.slug).not.toBe(p2.items[0]?.slug)
-    // Le total décrit l'ensemble, pas la page.
+    // The total describes the whole set, not the page.
     expect(p1.total).toBe(2)
   })
 
@@ -91,7 +91,7 @@ describe('GET /api/articles/[slug]', () => {
   })
 
   it('répond 404 sur un brouillon, et non 403', async () => {
-    // Un 403 confirmerait l'existence du draft.
+    // A 403 would confirm the draft's existence.
     expect((await fetch('/api/articles/article-brouillon')).status).toBe(404)
   })
 
@@ -109,8 +109,8 @@ describe('GET /api/articles/[slug]', () => {
 describe('GET /api/tags', () => {
   it('compte les articles publiés et trie à la française', async () => {
     const tags = await $fetch('/api/tags')
-    // « Alpha » before « Géographie » : c'est le tri localeCompare, fait en
-    // JavaScript pour ne pas dépendre des locales de l'image PostgreSQL.
+    // « Alpha » before « Géographie »: that is the localeCompare sort, run
+    // in JavaScript so as not to depend on the PostgreSQL image's locales.
     expect(tags.map((t) => t.label)).toEqual(['Alpha', 'Géographie'])
     expect(tags.every((t) => t.n === 1)).toBe(true)
   })
@@ -119,8 +119,9 @@ describe('GET /api/tags', () => {
 describe('GET /api/social-posts', () => {
   it('masque les publications cachées', async () => {
     const posts = await $fetch('/api/social-posts')
-    // MASQ1 est là : elle appartient à un account masqué, ce qui la retire de
-    // l'ACCUEIL, pas de la list générale. Les two notions sont distinctes.
+    // MASQ1 is there: it belongs to a hidden account, which removes it from
+    // the HOME PAGE, not from the general list. The two notions are
+    // distinct.
     expect(posts.map((p) => p.shortcode)).toEqual(['ABC123', 'DEF456', 'MASQ1'])
   })
 
@@ -150,8 +151,8 @@ describe('GET /api/social-accounts', () => {
   })
 
   it('reprend l’identité du compte, telle qu’Instagram la donne', async () => {
-    // C'est la décision de conception : le libellé et la photo de la section
-    // viennent du account connecté, ils ne se saisissent pas.
+    // That is the design decision: the section's label and picture come
+    // from the connected account, they are not typed in.
     const [account] = await $fetch('/api/social-accounts')
     expect(account?.displayName).toBe('Un Max d’info')
     expect(account?.avatarUrl).toBe('https://exemple.test/avatar.png')
@@ -161,8 +162,7 @@ describe('GET /api/social-accounts', () => {
 
   it('tronque au nombre de publications choisi, les plus récentes d’abord', async () => {
     const [account] = await $fetch('/api/social-accounts')
-    // postsOnHome vaut 1 dans le jeu de test : DEF456, plus ancienne, reste
-    // dehors.
+    // postsOnHome is 1 in the test data: DEF456, being older, stays out.
     expect(account?.publications.map((p) => p.shortcode)).toEqual(['ABC123'])
   })
 
@@ -188,20 +188,20 @@ describe('GET /api/site', () => {
   })
 
   it('renvoie une valeur par défaut pour un réglage jamais enregistré', async () => {
-    // Un site dont le CV n'est pas rempli doit s'afficher, pas échouer.
+    // A site whose CV is not filled in must render, not fail.
     const site = await $fetch<Record<string, unknown>>('/api/site')
     expect(site.cv).toBeDefined()
     expect(site.theme).toBeDefined()
   })
 
   it('ne laisse JAMAIS fuiter un réglage technique', async () => {
-    // Le pire risque du projet selon le plan : que Max — ou n'importe qui —
-    // voie ce qui relève de l'infrastructure.
+    // The worst risk of the project according to the plan: that Max — or
+    // anyone — sees what belongs to the infrastructure.
     //
-    // On ÉNUMÈRE SETTING_SCOPE plutôt que de chercher une sous-chaîne : la
-    // version précédente cherchait « instagram », qui apparaît légitimement
-    // dans la clé PUBLIQUE instagram_public. Un test qui se trompe de target
-    // finit par être désactivé plutôt que corrigé.
+    // We ENUMERATE SETTING_SCOPE rather than search for a substring: the
+    // previous version looked for « instagram », which legitimately appears
+    // in the PUBLIC key instagram_public. A test aiming at the wrong thing
+    // ends up disabled rather than fixed.
     const site = await $fetch<Record<string, unknown>>('/api/site')
     const technical = (Object.keys(SETTING_SCOPE) as SettingKey[]).filter(
       (c) => SETTING_SCOPE[c] === 'tech',
@@ -210,7 +210,7 @@ describe('GET /api/site', () => {
     for (const key of technical) {
       expect(Object.keys(site), `${key} ne doit pas être public`).not.toContain(key)
     }
-    // Et la value elle-même n'apparaît nulle part dans la réponse.
+    // And the value itself appears nowhere in the response.
     expect(await (await fetch('/api/site')).text()).not.toContain('compte-prive-123')
   })
 })

@@ -14,7 +14,7 @@ describe('listeArticlesQuery', () => {
   })
 
   it('borne la size de page', () => {
-    // Sans borne, `?size=100000` ferait all load en mémoire.
+    // Unbounded, `?size=100000` would load everything into memory.
     expect(() => listArticlesQuery.parse({ size: '500' })).toThrow()
     expect(() => listArticlesQuery.parse({ page: '0' })).toThrow()
   })
@@ -41,7 +41,7 @@ describe('slugParam', () => {
   })
 
   it('refuse ce qui n’est pas un slug', () => {
-    // La borne qui account : rien qui puisse ressembler à un path.
+    // The bound that counts: nothing that could look like a path.
     for (const wrong of ['../etc/passwd', 'Majuscule', 'deux--tirets', '-bord', 'bord-', 'a b']) {
       expect(() => slugParam.parse(wrong)).toThrow()
     }

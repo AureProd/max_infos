@@ -4,13 +4,13 @@ import { describe, expect, it } from 'vitest'
 import { RESERVED_SLUGS, slugify } from '#shared/utils/slug'
 
 /**
- * `/admin/<slug>` est l'éditeur d'article, mais Nuxt fait passer les
- * routes statiques before les dynamiques. Un écran ajouté dans
- * `app/pages/admin/` vole donc silencieusement son URL à all article
- * portant le même slug, qui devient inaccessible.
+ * `/admin/<slug>` is the article editor, but Nuxt puts static routes ahead
+ * of dynamic ones. A screen added to `app/pages/admin/` therefore silently
+ * steals its URL from any article carrying the same slug, which becomes
+ * unreachable.
  *
- * Ce test compare la list tenue à la main au content RÉEL du folder : un
- * écran ajouté demain sans être inscrit fait rougir la CI en le nommant.
+ * This test compares the hand-kept list to the REAL contents of the folder:
+ * a screen added tomorrow without being listed turns CI red, naming it.
  */
 describe('slugs réservés du back-office', () => {
   const screens = readdirSync(join(process.cwd(), 'app/pages/admin'))
@@ -23,8 +23,8 @@ describe('slugs réservés du back-office', () => {
   })
 
   it('sont tous des slugs qu’un titre peut produire', () => {
-    // Si un écran s'appelait « mon_ecran », aucun title ne donnerait ce
-    // slug et la réservation serait inutile — autant le savoir.
+    // If a screen were called « my_screen », no title would produce that
+    // slug and the reservation would be useless — better to know.
     for (const s of RESERVED_SLUGS) expect(slugify(s)).toBe(s)
   })
 })

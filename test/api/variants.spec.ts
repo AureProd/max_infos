@@ -2,7 +2,7 @@ import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { appUser, article } from '../../server/database/schema'
-import { base, connection, migrate, type TestDatabase } from '../setup/db'
+import { connection, database, migrate, type TestDatabase } from '../setup/db'
 
 let sqlClient: postgres.Sql
 let db: TestDatabase
@@ -11,7 +11,7 @@ let cookie = ''
 beforeAll(async () => {
   sqlClient = connection()
   await migrate(sqlClient)
-  db = base(sqlClient)
+  db = database(sqlClient)
   await db.insert(appUser).values({ email: 'max@exemple.test', role: 'editor' })
   await db.insert(article).values({
     slug: 'un-article',
@@ -44,8 +44,8 @@ const auth = () => ({ cookie, 'content-type': 'application/json' })
 
 describe('saisie manuelle', () => {
   it('enregistre une publication LinkedIn', async () => {
-    // Seule voie possible : read ses propres publications LinkedIn est
-    // impossible, le scope r_member_social est fermé aux fresh apps.
+    // The only possible path: reading one's own LinkedIn posts is
+    // impossible, the r_member_social scope is closed to new apps.
     const p = await $fetch('/api/admin/social-posts', {
       method: 'POST',
       headers: auth(),
@@ -57,7 +57,7 @@ describe('saisie manuelle', () => {
     })
     expect(p?.network).toBe('linkedin')
     expect(p?.source).toBe('manual')
-    // Pas d'identifiant external : il ne vient que de l'API.
+    // No external identifier: it only comes from the API.
     expect(p?.externalId).toBeNull()
   })
 
@@ -71,8 +71,8 @@ describe('saisie manuelle', () => {
   })
 
   it('laisse coexister PLUSIEURS saisies manuelles', async () => {
-    // Les NULL étant distincts sous PostgreSQL, l'index unique
-    // (network, external_id) ne les bloque pas. Comportement voulu.
+    // NULLs being distinct under PostgreSQL, the unique index
+    // (network, external_id) does not block them. Intended behaviour.
     const before = await $fetch('/api/admin/social-posts', { headers: auth() })
     await $fetch('/api/admin/social-posts', {
       method: 'POST',
@@ -86,9 +86,9 @@ describe('saisie manuelle', () => {
 
 describe('rattachement', () => {
   it('dit dans la LISTE à quel article chaque publication est rattachée', async () => {
-    // Sans cela, l'écran devait interroger chaque article un par un pour
-    // reconstituer la table — une requête par article, pour une information
-    // que la list peut porter.
+    // Without this, the screen had to query each article one by one to
+    // rebuild the table — one request per article, for information the list
+    // can carry itself.
     const list = await $fetch('/api/admin/social-posts', { headers: auth() })
     const id = list[0]?.id as number
     await $fetch(`/api/admin/social-posts/${id}/article`, {
@@ -149,7 +149,7 @@ describe('visibilité', () => {
     const publicOnes = await $fetch('/api/social-posts')
     expect(publicOnes.map((p) => p.id)).not.toContain(id)
 
-    // Mais elle reste visible dans l'admin : masquer n'est pas remove.
+    // But it stays visible in the admin: hiding is not deleting.
     const admin = await $fetch('/api/admin/social-posts', { headers: auth() })
     expect(admin.map((p) => p.id)).toContain(id)
   })
@@ -162,7 +162,7 @@ describe('gabarits de déclinaison', () => {
     expect(d.linkedin).toContain('Son chapô.')
     expect(d.linkedin).toContain('/article/un-article')
     expect(d.linkedin).toContain('7 min')
-    // Aucune accolade ne doit subsister : Max copied le text tel quel.
+    // No brace must remain: Max copies the text as is.
     expect(d.linkedin).not.toMatch(/\{\{/)
     expect(d.reel).not.toMatch(/\{\{/)
   })

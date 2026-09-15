@@ -1,6 +1,6 @@
-// Commits conventionnels. La liste des préfixes est celle qui était admise
-// par conventional-pre-commit, à l'identique : la règle ne change pas, seul
-// l'outil qui l'applique change.
+// Conventional commits. The list of prefixes is the one
+// conventional-pre-commit allowed, unchanged: the rule stays the same, only
+// the tool applying it changes.
 export default {
   extends: ['@commitlint/config-conventional'],
   rules: {
@@ -21,8 +21,8 @@ export default {
         'revert',
       ],
     ],
-    // Les messages de ce dépôt expliquent le POURQUOI : le corps est souvent
-    // long, et les règles de longueur par défaut le tronqueraient.
+    // The messages of this repository explain WHY: the body is often long,
+    // and the default length rules would truncate it.
     'body-max-line-length': [0],
     'footer-max-line-length': [0],
   },

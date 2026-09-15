@@ -2,14 +2,14 @@ import { fetch, setup } from '@nuxt/test-utils/e2e'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { appUser } from '../../server/database/schema'
-import { base, connection, migrate, seedTestData, type TestDatabase } from '../setup/db'
+import { connection, database, migrate, seedTestData, type TestDatabase } from '../setup/db'
 
 /**
- * Les écrans du back-office s'affichent-ils vraiment ?
+ * Do the back-office screens actually render?
  *
- * Une page qui compile n'est pas une page qui s'affiche : un composable mal
- * appelé, un réglage absent ou un type de réponse inattendu la fait tomber
- * en 500, et rien before ce test ne le montrerait.
+ * A page that compiles is not a page that renders: a composable called
+ * wrongly, a missing setting or an unexpected response type takes it down
+ * with a 500, and nothing before this test would show it.
  */
 let sqlClient: postgres.Sql
 let db: TestDatabase
@@ -18,7 +18,7 @@ const cookies: Record<'editor' | 'tech', string> = { editor: '', tech: '' }
 beforeAll(async () => {
   sqlClient = connection()
   await migrate(sqlClient)
-  db = base(sqlClient)
+  db = database(sqlClient)
   await seedTestData(db)
   await db.insert(appUser).values([
     { email: 'max@bo.test', role: 'editor' },
@@ -70,15 +70,15 @@ describe('affichage pour un editor', () => {
     const r = await fetch(path, { headers: { cookie: cookies.editor } })
     expect(r.status).toBe(200)
     const html = await r.text()
-    // Une page Nuxt en error renvoie 200 avec sa page d'error : on
-    // vérifie donc le CONTENU, pas seulement le code.
+    // A Nuxt page in error answers 200 with its error page: so we check the
+    // CONTENT, not just the status code.
     expect(html).not.toContain('statusCode:500')
     expect(html).toContain('admin-page')
   })
 
   it('le menu ne propose PAS l’écran technique', async () => {
-    // Masquage de confort : la sécurité reste le refus du serveur, vérifié
-    // par test/api/authorization.spec.ts.
+    // Comfort hiding: security remains the server's refusal, checked by
+    // test/api/authorization.spec.ts.
     const html = await (await fetch('/admin', { headers: { cookie: cookies.editor } })).text()
     expect(html).not.toContain('/admin/tech')
   })

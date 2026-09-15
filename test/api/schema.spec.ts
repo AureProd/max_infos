@@ -2,15 +2,15 @@ import { eq, sql } from 'drizzle-orm'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import * as s from '../../server/database/schema'
-import { base, connection, migrate, rejectedByConstraint, type TestDatabase } from '../setup/db'
+import { connection, database, migrate, rejectedByConstraint, type TestDatabase } from '../setup/db'
 
 /**
- * Le schéma, sur une VRAIE base PostgreSQL.
+ * The schema, on a REAL PostgreSQL database.
  *
- * Ces tests ne vérifient pas que Drizzle sait écrire du SQL : ils
- * vérifient que les garde-fous du modèle de données protègent réellement,
- * c'est-à-dire qu'ils REFUSENT ce qui doit l'être. Une contrainte qu'on
- * n'a jamais vue échouer n'est pas une contrainte, c'est un commentaire.
+ * These tests do not check that Drizzle can write SQL: they check that the
+ * data model's guard rails really protect, that is, that they REFUSE what
+ * must be refused. A constraint nobody has ever seen fail is not a
+ * constraint, it is a comment.
  */
 
 let sqlClient: postgres.Sql
@@ -19,7 +19,7 @@ let db: TestDatabase
 beforeAll(async () => {
   sqlClient = connection()
   await migrate(sqlClient)
-  db = base(sqlClient)
+  db = database(sqlClient)
 }, 60_000)
 
 afterAll(async () => {
@@ -63,8 +63,8 @@ describe('schéma', () => {
   })
 
   it('refuse un article publié sans date de publication', async () => {
-    // L'incohérence que rien d'autre ne rattraperait : ni le feed RSS, ni
-    // le tri, ni le sitemap ne sauraient quoi en faire.
+    // The inconsistency nothing else would catch: neither the RSS feed, nor
+    // the ordering, nor the sitemap would know what to do with it.
     await rejectedByConstraint(
       () =>
         sqlClient.unsafe(
@@ -91,8 +91,8 @@ describe('schéma', () => {
   })
 
   it('rend la liste blanche insensible à la casse', async () => {
-    // Google renvoie les adresses avec une casse variable : sans index
-    // d'expression, « Max@… » créerait un second account.
+    // Google returns addresses with varying case: without an expression
+    // index, « Max@… » would create a second account.
     await db.insert(s.appUser).values({ email: 'max@exemple.fr', role: 'editor' })
     await rejectedByConstraint(
       () => db.insert(s.appUser).values({ email: 'Max@Exemple.FR', role: 'editor' }),
@@ -110,15 +110,15 @@ describe('schéma', () => {
 
     await db.delete(s.article)
 
-    // La liaison part avec l'article…
+    // The link goes with the article…
     expect(await db.select().from(s.articleSocialPost)).toHaveLength(0)
-    // …mais la publication Instagram reste : elle existe indépendamment.
+    // …but the Instagram post stays: it exists independently.
     expect(await db.select().from(s.socialPost)).toHaveLength(1)
   })
 
   it('rend la synchronisation Instagram idempotente', async () => {
-    // C'est la contrainte qui permet au worker de rejouer une syncTask sans
-    // dupliquer : deuxième passage = mise à day, pas insertion.
+    // This is the constraint that lets the worker replay a sync without
+    // duplicating: second pass = update, not insert.
     const values = { network: 'instagram' as const, externalId: '1770', source: 'api' as const }
     await db.insert(s.socialPost).values({ ...values, caption: 'première version' })
     await db
@@ -135,9 +135,9 @@ describe('schéma', () => {
   })
 
   it('laisse coexister plusieurs LinkedIn sans identifiant externe', async () => {
-    // La découverte automatique LinkedIn étant impossible, ces publications
-    // sont saisies à la main et n'ont pas d'identifiant external. Les NULL
-    // étant distincts sous PostgreSQL, l'index unique ne les bloque pas.
+    // Automatic LinkedIn discovery being impossible, these posts are
+    // entered by hand and have no external identifier. NULLs being distinct
+    // under PostgreSQL, the unique index does not block them.
     await db.insert(s.socialPost).values({ network: 'linkedin', url: 'https://a' })
     await db.insert(s.socialPost).values({ network: 'linkedin', url: 'https://b' })
     expect(await db.select().from(s.socialPost)).toHaveLength(2)
@@ -160,8 +160,8 @@ describe('schéma', () => {
   })
 
   it('tient updated_at à jour même sur un UPDATE brut en SQL', async () => {
-    // $onUpdate de Drizzle est applicatif : un script d'import qui écrit en
-    // SQL direct ne le déclencherait pas. D'où le déclencheur moddatetime.
+    // Drizzle's $onUpdate is application-level: an import script writing
+    // raw SQL would not trigger it. Hence the moddatetime trigger.
     const [a] = await db.insert(s.article).values({ slug: 'u', title: 'U' }).returning()
     const before = a!.updatedAt
     await sqlClient.unsafe(`update article set title = 'U2' where id = ${a!.id}`)
@@ -178,9 +178,9 @@ describe('schéma', () => {
   })
 
   it('refuse deux comptes du même réseau pour un même identifiant externe', async () => {
-    // C'est la contrainte qui rend la reconnexion idempotente : sans elle,
-    // réautoriser un account déjà connecté en créerait un second, et l'ordre
-    // comme la visibilité choisis par Max seraient perdus.
+    // This is the constraint that makes reconnecting idempotent: without
+    // it, re-authorizing an already connected account would create a second
+    // one, and the order and visibility Max chose would be lost.
     await db.insert(s.socialAccount).values({ network: 'instagram', externalId: 'IG-9' })
     await rejectedByConstraint(
       () => db.insert(s.socialAccount).values({ network: 'instagram', externalId: 'IG-9' }),
@@ -189,8 +189,8 @@ describe('schéma', () => {
   })
 
   it('déconnecter un compte emporte ses publications ET leurs rattachements', async () => {
-    // La décision est assumée : déconnecter, c'est effacer. Le test existe
-    // parce qu'une cascade qu'on n'a jamais vue s'exécuter n'est qu'une
+    // The decision is deliberate: disconnecting means erasing. The test
+    // exists because a cascade nobody has ever seen run is only an
     // intention.
     const [account] = await db
       .insert(s.socialAccount)

@@ -4,13 +4,12 @@ export default defineConfig({
   schema: './server/database/schema/index.ts',
   out: './drizzle',
   dialect: 'postgresql',
-  // Doit être déclaré ICI ET dans drizzle() côté client : sinon la
-  // génération des migrations et l'exécution divergent silencieusement.
-  // On écrit `coverMediaId` en TypeScript, la colonne s'appelle
-  // `cover_media_id`.
+  // Must be declared HERE AND in drizzle() on the client side: otherwise
+  // migration generation and runtime drift apart silently. We write
+  // `coverMediaId` in TypeScript, the column is called `cover_media_id`.
   casing: 'snake_case',
   dbCredentials: {
-    // Sans préfixe NUXT_ : drizzle-kit n'est pas Nitro.
+    // No NUXT_ prefix: drizzle-kit is not Nitro.
     url: process.env.DATABASE_URL ?? '',
   },
   verbose: true,

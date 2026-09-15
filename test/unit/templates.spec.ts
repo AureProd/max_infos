@@ -24,8 +24,8 @@ describe('résolution des gabarits', () => {
   })
 
   it('LAISSE une variable inconnue telle quelle', () => {
-    // Effacer serait pire : Max découvrirait un trou dans son text sans
-    // comprendre pourquoi. Laissée visible, l'error se corrige.
+    // Erasing would be worse: Max would find a hole in his text without
+    // understanding why. Left visible, the mistake gets fixed.
     expect(resolve('{{inexistante}}', CONTEXT)).toBe('{{inexistante}}')
   })
 
@@ -38,8 +38,8 @@ describe('résolution des gabarits', () => {
   })
 
   it('les gabarits par défaut n’utilisent que des variables reconnues', () => {
-    // Un template livré avec une variable inconnue afficherait ses accolades
-    // à Max dès le first usage.
+    // A template shipped with an unknown variable would show its braces to
+    // Max on first use.
     for (const template of Object.values(DEFAULT_TEMPLATES)) {
       for (const m of template.matchAll(/\{\{\s*([a-zA-Zà-ÿ]+)\s*\}\}/g)) {
         expect(VARIABLES).toContain(m[1])

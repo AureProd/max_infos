@@ -7,7 +7,7 @@ describe('sérialisation des dates', () => {
   })
 
   it('rend le jour seul, sans heure ni fuseau', () => {
-    // C'est ce que frDate() attend, et ce que réclame l'attribute datetime.
+    // That is what frDate() expects, and what the datetime attribute requires.
     expect(day(new Date('2026-09-14T08:30:00Z'))).toBe('2026-09-14')
   })
 

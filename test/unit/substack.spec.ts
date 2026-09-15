@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseSubstackFeed } from '../../server/utils/substack'
 
-/** Un feed de la shape exacte que Substack produit, réduit à l'essentiel. */
+/** A feed of the exact shape Substack produces, cut down to the essentials. */
 const FEED = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
 <channel>
@@ -31,8 +31,8 @@ describe('flux Substack', () => {
   const articles = parseSubstackFeed(FEED)
 
   it('écarte les entrées sans titre ou sans lien', () => {
-    // Une entrée incomplète créerait un article fantôme, impossible à
-    // attach à quoi que ce soit.
+    // An incomplete entry would create a ghost article, impossible to
+    // attach to anything.
     expect(articles).toHaveLength(2)
   })
 
@@ -46,8 +46,8 @@ describe('flux Substack', () => {
   })
 
   it('ne confond pas le chapô et le corps', () => {
-    // `description` est tronquée par Substack : importer un body since
-    // elle donnerait des articles amputés, sans que rien ne le signale.
+    // `description` is truncated by Substack: importing a body from it
+    // would give amputated articles, with nothing to report it.
     expect(articles[0]?.dek).toBe('Une enquête sur la mémoire.')
     expect(articles[0]?.bodyHtml).toBe('<p>Le corps complet.</p>')
   })

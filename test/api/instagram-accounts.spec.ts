@@ -2,26 +2,26 @@ import { randomBytes } from 'node:crypto'
 import { eq } from 'drizzle-orm'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { base, connection, migrate, type TestDatabase } from '../setup/db'
+import { connection, database, migrate, type TestDatabase } from '../setup/db'
 
 /**
- * Le service Instagram À PLUSIEURS COMPTES, contre une vraie base.
+ * The MULTI-ACCOUNT Instagram service, against a real database.
  *
- * Ces fonctions écrivent : les tester avec un client HTTP simulé mais une
- * base simulée aussi ne prouverait rien de ce qui account here — que la
- * synchronisation range chaque publication sous SON account, et qu'elle ne
- * défasse jamais les décisions de Max.
+ * These functions write: testing them with a stub HTTP client but a stub
+ * database as well would prove nothing of what counts here — that the sync
+ * files every post under ITS account, and that it never undoes Max's
+ * decisions.
  *
- * D'où les globales de Nitro fournies à la main : `useDatabase()` n'a besoin que
- * de `databaseUrl`, et `encrypt` que de la clé.
+ * Hence the Nitro globals supplied by hand: `useDatabase()` only needs
+ * `databaseUrl`, and `encrypt` only the key.
  */
-const URL_TEST =
+const TEST_URL =
   process.env.TEST_DATABASE_URL ?? 'postgres://unmaxdinfo:test@127.0.0.1:15000/unmaxdinfo_test'
 
-// Une clé TIRÉE UNE FOIS : la régénérer à chaque call rendrait all
-// déchiffrement impossible, ce que le test a d'abord démontré.
+// A key DRAWN ONCE: regenerating it on every call would make any
+// decryption impossible, which the test demonstrated first.
 const KEY = randomBytes(32).toString('base64')
-vi.stubGlobal('useRuntimeConfig', () => ({ databaseUrl: URL_TEST, secretEncryptionKey: KEY }))
+vi.stubGlobal('useRuntimeConfig', () => ({ databaseUrl: TEST_URL, secretEncryptionKey: KEY }))
 vi.stubGlobal('createError', (o: { statusMessage?: string }) => new Error(o.statusMessage ?? 'err'))
 vi.stubGlobal('$fetch', vi.fn())
 
@@ -54,7 +54,7 @@ let db: TestDatabase
 beforeAll(async () => {
   sqlClient = connection()
   await migrate(sqlClient)
-  db = base(sqlClient)
+  db = database(sqlClient)
 }, 60_000)
 
 afterAll(async () => {
@@ -69,8 +69,8 @@ beforeEach(async () => {
 
 describe('le jeton appartient au compte', () => {
   it('dérive une clé par compte', () => {
-    // Un seul token pour all le monde était le modèle d'before : two
-    // accounts se seraient écrasés l'un l'autre sans le moindre message.
+    // A single token for everyone was the previous model: two accounts
+    // would have overwritten each other without a single message.
     expect(tokenKey(1)).toBe('instagram_access_token:1')
     expect(tokenKey(2)).not.toBe(tokenKey(1))
   })
@@ -116,8 +116,8 @@ describe('enregistrement du compte', () => {
   })
 
   it('ne défait JAMAIS les réglages d’affichage de Max', async () => {
-    // Le piège : une synchronisation qui remet all à neuf remettrait aussi
-    // un account masqué à l'affiche, sans que personne ne comprenne pourquoi.
+    // The trap: a sync that resets everything would also put a hidden
+    // account back on display, with nobody understanding why.
     const id = await saveAccount(profile('42'))
     await db
       .update(s.socialAccount)
@@ -170,9 +170,9 @@ describe('synchronisation, compte par compte', () => {
 
 describe('inventaire des comptes à synchroniser', () => {
   it('rend les comptes Instagram, masqués COMPRIS', async () => {
-    // Un account masqué reste synchronisé : le masquer est une décision
-    // d'affichage, pas une rupture de la connection. Le réafficher doit
-    // montrer des publications à day, pas un trou de trois semaines.
+    // A hidden account stays synced: hiding it is a display decision, not a
+    // broken connection. Showing it again must reveal up-to-date posts, not
+    // a three-week gap.
     const id = await saveAccount(profile('1'))
     await db.update(s.socialAccount).set({ visible: false }).where(eq(s.socialAccount.id, id))
     await db.insert(s.socialAccount).values({ network: 'linkedin', externalId: 'li-1' })

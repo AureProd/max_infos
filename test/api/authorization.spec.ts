@@ -5,24 +5,24 @@ import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { SETTING_DEFAULTS, SETTING_SCOPE, type SettingKey } from '#shared/schemas/settings'
 import { appUser } from '../../server/database/schema'
-import { base, connection, migrate, type TestDatabase } from '../setup/db'
+import { connection, database, migrate, type TestDatabase } from '../setup/db'
 
 /**
- * Le garde-fou le plus important du projet.
+ * The most important guard rail of the project.
  *
- * Le plan le dit : « le non-respect de cette règle est le pire risque du
- * projet ». Mais le risque réel n'est PAS qu'une route soit mal protégée
- * aujourd'hui — c'est qu'une route ajoutée dans six mois soit oubliée dans
- * une matrice tenue à la main.
+ * The plan says it: « breaking this rule is the worst risk of the
+ * project ». But the real risk is NOT that a route is badly protected
+ * today — it is that a route added six months from now is forgotten in a
+ * hand-kept matrix.
  *
- * D'où l'inventaire par le système de files : la matrice doit couvrir
- * EXACTEMENT les routes qui existent. Une route ajoutée sans y être
- * inscrite fait échouer le test en nommant le file fautif.
+ * Hence the inventory through the file system: the matrix must cover
+ * EXACTLY the routes that exist. A route added without being listed fails
+ * the test, naming the offending file.
  */
 
 const ADMIN_FOLDER = join(process.cwd(), 'server/api/admin')
 
-/** Traduit un file de route Nitro en « MÉTHODE /path ». */
+/** Turns a Nitro route file into « METHOD /path ». */
 function routesFromFiles(folder: string, prefixe = '/api/admin'): string[] {
   const found: string[] = []
   for (const entry of readdirSync(folder)) {
@@ -41,11 +41,12 @@ function routesFromFiles(folder: string, prefixe = '/api/admin'): string[] {
 }
 
 /**
- * Ce qu'on ATTEND, tenu à la main. Toute route admin doit y figurer.
- * anonyme → 401 (« identifie-toi »), editor sans droit → 403 (« non »).
+ * What is EXPECTED, kept by hand. Every admin route must appear here.
+ * anonymous → 401 (« identify yourself »), editor without the right → 403
+ * (« no »).
  *
- * `body` fournit une charge valid quand la route en exige une : sans
- * elle, un 400 masquerait le code d'autorisation qu'on veut vérifier.
+ * `body` supplies a valid payload when the route requires one: without it,
+ * a 400 would mask the authorization code we want to check.
  */
 interface Pending {
   anonyme: number
@@ -95,8 +96,8 @@ const EXPECTED: Record<string, Pending> = {
     tech: 201,
     body: { network: 'linkedin', url: 'https://www.linkedin.com/posts/x' },
   },
-  // Identifiant inexistant : 404 après le contrôle de rôle, qui est ce
-  // qu'on vérifie here. Un anonyme, lui, reçoit 401 before d'y arriver.
+  // A non-existent identifier: 404 after the role check, which is what we
+  // verify here. An anonymous caller gets 401 before reaching it.
   'DELETE /api/admin/social-posts/[id]': { anonyme: 401, editor: 404, tech: 404 },
   'PUT /api/admin/social-posts/[id]/article': {
     anonyme: 401,
@@ -112,9 +113,9 @@ const EXPECTED: Record<string, Pending> = {
   },
   'GET /api/admin/articles/[slug]/variants': { anonyme: 401, editor: 200, tech: 200 },
 
-  // Les accounts sociaux appartiennent à Max : il les signedIn, les ordonne,
-  // les masque et les déconnecte. Les secrets de l'application Meta, eux,
-  // ne quittent pas le serveur.
+  // The social accounts belong to Max: he connects, orders, hides and
+  // disconnects them. The Meta application secrets, for their part, never
+  // leave the server.
   'GET /api/admin/social-accounts': { anonyme: 401, editor: 200, tech: 200 },
   'PUT /api/admin/social-accounts/[id]': {
     anonyme: 401,
@@ -123,20 +124,20 @@ const EXPECTED: Record<string, Pending> = {
     body: { visible: true },
   },
   'DELETE /api/admin/social-accounts/[id]': { anonyme: 401, editor: 404, tech: 404 },
-  // 409 : aucun account connecté dans les tests. Ce qui account est qu'un
-  // `editor` ne soit plus refusé.
+  // 409: no account connected in the tests. What counts is that an
+  // `editor` is no longer refused.
   'POST /api/admin/instagram/sync': { anonyme: 401, editor: 409, tech: 409 },
-  // 409 également : sans NUXT_INSTAGRAM_APP_ID, il n'y a nulle part où
-  // envoyer Max.
+  // 409 as well: without NUXT_INSTAGRAM_APP_ID, there is nowhere to send
+  // Max.
   'GET /api/admin/instagram/connect': { anonyme: 401, editor: 409, tech: 409 },
-  // 400 : ni code ni état dans la requête de la matrice.
+  // 400: neither code nor state in the matrix request.
   'GET /api/admin/instagram/callback': { anonyme: 401, editor: 400, tech: 400 },
 
-  // --- Réservé au rôle technique -------------------------------------------
+  // --- Reserved to the technical role ---------------------------------------
   'GET /api/admin/settings': { anonyme: 401, editor: 200, tech: 200 },
-  // Un seul path, mais un rôle exigé qui DÉPEND DE LA CLÉ. La matrice
-  // couvre here le cas d'une clé publique ; l'autre portée est vérifiée par
-  // le bloc « réglages par portée », qui énumère SETTING_SCOPE.
+  // A single path, but a required role that DEPENDS ON THE KEY. The matrix
+  // covers the public-key case here; the other scope is checked by the
+  // « settings by scope » block, which enumerates SETTING_SCOPE.
   'PUT /api/admin/settings/[key]': {
     anonyme: 401,
     editor: 200,
@@ -156,18 +157,18 @@ const EXPECTED: Record<string, Pending> = {
     anonyme: 401,
     editor: 403,
     tech: 200,
-    // Simulation : n'écrit rien, ce qui laisse la matrice sans effet de bord.
+    // Dry run: writes nothing, which leaves the matrix without side effects.
     body: { archive: { manifest: { version: 1 } }, dryRun: true },
   },
 }
 
 /**
- * Le slug sur lequel les routes paramétrées opèrent.
+ * The slug the parameterised routes operate on.
  *
- * DELETE vise volontairement un slug INEXISTANT et attend 404 : la matrice
- * vérifie l'autorisation, pas la suppression, et détruire l'article
- * casserait les cas suivants. Un 404 prouve all autant que le contrôle de
- * rôle a été franchi — un anonyme, lui, reçoit 401 before d'y arriver.
+ * DELETE deliberately targets a NON-EXISTENT slug and expects 404: the
+ * matrix checks authorization, not deletion, and destroying the article
+ * would break the following cases. A 404 proves just as well that the role
+ * check was passed — an anonymous caller gets 401 before reaching it.
  */
 const SLUG_EXISTANT = 'article-de-la-matrice'
 const SLUG_ABSENT = 'jamais-vu-de-la-matrice'
@@ -179,7 +180,7 @@ const accounts: Record<'editor' | 'tech', number> = { editor: 0, tech: 0 }
 beforeAll(async () => {
   sqlClient = connection()
   await migrate(sqlClient)
-  db = base(sqlClient)
+  db = database(sqlClient)
   const [e] = await db
     .insert(appUser)
     .values({ email: 'max@exemple.test', role: 'editor' })
@@ -191,7 +192,7 @@ beforeAll(async () => {
   accounts.editor = e?.id ?? 0
   accounts.tech = t?.id ?? 0
 
-  // L'article sur lequel opèrent les routes paramétrées.
+  // The article the parameterised routes operate on.
   const { article } = await import('../../server/database/schema')
   await db.insert(article).values({
     slug: SLUG_EXISTANT,
@@ -206,7 +207,7 @@ afterAll(async () => {
 
 await setup({ server: true, browser: false })
 
-/** Un cookie de session scellé, sans passer par Google. */
+/** A sealed session cookie, without going through Google. */
 async function sessionFor(role: 'editor' | 'tech'): Promise<string> {
   const r = await fetch('/api/test/session', {
     method: 'POST',
@@ -229,7 +230,7 @@ describe('inventaire des routes', () => {
   })
 
   it('trouve au moins une route, sinon l’inventaire ne prouve rien', () => {
-    // Un inventaire vide ferait passer le test précédent sans rien vérifier.
+    // An empty inventory would pass the previous test without checking anything.
     expect(routesFromFiles(ADMIN_FOLDER).length).toBeGreaterThan(0)
   })
 })
@@ -242,8 +243,8 @@ describe('matrice route × rôle', () => {
   it.each(cas)('%s — %s → %i', async (route, qui, expected) => {
     const [methode, template] = route.split(' ') as [string, string]
     const slug = methode === 'DELETE' ? SLUG_ABSENT : SLUG_EXISTANT
-    // [id] vise volontairement une publication inexistante : la matrice
-    // vérifie l'autorisation, pas la manipulation.
+    // [id] deliberately targets a non-existent post: the matrix checks
+    // authorization, not the operation.
     const path = template
       .replace('[slug]', slug)
       .replace('[id]', '999999')
@@ -265,10 +266,10 @@ describe('matrice route × rôle', () => {
 
 describe('réglages par portée', () => {
   /**
-   * La frontière entre ce que Max règle et ce que seul JB voit.
+   * The border between what Max configures and what only JB sees.
    *
-   * On ÉNUMÈRE SETTING_SCOPE au lieu de recopier la list : un réglage
-   * technique ajouté demain est couvert sans que personne n'y pense.
+   * We ENUMERATE SETTING_SCOPE instead of copying the list: a technical
+   * setting added tomorrow is covered without anyone thinking about it.
    */
   const keys = Object.keys(SETTING_SCOPE) as SettingKey[]
 
@@ -282,7 +283,7 @@ describe('réglages par portée', () => {
     const r = await fetch(`/api/admin/settings/${key}`, {
       method: 'PUT',
       headers: { cookie: await sessionFor('editor'), 'content-type': 'application/json' },
-      // Le schéma valid du réglage : un 400 masquerait le code qu'on teste.
+      // The setting's valid schema: a 400 would mask the code under test.
       body: JSON.stringify(SETTING_DEFAULTS[key]),
     })
     expect(r.status).toBe(expected)

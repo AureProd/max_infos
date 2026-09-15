@@ -2,16 +2,16 @@ import { fileURLToPath } from 'node:url'
 import { defineVitestProject } from '@nuxt/test-utils/config'
 import { defineConfig } from 'vitest/config'
 
-// Les projets « unit » et « api » tournent hors environnement Nuxt : les
-// alias de Nuxt (#shared, ~) n'y existent pas et doivent être redéclarés.
+// The « unit » and « api » projects run outside the Nuxt environment:
+// Nuxt's aliases (#shared, ~) do not exist there and must be redeclared.
 const alias = {
   '#shared': fileURLToPath(new URL('./shared', import.meta.url)),
   '~~': fileURLToPath(new URL('.', import.meta.url)),
 }
 
-// Trois projets, pour ne pas payer l'environnement Nuxt (lourd) sur les
-// tests de shared/ et server/utils/, qui sont les plus nombreux et les plus
-// rapides. Seul le projet « nuxt » passe par defineVitestProject.
+// Three projects, so as not to pay for the (heavy) Nuxt environment on the
+// shared/ and server/utils/ tests, which are the most numerous and the
+// fastest. Only the « nuxt » project goes through defineVitestProject.
 export default defineConfig(async () => ({
   test: {
     projects: [
@@ -37,16 +37,16 @@ export default defineConfig(async () => ({
           name: 'api',
           environment: 'node',
           include: ['test/api/**/*.spec.ts'],
-          // Le serveur Nitro lancé par les tests parle à la base jetable du
-          // compose de développement, pas à celle de dev : les tests
-          // écrivent, et ne doivent rien y laisser.
+          // The Nitro server started by the tests talks to the throwaway
+          // database of the development compose, not to the dev one: the
+          // tests write, and must leave nothing behind.
           env: {
-            // Active la route de session de test, exclue du bundle sinon.
+            // Enables the test session route, excluded from the bundle otherwise.
             NUXT_TEST_ROUTES: 'true',
-            // Identifiants R2 factices : la signature d'URL est du calcul
-            // local, sans call réseau. Ils permettent de tester la route de
-            // téléversement sans bucket, et sans que la matrice
-            // d'autorisations dépende de la configuration du stockage.
+            // Dummy R2 credentials: URL signing is local computation, with
+            // no network call. They allow testing the upload route without
+            // a bucket, and keep the authorization matrix independent of
+            // the storage configuration.
             NUXT_R2_ENDPOINT: 'https://exemple.r2.cloudflarestorage.com',
             NUXT_R2_ACCESS_KEY_ID: 'cle-de-test',
             NUXT_R2_SECRET_ACCESS_KEY: 'secret-de-test',
@@ -57,8 +57,8 @@ export default defineConfig(async () => ({
               process.env.TEST_DATABASE_URL ??
               'postgres://unmaxdinfo:test@127.0.0.1:15000/unmaxdinfo_test',
           },
-          // La base est partagée : on évite la contention tant que la suite
-          // est petite.
+          // The database is shared: we avoid contention as long as the
+          // suite is small.
           fileParallelism: false,
           hookTimeout: 30_000,
         },
@@ -71,12 +71,12 @@ export default defineConfig(async () => ({
       exclude: [
         '**/*.d.ts',
         'app/app.vue',
-        // Déclaratif, exécuté à l'import : le couvrir ne prouverait rien.
+        // Declarative, run on import: covering it would prove nothing.
         'server/database/schema/**',
         'scripts/**',
       ],
-      // Les quatre métriques, et pas seulement les lines : un seuil sur les
-      // lines seules se contourne trivialement.
+      // All four metrics, not just lines: a threshold on lines alone is
+      // trivially worked around.
       thresholds: { lines: 80, statements: 80, functions: 80, branches: 80 },
     },
   },
