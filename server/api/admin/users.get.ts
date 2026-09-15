@@ -1,18 +1,18 @@
 import { asc } from 'drizzle-orm'
-import { useBase } from '~~/server/database/client'
+import { useDatabase } from '~~/server/database/client'
 import { appUser } from '~~/server/database/schema'
-import { exigerRole } from '~~/server/utils/auth'
+import { requireRole } from '~~/server/utils/auth'
 
 /**
- * Les comptes autorisés. Rôle `tech` EXIGÉ.
+ * Les accounts autorisés. Rôle `tech` EXIGÉ.
  *
  * C'est typiquement l'écran que Max ne doit jamais voir : savoir qui a
  * accès et avec quel rôle relève de l'infrastructure.
  */
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'tech')
+  await requireRole(event, 'tech')
 
-  return await useBase()
+  return await useDatabase()
     .select({
       id: appUser.id,
       email: appUser.email,

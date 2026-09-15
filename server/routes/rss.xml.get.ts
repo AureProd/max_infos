@@ -1,9 +1,9 @@
 import { desc, eq } from 'drizzle-orm'
-import { useBase } from '~~/server/database/client'
+import { useDatabase } from '~~/server/database/client'
 import { article, media } from '~~/server/database/schema'
-import { lireReglage } from '~~/server/utils/reglages'
+import { readSetting } from '~~/server/utils/settings'
 
-/** Échappement XML. Un titre contenant « & » casserait le flux sans cela. */
+/** Échappement XML. Un titre contenant « & » casserait le feed sans cela. */
 const x = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
@@ -11,15 +11,15 @@ const x = (s: string): string =>
  * Flux RSS des articles publiés.
  *
  * Écrit à la main plutôt qu'avec une bibliothèque : le format est stable
- * depuis vingt ans, et une dépendance de plus pour produire quarante lignes
+ * since vingt ans, et une dépendance de plus pour produire quarante lines
  * de XML n'est pas un bon échange. Le validateur du W3C reste le juge.
  */
 export default defineEventHandler(async (event) => {
   const { public: pub } = useRuntimeConfig()
   const base = pub.baseUrl.replace(/\/+$/, '')
-  const identite = await lireReglage('identity')
+  const identity = await readSetting('identity')
 
-  const articles = await useBase()
+  const articles = await useDatabase()
     .select({
       slug: article.slug,
       title: article.title,
@@ -36,11 +36,11 @@ export default defineEventHandler(async (event) => {
 
   const items = articles
     .map((a) => {
-      const lien = `${base}/article/${a.slug}`
+      const link = `${base}/article/${a.slug}`
       return `    <item>
       <title>${x(a.title)}</title>
-      <link>${x(lien)}</link>
-      <guid isPermaLink="true">${x(lien)}</guid>
+      <link>${x(link)}</link>
+      <guid isPermaLink="true">${x(link)}</guid>
       <pubDate>${a.publishedAt?.toUTCString() ?? ''}</pubDate>
       <description>${x(a.dek ?? '')}</description>
       <content:encoded><![CDATA[${a.bodyHtml}]]></content:encoded>${
@@ -54,9 +54,9 @@ export default defineEventHandler(async (event) => {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
-    <title>${x(identite.name)}</title>
+    <title>${x(identity.name)}</title>
     <link>${x(base)}</link>
-    <description>${x(identite.tagline)}</description>
+    <description>${x(identity.tagline)}</description>
     <language>fr</language>
     <atom:link href="${x(base)}/rss.xml" rel="self" type="application/rss+xml" />
 ${items}

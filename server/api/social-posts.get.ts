@@ -1,18 +1,18 @@
 import { and, desc, eq } from 'drizzle-orm'
-import { listeSocialQuery } from '#shared/schemas/api'
-import { useBase } from '~~/server/database/client'
+import { listSocialQuery } from '#shared/schemas/api'
+import { useDatabase } from '~~/server/database/client'
 import { article, articleSocialPost, socialAccount, socialPost } from '~~/server/database/schema'
 import { iso } from '~~/server/utils/serialize'
 
 /**
- * Les publications sociales visibles.
+ * Les publications sociales visible.
  *
  * `raw` n'est JAMAIS renvoyé : c'est la charge brute de Meta, elle peut
- * contenir des champs qui n'ont rien à faire sur une page publique.
+ * contenir des fields qui n'ont rien à faire sur une page publique.
  */
 export default defineEventHandler(async (event) => {
-  const { network, article: slug } = await getValidatedQuery(event, listeSocialQuery.parse)
-  const db = useBase()
+  const { network, article: slug } = await getValidatedQuery(event, listSocialQuery.parse)
+  const db = useDatabase()
 
   const conditions = [eq(socialPost.hidden, false)]
   if (network) conditions.push(eq(socialPost.network, network))
@@ -28,14 +28,14 @@ export default defineEventHandler(async (event) => {
       thumbnailUrl: socialPost.thumbnailUrl,
       permalink: socialPost.permalink,
       postedAt: socialPost.postedAt,
-      // Le compte d'origine, pour que la page d'une publication sache sous
-      // quel @ la signer. Le nom d'utilisateur est public par nature.
+      // Le account d'origine, pour que la page d'une publication sache sous
+      // quel @ la signer. Le name d'user est public par nature.
       accountUsername: socialAccount.username,
     })
     .from(socialPost)
     .leftJoin(socialAccount, eq(socialAccount.id, socialPost.accountId))
 
-  const lignes = slug
+  const lines = slug
     ? await base
         .innerJoin(articleSocialPost, eq(articleSocialPost.socialPostId, socialPost.id))
         .innerJoin(article, eq(article.id, articleSocialPost.articleId))
@@ -43,5 +43,5 @@ export default defineEventHandler(async (event) => {
         .orderBy(desc(socialPost.postedAt))
     : await base.where(and(...conditions)).orderBy(desc(socialPost.postedAt))
 
-  return lignes.map((l) => ({ ...l, postedAt: iso(l.postedAt) }))
+  return lines.map((l) => ({ ...l, postedAt: iso(l.postedAt) }))
 })

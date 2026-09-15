@@ -33,12 +33,14 @@ describe('nb', () => {
   it('produit TOUJOURS le même octet, quelle que soit la version d’ICU', () => {
     // C'est le cœur du sujet : `toLocaleString('fr-FR')` renvoie U+202F ou
     // U+00A0 selon l'ICU embarquée. Le serveur et le navigateur rendraient
-    // alors deux octets différents, et Vue signalerait un écart
+    // alors two bytes différents, et Vue signalerait un écart
     // d'hydratation sur chaque nombre affiché.
-    const rendu = nb(10013)
-    expect(rendu).not.toContain(' ')
-    expect(rendu).not.toContain(' ') // espace ordinaire
-    expect([...rendu].map((c) => c.codePointAt(0))).toEqual([0x31, 0x30, 0x202f, 0x30, 0x31, 0x33])
+    const rendered = nb(10013)
+    expect(rendered).not.toContain(' ')
+    expect(rendered).not.toContain(' ') // espace ordinaire
+    expect([...rendered].map((c) => c.codePointAt(0))).toEqual([
+      0x31, 0x30, 0x202f, 0x30, 0x31, 0x33,
+    ])
   })
 })
 

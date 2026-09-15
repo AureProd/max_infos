@@ -1,39 +1,39 @@
 import { and, count, desc, eq, gte, isNull, sql, sum } from 'drizzle-orm'
-import { useBase } from '~~/server/database/client'
+import { useDatabase } from '~~/server/database/client'
 import { article, articleSocialPost, articleView, socialPost } from '~~/server/database/schema'
-import { exigerRole } from '~~/server/utils/auth'
+import { requireRole } from '~~/server/utils/auth'
 
-/** Le jour, en ISO court, décalé de `jours` — la colonne `day` est une date nue. */
-function jourIso(jours: number): string {
+/** Le day, en ISO short, décalé de `jours` — la colonne `day` est une date nue. */
+function isoDay(jours: number): string {
   const d = new Date(Date.now() + jours * 86_400_000)
   return d.toISOString().slice(0, 10)
 }
 
-interface Alerte {
+interface Alert {
   niveau: 'info' | 'attention'
   message: string
-  lien: string
+  link: string
 }
 
 /**
  * Ce que Max doit voir en ouvrant la rédaction. Rôle `editor`.
  *
- * Rien de technique ici, pas même conditionnellement : un tableau de bord
- * qui change de forme selon le rôle est un tableau de bord qu'on ne peut
- * pas décrire à son utilisateur. L'état d'Instagram et des sauvegardes vit
+ * Rien de technique here, pas même conditionnellement : un tableau de bord
+ * qui change de shape selon le rôle est un tableau de bord qu'on ne peut
+ * pas décrire à son user. L'état d'Instagram et des sauvegardes vit
  * dans l'écran Technique, qui est fait pour ça.
  *
- * Les alertes sont des choses SUR LESQUELLES AGIR, pas des statistiques :
+ * Les alerts sont des choses SUR LESQUELLES AGIR, pas des statistiques :
  * un article publié sans image de couverture s'affichera mal partout où il
- * sera partagé, et personne ne s'en aperçoit depuis la liste d'articles.
+ * sera partagé, et personne ne s'en aperçoit since la list d'articles.
  */
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'editor')
-  const db = useBase()
+  await requireRole(event, 'editor')
+  const db = useDatabase()
 
-  const depuis = jourIso(-6) // aujourd'hui compris, donc sept jours
+  const since = isoDay(-6) // aujourd'hui compris, donc sept jours
 
-  const [brouillons, nonRattachees, vues, sansCouverture, sansResume, populaires] =
+  const [brouillons, nonRattachees, views, sansCouverture, sansResume, populaires] =
     await Promise.all([
       db
         .select({
@@ -67,7 +67,7 @@ export default defineEventHandler(async (event) => {
       db
         .select({ total: sum(articleView.count) })
         .from(articleView)
-        .where(gte(articleView.day, depuis)),
+        .where(gte(articleView.day, since)),
 
       db
         .select({ n: count() })
@@ -83,11 +83,11 @@ export default defineEventHandler(async (event) => {
         .select({
           slug: article.slug,
           title: article.title,
-          vues: sql<number>`sum(${articleView.count})::int`,
+          views: sql<number>`sum(${articleView.count})::int`,
         })
         .from(articleView)
         .innerJoin(article, eq(article.id, articleView.articleId))
-        .where(gte(articleView.day, depuis))
+        .where(gte(articleView.day, since))
         .groupBy(article.slug, article.title)
         .orderBy(desc(sql`sum(${articleView.count})`))
         .limit(5),
@@ -98,26 +98,26 @@ export default defineEventHandler(async (event) => {
     .from(article)
     .where(eq(article.status, 'draft'))
 
-  const alertes: Alerte[] = []
+  const alerts: Alert[] = []
   if ((sansCouverture[0]?.n ?? 0) > 0) {
-    alertes.push({
+    alerts.push({
       niveau: 'attention',
       message: `${sansCouverture[0]?.n} article(s) publié(s) sans image de couverture`,
-      lien: '/admin',
+      link: '/admin',
     })
   }
   if ((sansResume[0]?.n ?? 0) > 0) {
-    alertes.push({
+    alerts.push({
       niveau: 'info',
       message: `${sansResume[0]?.n} article(s) publié(s) sans chapô`,
-      lien: '/admin',
+      link: '/admin',
     })
   }
   if (nonRattachees.length > 0) {
-    alertes.push({
+    alerts.push({
       niveau: 'info',
       message: `${nonRattachees.length} publication(s) sans article rattaché`,
-      lien: '/admin/publications',
+      link: '/admin/publications',
     })
   }
 
@@ -129,8 +129,8 @@ export default defineEventHandler(async (event) => {
       postedAt: p.postedAt?.toISOString() ?? null,
     })),
     // `sum` rend une chaîne en SQL : le total peut dépasser l'entier sûr.
-    vuesSemaine: Number(vues[0]?.total ?? 0),
+    vuesSemaine: Number(views[0]?.total ?? 0),
     populaires,
-    alertes,
+    alerts,
   }
 })

@@ -20,9 +20,9 @@ describe('slugify', () => {
   })
 
   it('produit ce que le schéma de route accepte', () => {
-    const motif = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+    const pattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
     for (const t of ['Géopolitique', 'Cultures urbaines', 'Sport & pouvoir', 'Europe']) {
-      expect(slugify(t)).toMatch(motif)
+      expect(slugify(t)).toMatch(pattern)
     }
   })
 })

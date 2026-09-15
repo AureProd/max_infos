@@ -6,19 +6,19 @@ import * as schema from './schema'
 /**
  * Connexion à PostgreSQL, ouverte une seule fois par processus.
  *
- * La connexion est paresseuse : rien ne s'ouvre à l'import, sans quoi les
+ * La connection est paresseuse : rien ne s'ouvre à l'import, sans quoi les
  * tests et le build tenteraient de joindre une base qui n'existe pas.
  */
 let client: postgres.Sql | undefined
-let base: ReturnType<typeof creerBase> | undefined
+let base: ReturnType<typeof createDatabase> | undefined
 
-function creerBase(connexion: postgres.Sql) {
+function createDatabase(connection: postgres.Sql) {
   // casing doit être déclaré ICI ET dans drizzle.config.ts : sinon la
   // génération des migrations et l'exécution divergent silencieusement.
-  return drizzle(connexion, { schema, casing: 'snake_case' })
+  return drizzle(connection, { schema, casing: 'snake_case' })
 }
 
-export function useBase() {
+export function useDatabase() {
   if (!base) {
     const { databaseUrl } = useRuntimeConfig()
     if (!databaseUrl) {
@@ -33,7 +33,7 @@ export function useBase() {
       // attend un verdict n'en reçoit aucun.
       connect_timeout: 5,
     })
-    base = creerBase(client)
+    base = createDatabase(client)
   }
   return base
 }
@@ -43,8 +43,8 @@ export function useBase() {
  * Utilisée par /api/health/ready et par rien d'autre : le reste du code
  * n'a pas à se demander si la base est joignable, il échoue s'il le faut.
  */
-export async function verifierBase(): Promise<{ ok: boolean; latenceMs: number }> {
+export async function checkDatabase(): Promise<{ ok: boolean; latenceMs: number }> {
   const debut = performance.now()
-  await useBase().execute(sql`select 1`)
+  await useDatabase().execute(sql`select 1`)
   return { ok: true, latenceMs: Math.round(performance.now() - debut) }
 }

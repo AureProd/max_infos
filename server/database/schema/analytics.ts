@@ -2,10 +2,10 @@ import { date, integer, pgTable, primaryKey } from 'drizzle-orm/pg-core'
 import { article } from './article'
 
 /**
- * Compteur de vues, agrégé par jour.
+ * Compteur de views, agrégé par day.
  *
  * Aucune adresse IP, aucun cookie, aucun identifiant de visiteur : juste un
- * entier par article et par jour. L'incrément se fait par
+ * entier par article et par day. L'incrément se fait par
  * onConflictDoUpdate, ce qui évite toute lecture préalable.
  */
 export const articleView = pgTable(

@@ -4,94 +4,94 @@ import { nb } from '#shared/utils/format'
 definePageMeta({ middleware: 'admin' })
 
 /**
- * Les comptes de réseaux sociaux, réglés par Max.
+ * Les accounts de réseaux sociaux, réglés par Max.
  *
- * Connecter, ordonner, masquer, déconnecter : tout ce qui décide de ce que
- * l'accueil montre. L'identité affichée — nom, photo, bio — n'est PAS
- * éditable ici : elle vient d'Instagram, et c'est ce qui la garde vraie.
+ * Connecter, ordonner, masquer, déconnecter : all ce qui décide de ce que
+ * l'accueil montre. L'identité affichée — name, photo, bio — n'est PAS
+ * éditable here : elle vient d'Instagram, et c'est ce qui la garde vraie.
  * Le rattachement d'une publication à un article, lui, reste dans l'écran
  * Publications.
  */
 const route = useRoute()
-/** Message de retour du flux OAuth, porté par l'URL. */
-const retour = computed(() => route.query.instagram as string | undefined)
+/** Message de back du feed OAuth, porté par l'URL. */
+const back = computed(() => route.query.instagram as string | undefined)
 
-const { data: comptes, refresh } = await useFetch('/api/admin/social-accounts', {
+const { data: accounts, refresh } = await useFetch('/api/admin/social-accounts', {
   key: 'comptes-sociaux',
 })
 
-const etat = ref<'repos' | 'enregistrement' | 'enregistré' | 'échec'>('repos')
+const state = ref<'repos' | 'enregistrement' | 'enregistré' | 'échec'>('repos')
 const message = ref('')
 
 /**
- * Pas de type explicite sur `$fetch` : celui de Nitro est déduit du
+ * Pas de type explicit sur `$fetch` : celui de Nitro est déduit du
  * handler, si bien qu'un champ renommé côté serveur fait échouer
- * `pnpm typecheck` ici. Un type écrit à la main aurait tout accepté.
+ * `pnpm typecheck` here. Un type écrit à la main aurait all accepté.
  */
-async function regler(
+async function set(
   id: number,
-  changements: { visible?: boolean; position?: number; postsOnHome?: number },
+  changes: { visible?: boolean; position?: number; postsOnHome?: number },
 ): Promise<void> {
-  etat.value = 'enregistrement'
+  state.value = 'enregistrement'
   try {
-    await $fetch(`/api/admin/social-accounts/${id}`, { method: 'PUT', body: changements })
+    await $fetch(`/api/admin/social-accounts/${id}`, { method: 'PUT', body: changes })
     await refresh()
-    etat.value = 'enregistré'
+    state.value = 'enregistré'
   } catch (e) {
-    etat.value = 'échec'
+    state.value = 'échec'
     message.value = (e as { statusMessage?: string }).statusMessage ?? 'Enregistrement impossible'
   }
 }
 
-/** Échange deux comptes de place, en n'écrivant que les deux positions. */
-async function deplacer(i: number, sens: -1 | 1): Promise<void> {
-  const liste = comptes.value ?? []
-  const ici = liste[i]
-  const la = liste[i + sens]
-  if (!ici || !la) return
-  await regler(ici.id, { position: la.position })
-  await regler(la.id, { position: ici.position })
+/** Échange two accounts de place, en n'écrivant que les two positions. */
+async function move(i: number, sens: -1 | 1): Promise<void> {
+  const list = accounts.value ?? []
+  const here = list[i]
+  const la = list[i + sens]
+  if (!here || !la) return
+  await set(here.id, { position: la.position })
+  await set(la.id, { position: here.position })
 }
 
-const synchro = ref<number | 'tous' | null>(null)
+const syncTask = ref<number | 'tous' | null>(null)
 
-async function synchroniser(compte?: number): Promise<void> {
-  synchro.value = compte ?? 'tous'
+async function syncPosts(account?: number): Promise<void> {
+  syncTask.value = account ?? 'tous'
   message.value = ''
   try {
-    const bilan = await $fetch('/api/admin/instagram/sync', {
+    const summary = await $fetch('/api/admin/instagram/sync', {
       method: 'POST',
-      query: compte ? { compte } : {},
+      query: account ? { account } : {},
     })
-    const echecs = bilan.comptes.filter((c) => c.erreur)
-    message.value = echecs.length
-      ? `${bilan.nouvelles} nouvelle(s). En échec : ${echecs.map((c) => `@${c.username} (${c.erreur})`).join(', ')}`
-      : `${bilan.vues} publication(s) vue(s), ${bilan.nouvelles} nouvelle(s).`
+    const failures = summary.accounts.filter((c) => c.error)
+    message.value = failures.length
+      ? `${summary.fresh} nouvelle(s). En échec : ${failures.map((c) => `@${c.username} (${c.error})`).join(', ')}`
+      : `${summary.views} publication(s) vue(s), ${summary.fresh} nouvelle(s).`
     await refresh()
   } catch (e) {
     message.value = (e as { statusMessage?: string }).statusMessage ?? 'Synchronisation impossible'
   } finally {
-    synchro.value = null
+    syncTask.value = null
   }
 }
 
 /**
- * Déconnecter EFFACE les publications du compte et leurs rattachements.
+ * Déconnecter EFFACE les publications du account et leurs rattachements.
  *
  * D'où la confirmation qui annonce le nombre exact : c'est définitif, et une
  * resynchronisation après reconnexion ne rendrait pas les rattachements aux
  * articles.
  */
-async function deconnecter(compte: {
+async function signOut(account: {
   id: number
   username: string | null
   nbPublications: number
 }): Promise<void> {
   const accord = confirm(
-    `Déconnecter @${compte.username} supprimera aussi ses ${compte.nbPublications} publication(s) et leurs liens vers les articles. Cette action est définitive.`,
+    `Déconnecter @${account.username} supprimera aussi ses ${account.nbPublications} publication(s) et leurs liens vers les articles. Cette action est définitive.`,
   )
   if (!accord) return
-  await $fetch(`/api/admin/social-accounts/${compte.id}`, { method: 'DELETE' })
+  await $fetch(`/api/admin/social-accounts/${account.id}`, { method: 'DELETE' })
   await refresh()
 }
 
@@ -102,23 +102,23 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
   <div class="wrap">
     <section class="admin-page">
       <AdminNav>
-        <span v-if="etat === 'enregistré'" class="note">enregistré</span>
-        <span v-else-if="etat === 'échec'" class="err">échec</span>
+        <span v-if="state === 'enregistré'" class="note">enregistré</span>
+        <span v-else-if="state === 'échec'" class="err">échec</span>
         <button
           class="btn"
           type="button"
-          :disabled="synchro !== null || !(comptes ?? []).length"
-          @click="synchroniser()"
+          :disabled="syncTask !== null || !(accounts ?? []).length"
+          @click="syncPosts()"
         >
-          {{ synchro === 'tous' ? 'Synchronisation…' : 'Tout synchroniser' }}
+          {{ syncTask === 'tous' ? 'Synchronisation…' : 'Tout synchroniser' }}
         </button>
         <a class="btn btn-primary" href="/api/admin/instagram/connect">Connecter un compte</a>
       </AdminNav>
 
       <h1>Réseaux</h1>
 
-      <p v-if="retour === 'ok'" class="note">Le compte est connecté.</p>
-      <p v-else-if="retour === 'refus'" class="err">
+      <p v-if="back === 'ok'" class="note">Le compte est connecté.</p>
+      <p v-else-if="back === 'refus'" class="err">
         L'autorisation a été refusée côté Instagram.
       </p>
       <p v-if="message" class="hint">{{ message }}</p>
@@ -131,7 +131,7 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
       </p>
 
       <ul class="list">
-        <li v-for="(c, i) in comptes ?? []" :key="c.id">
+        <li v-for="(c, i) in accounts ?? []" :key="c.id">
           <div class="entry">
             <div class="cluster">
               <img v-if="c.avatarUrl" class="avatar" :src="c.avatarUrl" :alt="`@${c.username}`" />
@@ -146,7 +146,7 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
                   <span>
                     Synchronisé : {{ c.lastSyncAt ? c.lastSyncAt.slice(0, 10) : 'jamais' }}
                   </span>
-                  <span v-if="!c.connecte" class="err">jeton absent — reconnecter</span>
+                  <span v-if="!c.signedIn" class="err">jeton absent — reconnecter</span>
                   <strong v-else-if="c.jetonAlerte">
                     Jeton vieux de {{ c.jetonAgeJours }} jours : à renouveler avant 60.
                   </strong>
@@ -155,14 +155,14 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
             </div>
 
             <div class="cluster">
-              <button class="btn" type="button" :disabled="i === 0" @click="deplacer(i, -1)">
+              <button class="btn" type="button" :disabled="i === 0" @click="move(i, -1)">
                 ↑
               </button>
               <button
                 class="btn"
                 type="button"
-                :disabled="i === (comptes ?? []).length - 1"
-                @click="deplacer(i, 1)"
+                :disabled="i === (accounts ?? []).length - 1"
+                @click="move(i, 1)"
               >
                 ↓
               </button>
@@ -171,7 +171,7 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
                 <input
                   type="checkbox"
                   :checked="c.visible"
-                  @change="regler(c.id, { visible: ($event.target as HTMLInputElement).checked })"
+                  @change="set(c.id, { visible: ($event.target as HTMLInputElement).checked })"
                 />
                 Sur l'accueil
               </label>
@@ -183,7 +183,7 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
                   max="50"
                   :value="c.postsOnHome"
                   @change="
-                    regler(c.id, { postsOnHome: Number(($event.target as HTMLInputElement).value) })
+                    set(c.id, { postsOnHome: Number(($event.target as HTMLInputElement).value) })
                   "
                 />
                 publications
@@ -192,18 +192,18 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
               <button
                 class="btn"
                 type="button"
-                :disabled="synchro !== null"
-                @click="synchroniser(c.id)"
+                :disabled="syncTask !== null"
+                @click="syncPosts(c.id)"
               >
-                {{ synchro === c.id ? 'Synchronisation…' : 'Synchroniser' }}
+                {{ syncTask === c.id ? 'Synchronisation…' : 'Synchroniser' }}
               </button>
-              <button class="btn" type="button" @click="deconnecter(c)">Déconnecter</button>
+              <button class="btn" type="button" @click="signOut(c)">Déconnecter</button>
             </div>
           </div>
         </li>
       </ul>
 
-      <p v-if="!(comptes ?? []).length" class="empty">
+      <p v-if="!(accounts ?? []).length" class="empty">
         Aucun compte connecté. « Connecter un compte » ouvre l'autorisation Instagram.
       </p>
     </section>

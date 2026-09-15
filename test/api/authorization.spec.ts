@@ -5,7 +5,7 @@ import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { SETTING_DEFAULTS, SETTING_SCOPE, type SettingKey } from '#shared/schemas/settings'
 import { appUser } from '../../server/database/schema'
-import { type BaseDeTest, base, connexion, migrer } from '../setup/db'
+import { base, connection, migrate, type TestDatabase } from '../setup/db'
 
 /**
  * Le garde-fou le plus important du projet.
@@ -15,77 +15,77 @@ import { type BaseDeTest, base, connexion, migrer } from '../setup/db'
  * aujourd'hui — c'est qu'une route ajoutée dans six mois soit oubliée dans
  * une matrice tenue à la main.
  *
- * D'où l'inventaire par le système de fichiers : la matrice doit couvrir
+ * D'où l'inventaire par le système de files : la matrice doit couvrir
  * EXACTEMENT les routes qui existent. Une route ajoutée sans y être
- * inscrite fait échouer le test en nommant le fichier fautif.
+ * inscrite fait échouer le test en nommant le file fautif.
  */
 
-const DOSSIER_ADMIN = join(process.cwd(), 'server/api/admin')
+const ADMIN_FOLDER = join(process.cwd(), 'server/api/admin')
 
-/** Traduit un fichier de route Nitro en « MÉTHODE /chemin ». */
-function routesDepuisFichiers(dossier: string, prefixe = '/api/admin'): string[] {
-  const trouvees: string[] = []
-  for (const entree of readdirSync(dossier)) {
-    const chemin = join(dossier, entree)
-    if (statSync(chemin).isDirectory()) {
-      trouvees.push(...routesDepuisFichiers(chemin, `${prefixe}/${entree}`))
+/** Traduit un file de route Nitro en « MÉTHODE /path ». */
+function routesFromFiles(folder: string, prefixe = '/api/admin'): string[] {
+  const found: string[] = []
+  for (const entry of readdirSync(folder)) {
+    const path = join(folder, entry)
+    if (statSync(path).isDirectory()) {
+      found.push(...routesFromFiles(path, `${prefixe}/${entry}`))
       continue
     }
-    const m = entree.match(/^(.+)\.(get|post|put|patch|delete)\.ts$/)
+    const m = entry.match(/^(.+)\.(get|post|put|patch|delete)\.ts$/)
     if (!m) continue
-    const [, nom, methode] = m
-    const cheminRoute = nom === 'index' ? prefixe : `${prefixe}/${nom}`
-    trouvees.push(`${methode?.toUpperCase()} ${cheminRoute}`)
+    const [, name, methode] = m
+    const routePath = name === 'index' ? prefixe : `${prefixe}/${name}`
+    found.push(`${methode?.toUpperCase()} ${routePath}`)
   }
-  return trouvees.sort()
+  return found.sort()
 }
 
 /**
  * Ce qu'on ATTEND, tenu à la main. Toute route admin doit y figurer.
  * anonyme → 401 (« identifie-toi »), editor sans droit → 403 (« non »).
  *
- * `corps` fournit une charge valide quand la route en exige une : sans
+ * `body` fournit une charge valid quand la route en exige une : sans
  * elle, un 400 masquerait le code d'autorisation qu'on veut vérifier.
  */
-interface Attente {
+interface Pending {
   anonyme: number
   editor: number
   tech: number
-  corps?: unknown
+  body?: unknown
 }
 
-const BROUILLON = {
+const DRAFT = {
   title: 'Article de la matrice',
   bodyMd: 'Un corps.',
   tags: ['matrice'],
   featured: false,
 }
 
-const ATTENDU: Record<string, Attente> = {
+const EXPECTED: Record<string, Pending> = {
   'GET /api/admin/dashboard': { anonyme: 401, editor: 200, tech: 200 },
   'GET /api/admin/articles': { anonyme: 401, editor: 200, tech: 200 },
-  'POST /api/admin/articles': { anonyme: 401, editor: 201, tech: 201, corps: BROUILLON },
+  'POST /api/admin/articles': { anonyme: 401, editor: 201, tech: 201, body: DRAFT },
   'GET /api/admin/articles/[slug]': { anonyme: 401, editor: 200, tech: 200 },
-  'PUT /api/admin/articles/[slug]': { anonyme: 401, editor: 200, tech: 200, corps: BROUILLON },
+  'PUT /api/admin/articles/[slug]': { anonyme: 401, editor: 200, tech: 200, body: DRAFT },
   'DELETE /api/admin/articles/[slug]': { anonyme: 401, editor: 404, tech: 404 },
   'PUT /api/admin/articles/[slug]/status': {
     anonyme: 401,
     editor: 200,
     tech: 200,
-    corps: { status: 'draft' },
+    body: { status: 'draft' },
   },
   'POST /api/admin/preview': {
     anonyme: 401,
     editor: 200,
     tech: 200,
-    corps: { bodyMd: '## Titre' },
+    body: { bodyMd: '## Titre' },
   },
   'GET /api/admin/media': { anonyme: 401, editor: 200, tech: 200 },
   'POST /api/admin/media/upload-url': {
     anonyme: 401,
     editor: 201,
     tech: 201,
-    corps: { filename: 'photo.png', contentType: 'image/png', bytes: 1024 },
+    body: { filename: 'photo.png', contentType: 'image/png', bytes: 1024 },
   },
   'GET /api/admin/tags': { anonyme: 401, editor: 200, tech: 200 },
   'GET /api/admin/social-posts': { anonyme: 401, editor: 200, tech: 200 },
@@ -93,26 +93,26 @@ const ATTENDU: Record<string, Attente> = {
     anonyme: 401,
     editor: 201,
     tech: 201,
-    corps: { network: 'linkedin', url: 'https://www.linkedin.com/posts/x' },
+    body: { network: 'linkedin', url: 'https://www.linkedin.com/posts/x' },
   },
   // Identifiant inexistant : 404 après le contrôle de rôle, qui est ce
-  // qu'on vérifie ici. Un anonyme, lui, reçoit 401 avant d'y arriver.
+  // qu'on vérifie here. Un anonyme, lui, reçoit 401 before d'y arriver.
   'DELETE /api/admin/social-posts/[id]': { anonyme: 401, editor: 404, tech: 404 },
   'PUT /api/admin/social-posts/[id]/article': {
     anonyme: 401,
     editor: 404,
     tech: 404,
-    corps: { articleSlug: null },
+    body: { articleSlug: null },
   },
   'PUT /api/admin/social-posts/[id]/visibility': {
     anonyme: 401,
     editor: 404,
     tech: 404,
-    corps: { hidden: true },
+    body: { hidden: true },
   },
-  'GET /api/admin/articles/[slug]/declinaisons': { anonyme: 401, editor: 200, tech: 200 },
+  'GET /api/admin/articles/[slug]/variants': { anonyme: 401, editor: 200, tech: 200 },
 
-  // Les comptes sociaux appartiennent à Max : il les connecte, les ordonne,
+  // Les accounts sociaux appartiennent à Max : il les signedIn, les ordonne,
   // les masque et les déconnecte. Les secrets de l'application Meta, eux,
   // ne quittent pas le serveur.
   'GET /api/admin/social-accounts': { anonyme: 401, editor: 200, tech: 200 },
@@ -120,10 +120,10 @@ const ATTENDU: Record<string, Attente> = {
     anonyme: 401,
     editor: 404,
     tech: 404,
-    corps: { visible: true },
+    body: { visible: true },
   },
   'DELETE /api/admin/social-accounts/[id]': { anonyme: 401, editor: 404, tech: 404 },
-  // 409 : aucun compte connecté dans les tests. Ce qui compte est qu'un
+  // 409 : aucun account connecté dans les tests. Ce qui account est qu'un
   // `editor` ne soit plus refusé.
   'POST /api/admin/instagram/sync': { anonyme: 401, editor: 409, tech: 409 },
   // 409 également : sans NUXT_INSTAGRAM_APP_ID, il n'y a nulle part où
@@ -134,14 +134,14 @@ const ATTENDU: Record<string, Attente> = {
 
   // --- Réservé au rôle technique -------------------------------------------
   'GET /api/admin/settings': { anonyme: 401, editor: 200, tech: 200 },
-  // Un seul chemin, mais un rôle exigé qui DÉPEND DE LA CLÉ. La matrice
-  // couvre ici le cas d'une clé publique ; l'autre portée est vérifiée par
+  // Un seul path, mais un rôle exigé qui DÉPEND DE LA CLÉ. La matrice
+  // couvre here le cas d'une clé publique ; l'autre portée est vérifiée par
   // le bloc « réglages par portée », qui énumère SETTING_SCOPE.
-  'PUT /api/admin/settings/[cle]': {
+  'PUT /api/admin/settings/[key]': {
     anonyme: 401,
     editor: 200,
     tech: 200,
-    corps: {
+    body: {
       name: 'Un Max d’info',
       author: 'Maximilien Huet',
       byline: 'Max',
@@ -157,7 +157,7 @@ const ATTENDU: Record<string, Attente> = {
     editor: 403,
     tech: 200,
     // Simulation : n'écrit rien, ce qui laisse la matrice sans effet de bord.
-    corps: { archive: { manifest: { version: 1 } }, simulation: true },
+    body: { archive: { manifest: { version: 1 } }, simulation: true },
   },
 }
 
@@ -166,19 +166,19 @@ const ATTENDU: Record<string, Attente> = {
  *
  * DELETE vise volontairement un slug INEXISTANT et attend 404 : la matrice
  * vérifie l'autorisation, pas la suppression, et détruire l'article
- * casserait les cas suivants. Un 404 prouve tout autant que le contrôle de
- * rôle a été franchi — un anonyme, lui, reçoit 401 avant d'y arriver.
+ * casserait les cas suivants. Un 404 prouve all autant que le contrôle de
+ * rôle a été franchi — un anonyme, lui, reçoit 401 before d'y arriver.
  */
 const SLUG_EXISTANT = 'article-de-la-matrice'
 const SLUG_ABSENT = 'jamais-vu-de-la-matrice'
 
 let sqlClient: postgres.Sql
-let db: BaseDeTest
-const comptes: Record<'editor' | 'tech', number> = { editor: 0, tech: 0 }
+let db: TestDatabase
+const accounts: Record<'editor' | 'tech', number> = { editor: 0, tech: 0 }
 
 beforeAll(async () => {
-  sqlClient = connexion()
-  await migrer(sqlClient)
+  sqlClient = connection()
+  await migrate(sqlClient)
   db = base(sqlClient)
   const [e] = await db
     .insert(appUser)
@@ -188,8 +188,8 @@ beforeAll(async () => {
     .insert(appUser)
     .values({ email: 'jb@exemple.test', role: 'tech' })
     .returning({ id: appUser.id })
-  comptes.editor = e?.id ?? 0
-  comptes.tech = t?.id ?? 0
+  accounts.editor = e?.id ?? 0
+  accounts.tech = t?.id ?? 0
 
   // L'article sur lequel opèrent les routes paramétrées.
   const { article } = await import('../../server/database/schema')
@@ -207,10 +207,10 @@ afterAll(async () => {
 await setup({ server: true, browser: false })
 
 /** Un cookie de session scellé, sans passer par Google. */
-async function sessionPour(role: 'editor' | 'tech'): Promise<string> {
+async function sessionFor(role: 'editor' | 'tech'): Promise<string> {
   const r = await fetch('/api/test/session', {
     method: 'POST',
-    body: JSON.stringify({ id: comptes[role] }),
+    body: JSON.stringify({ id: accounts[role] }),
     headers: { 'content-type': 'application/json' },
   })
   return r.headers.get('set-cookie') ?? ''
@@ -218,48 +218,48 @@ async function sessionPour(role: 'editor' | 'tech'): Promise<string> {
 
 describe('inventaire des routes', () => {
   it('la matrice couvre EXACTEMENT les routes admin existantes', () => {
-    const existantes = routesDepuisFichiers(DOSSIER_ADMIN)
-    const declarees = Object.keys(ATTENDU).sort()
+    const existing = routesFromFiles(ADMIN_FOLDER)
+    const declared = Object.keys(EXPECTED).sort()
 
-    const oubliees = existantes.filter((r) => !declarees.includes(r))
-    const orphelines = declarees.filter((r) => !existantes.includes(r))
+    const forgotten = existing.filter((r) => !declared.includes(r))
+    const orphans = declared.filter((r) => !existing.includes(r))
 
-    expect(oubliees, `Route(s) admin sans attente déclarée : ${oubliees.join(', ')}`).toEqual([])
-    expect(orphelines, `Attente(s) sans route : ${orphelines.join(', ')}`).toEqual([])
+    expect(forgotten, `Route(s) admin sans attente déclarée : ${forgotten.join(', ')}`).toEqual([])
+    expect(orphans, `Attente(s) sans route : ${orphans.join(', ')}`).toEqual([])
   })
 
   it('trouve au moins une route, sinon l’inventaire ne prouve rien', () => {
     // Un inventaire vide ferait passer le test précédent sans rien vérifier.
-    expect(routesDepuisFichiers(DOSSIER_ADMIN).length).toBeGreaterThan(0)
+    expect(routesFromFiles(ADMIN_FOLDER).length).toBeGreaterThan(0)
   })
 })
 
 describe('matrice route × rôle', () => {
-  const cas = Object.entries(ATTENDU).flatMap(([route, attentes]) =>
+  const cas = Object.entries(EXPECTED).flatMap(([route, attentes]) =>
     (['anonyme', 'editor', 'tech'] as const).map((qui) => [route, qui, attentes[qui]] as const),
   )
 
-  it.each(cas)('%s — %s → %i', async (route, qui, attendu) => {
-    const [methode, gabarit] = route.split(' ') as [string, string]
+  it.each(cas)('%s — %s → %i', async (route, qui, expected) => {
+    const [methode, template] = route.split(' ') as [string, string]
     const slug = methode === 'DELETE' ? SLUG_ABSENT : SLUG_EXISTANT
     // [id] vise volontairement une publication inexistante : la matrice
     // vérifie l'autorisation, pas la manipulation.
-    const chemin = gabarit
+    const path = template
       .replace('[slug]', slug)
       .replace('[id]', '999999')
-      .replace('[cle]', 'identity')
-    const cookie = qui === 'anonyme' ? '' : await sessionPour(qui)
-    const corps = ATTENDU[route]?.corps
+      .replace('[key]', 'identity')
+    const cookie = qui === 'anonyme' ? '' : await sessionFor(qui)
+    const body = EXPECTED[route]?.body
 
-    const r = await fetch(chemin, {
+    const r = await fetch(path, {
       method: methode,
       headers: {
         ...(cookie ? { cookie } : {}),
-        ...(corps ? { 'content-type': 'application/json' } : {}),
+        ...(body ? { 'content-type': 'application/json' } : {}),
       },
-      ...(corps ? { body: JSON.stringify(corps) } : {}),
+      ...(body ? { body: JSON.stringify(body) } : {}),
     })
-    expect(r.status).toBe(attendu)
+    expect(r.status).toBe(expected)
   })
 })
 
@@ -267,57 +267,57 @@ describe('réglages par portée', () => {
   /**
    * La frontière entre ce que Max règle et ce que seul JB voit.
    *
-   * On ÉNUMÈRE SETTING_SCOPE au lieu de recopier la liste : un réglage
+   * On ÉNUMÈRE SETTING_SCOPE au lieu de recopier la list : un réglage
    * technique ajouté demain est couvert sans que personne n'y pense.
    */
-  const cles = Object.keys(SETTING_SCOPE) as SettingKey[]
+  const keys = Object.keys(SETTING_SCOPE) as SettingKey[]
 
   it('il y a bien des réglages des deux portées', () => {
-    expect(cles.filter((c) => SETTING_SCOPE[c] === 'tech').length).toBeGreaterThan(0)
-    expect(cles.filter((c) => SETTING_SCOPE[c] === 'public').length).toBeGreaterThan(0)
+    expect(keys.filter((c) => SETTING_SCOPE[c] === 'tech').length).toBeGreaterThan(0)
+    expect(keys.filter((c) => SETTING_SCOPE[c] === 'public').length).toBeGreaterThan(0)
   })
 
-  it.each(cles)('PUT settings/%s — editor', async (cle) => {
-    const attendu = SETTING_SCOPE[cle] === 'tech' ? 403 : 200
-    const r = await fetch(`/api/admin/settings/${cle}`, {
+  it.each(keys)('PUT settings/%s — editor', async (key) => {
+    const expected = SETTING_SCOPE[key] === 'tech' ? 403 : 200
+    const r = await fetch(`/api/admin/settings/${key}`, {
       method: 'PUT',
-      headers: { cookie: await sessionPour('editor'), 'content-type': 'application/json' },
-      // Le schéma valide du réglage : un 400 masquerait le code qu'on teste.
-      body: JSON.stringify(SETTING_DEFAULTS[cle]),
+      headers: { cookie: await sessionFor('editor'), 'content-type': 'application/json' },
+      // Le schéma valid du réglage : un 400 masquerait le code qu'on teste.
+      body: JSON.stringify(SETTING_DEFAULTS[key]),
     })
-    expect(r.status).toBe(attendu)
+    expect(r.status).toBe(expected)
   })
 
   it('GET settings ne renvoie AUCUN réglage technique à un editor', async () => {
     const r = await fetch('/api/admin/settings', {
-      headers: { cookie: await sessionPour('editor') },
+      headers: { cookie: await sessionFor('editor') },
     })
-    const recus = Object.keys((await r.json()) as Record<string, unknown>)
-    for (const cle of cles.filter((c) => SETTING_SCOPE[c] === 'tech')) {
-      expect(recus, `${cle} ne doit pas être renvoyé à un editor`).not.toContain(cle)
+    const received = Object.keys((await r.json()) as Record<string, unknown>)
+    for (const key of keys.filter((c) => SETTING_SCOPE[c] === 'tech')) {
+      expect(received, `${key} ne doit pas être renvoyé à un editor`).not.toContain(key)
     }
   })
 
   it('GET settings renvoie TOUT à un tech', async () => {
     const r = await fetch('/api/admin/settings', {
-      headers: { cookie: await sessionPour('tech') },
+      headers: { cookie: await sessionFor('tech') },
     })
-    const recus = Object.keys((await r.json()) as Record<string, unknown>)
-    for (const cle of cles) expect(recus).toContain(cle)
+    const received = Object.keys((await r.json()) as Record<string, unknown>)
+    for (const key of keys) expect(received).toContain(key)
   })
 })
 
 describe('invariant du projet', () => {
   it('editor reçoit 403 sur TOUTES les routes techniques', () => {
-    const techniques = Object.entries(ATTENDU).filter(([, a]) => a.tech !== a.editor)
-    expect(techniques.length).toBeGreaterThan(0)
-    for (const [route, a] of techniques) {
+    const technical = Object.entries(EXPECTED).filter(([, a]) => a.tech !== a.editor)
+    expect(technical.length).toBeGreaterThan(0)
+    for (const [route, a] of technical) {
       expect(a.editor, `${route} doit refuser editor`).toBe(403)
     }
   })
 
   it('aucune route admin n’est ouverte aux anonymes', () => {
-    for (const [route, a] of Object.entries(ATTENDU)) {
+    for (const [route, a] of Object.entries(EXPECTED)) {
       expect(a.anonyme, `${route} doit exiger une connexion`).toBe(401)
     }
   })

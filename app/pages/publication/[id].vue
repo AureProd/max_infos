@@ -18,7 +18,7 @@ const { data: article } = await useFetch('/api/articles', {
   key: () => `publication-article-${id.value}`,
   query: { taille: 50 },
 })
-const rattache = computed(() =>
+const attached = computed(() =>
   article.value?.items.find((a) => a.slug && item.value && a.slug === item.value.shortcode),
 )
 
@@ -58,9 +58,9 @@ useSeoMeta({
         </a>
       </div>
 
-      <p v-if="rattache" class="endnote">
+      <p v-if="attached" class="endnote">
         Tiré de
-        <NuxtLink :to="`/article/${rattache.slug}`">« {{ rattache.title }} »</NuxtLink>
+        <NuxtLink :to="`/article/${attached.slug}`">« {{ attached.title }} »</NuxtLink>
       </p>
     </article>
 

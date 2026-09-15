@@ -3,13 +3,13 @@ import { z } from 'zod'
 /**
  * Tout ce que Max peut modifier sans coder.
  *
- * Le schéma est indexé PAR CLÉ, ce qui donne deux choses d'un coup :
+ * Le schéma est indexé PAR CLÉ, ce qui donne two choses d'un coup :
  * `getSetting('cv').education[0].org` est typé, et la portée
  * publique/technique est une donnée TypeScript — donc énumérable par les
  * tests, au lieu d'être recopiée à la main quelque part.
  */
 
-const entree = z.object({
+const entry = z.object({
   title: z.string().trim().max(300),
   org: z.string().trim().max(300).optional(),
   detail: z.string().trim().max(600).optional(),
@@ -19,9 +19,9 @@ const entree = z.object({
   visible: z.boolean().default(true),
 })
 
-const rubrique = z.object({
+const section = z.object({
   visible: z.boolean().default(true),
-  entrees: z.array(entree).max(50).default([]),
+  entries: z.array(entry).max(50).default([]),
 })
 
 export const identitySchema = z.object({
@@ -62,9 +62,9 @@ export const cvSchema = z.object({
   intro: z.string().trim().max(2000).default(''),
   photoMediaId: z.number().int().positive().nullable().default(null),
   pdfMediaId: z.number().int().positive().nullable().default(null),
-  education: rubrique.default({ visible: true, entrees: [] }),
-  experience: rubrique.default({ visible: true, entrees: [] }),
-  engagements: rubrique.default({ visible: true, entrees: [] }),
+  education: section.default({ visible: true, entries: [] }),
+  experience: section.default({ visible: true, entries: [] }),
+  engagements: section.default({ visible: true, entries: [] }),
   skills: z
     .array(z.object({ group: z.string(), items: z.array(z.string()) }))
     .max(20)
@@ -101,9 +101,9 @@ export const templatesSchema = z.object({
 /**
  * Réglages TECHNIQUES d'Instagram : jamais renvoyés par /api/site.
  *
- * Le profil public a quitté les réglages : il vit dans `social_account`,
- * une ligne par compte, alimentée par la synchronisation. Un réglage unique
- * ne pouvait décrire qu'un seul compte.
+ * Le profile public a quitté les réglages : il vit dans `social_account`,
+ * une ligne par account, alimentée par la synchronisation. Un réglage unique
+ * ne pouvait décrire qu'un seul account.
  */
 export const instagramSchema = z.object({
   syncIntervalMinutes: z.number().int().min(5).default(60),
@@ -150,14 +150,14 @@ export const SETTING_SCOPE: Record<SettingKey, 'public' | 'tech'> = {
 export const SETTING_KEYS = Object.keys(SETTING_SCHEMAS) as SettingKey[]
 
 /**
- * La valeur de départ de chaque réglage.
+ * La value de départ de chaque réglage.
  *
  * Explicite plutôt que déduite d'un `parse({})` : `identity` et `templates`
- * ont des champs obligatoires, et un repli qui échoue est pire que pas de
- * repli — il transforme un réglage non renseigné en erreur 500.
+ * ont des fields obligatoires, et un repli qui échoue est pire que pas de
+ * repli — il transforme un réglage non renseigné en error 500.
  *
- * Sert deux fois : au démarrage sur une base vierge, et comme filet quand
- * une valeur stockée ne correspond plus au schéma. Un site dont le CV n'est
+ * Sert two fois : au démarrage sur une base vierge, et comme filet quand
+ * une value stockée ne correspond plus au schéma. Un site dont le CV n'est
  * pas rempli doit s'afficher.
  */
 export const SETTING_DEFAULTS: { [K in SettingKey]: SettingValue<K> } = {
@@ -178,5 +178,5 @@ export const SETTING_DEFAULTS: { [K in SettingKey]: SettingValue<K> } = {
   storage: storageSchema.parse({}),
 }
 
-export const estCleDeReglage = (v: unknown): v is SettingKey =>
+export const isSettingKey = (v: unknown): v is SettingKey =>
   typeof v === 'string' && v in SETTING_SCHEMAS

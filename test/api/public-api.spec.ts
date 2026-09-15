@@ -2,25 +2,25 @@ import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { SETTING_SCOPE, type SettingKey } from '#shared/schemas/settings'
-import { type BaseDeTest, base, connexion, migrer, semerJeuDeTest } from '../setup/db'
+import { base, connection, migrate, seedTestData, type TestDatabase } from '../setup/db'
 
 /**
  * L'API publique, contre une VRAIE base.
  *
- * Le motif « une transaction annulée par test » ne vaut pas ici : le
+ * Le pattern « une transaction annulée par test » ne vaut pas here : le
  * handler Nitro ouvre ses propres connexions et ne verrait rien de ce
- * qu'une transaction de test aurait écrit. On sème donc une fois, avant le
- * démarrage du serveur, et les tests ne font que lire — sauf le compteur de
- * vues, qui vérifie justement une écriture.
+ * qu'une transaction de test aurait écrit. On sème donc une fois, before le
+ * démarrage du serveur, et les tests ne font que read — sauf le compteur de
+ * views, qui vérifie justement une écriture.
  */
 let sqlClient: postgres.Sql
-let db: BaseDeTest
+let db: TestDatabase
 
 beforeAll(async () => {
-  sqlClient = connexion()
-  await migrer(sqlClient)
+  sqlClient = connection()
+  await migrate(sqlClient)
   db = base(sqlClient)
-  await semerJeuDeTest(db)
+  await seedTestData(db)
 }, 60_000)
 
 afterAll(async () => {
@@ -33,7 +33,7 @@ describe('GET /api/articles', () => {
   it('ne renvoie que les articles publiés', async () => {
     const r = await $fetch('/api/articles')
     expect(r.total).toBe(2)
-    // Le brouillon ne doit apparaître nulle part : il n'est pas « interdit »,
+    // Le draft ne doit apparaître nulle part : il n'est pas « interdit »,
     // il n'existe pas pour le public.
     expect(r.items.map((i) => i.slug)).not.toContain('article-brouillon')
   })
@@ -87,11 +87,11 @@ describe('GET /api/articles/[slug]', () => {
     const a = await $fetch('/api/articles/article-publie')
     expect(a.title).toBe('Un article publié')
     expect(a.tags.map((t) => t.slug)).toEqual(['geo'])
-    expect(a.declinaisons.map((d) => d.shortcode)).toEqual(['ABC123'])
+    expect(a.variants.map((d) => d.shortcode)).toEqual(['ABC123'])
   })
 
   it('répond 404 sur un brouillon, et non 403', async () => {
-    // Un 403 confirmerait l'existence du brouillon.
+    // Un 403 confirmerait l'existence du draft.
     expect((await fetch('/api/articles/article-brouillon')).status).toBe(404)
   })
 
@@ -109,7 +109,7 @@ describe('GET /api/articles/[slug]', () => {
 describe('GET /api/tags', () => {
   it('compte les articles publiés et trie à la française', async () => {
     const tags = await $fetch('/api/tags')
-    // « Alpha » avant « Géographie » : c'est le tri localeCompare, fait en
+    // « Alpha » before « Géographie » : c'est le tri localeCompare, fait en
     // JavaScript pour ne pas dépendre des locales de l'image PostgreSQL.
     expect(tags.map((t) => t.label)).toEqual(['Alpha', 'Géographie'])
     expect(tags.every((t) => t.n === 1)).toBe(true)
@@ -119,15 +119,15 @@ describe('GET /api/tags', () => {
 describe('GET /api/social-posts', () => {
   it('masque les publications cachées', async () => {
     const posts = await $fetch('/api/social-posts')
-    // MASQ1 est là : elle appartient à un compte masqué, ce qui la retire de
-    // l'ACCUEIL, pas de la liste générale. Les deux notions sont distinctes.
+    // MASQ1 est là : elle appartient à un account masqué, ce qui la retire de
+    // l'ACCUEIL, pas de la list générale. Les two notions sont distinctes.
     expect(posts.map((p) => p.shortcode)).toEqual(['ABC123', 'DEF456', 'MASQ1'])
   })
 
   it('n’expose JAMAIS la charge brute de Meta', async () => {
-    const brut = await (await fetch('/api/social-posts')).text()
-    expect(brut).not.toContain('raw')
-    expect(brut).not.toContain('secret_meta')
+    const raw = await (await fetch('/api/social-posts')).text()
+    expect(raw).not.toContain('raw')
+    expect(raw).not.toContain('secret_meta')
   })
 
   it('filtre par article', async () => {
@@ -145,39 +145,39 @@ describe('GET /api/social-posts', () => {
 
 describe('GET /api/social-accounts', () => {
   it('ne renvoie que les comptes affichés sur l’accueil', async () => {
-    const comptes = await $fetch('/api/social-accounts')
-    expect(comptes.map((c) => c.username)).toEqual(['maxinfo'])
+    const accounts = await $fetch('/api/social-accounts')
+    expect(accounts.map((c) => c.username)).toEqual(['maxinfo'])
   })
 
   it('reprend l’identité du compte, telle qu’Instagram la donne', async () => {
     // C'est la décision de conception : le libellé et la photo de la section
-    // viennent du compte connecté, ils ne se saisissent pas.
-    const [compte] = await $fetch('/api/social-accounts')
-    expect(compte?.displayName).toBe('Un Max d’info')
-    expect(compte?.avatarUrl).toBe('https://exemple.test/avatar.png')
-    expect(compte?.url).toBe('https://www.instagram.com/maxinfo')
-    expect(compte?.followers).toBe(120)
+    // viennent du account connecté, ils ne se saisissent pas.
+    const [account] = await $fetch('/api/social-accounts')
+    expect(account?.displayName).toBe('Un Max d’info')
+    expect(account?.avatarUrl).toBe('https://exemple.test/avatar.png')
+    expect(account?.url).toBe('https://www.instagram.com/maxinfo')
+    expect(account?.followers).toBe(120)
   })
 
   it('tronque au nombre de publications choisi, les plus récentes d’abord', async () => {
-    const [compte] = await $fetch('/api/social-accounts')
+    const [account] = await $fetch('/api/social-accounts')
     // postsOnHome vaut 1 dans le jeu de test : DEF456, plus ancienne, reste
     // dehors.
-    expect(compte?.publications.map((p) => p.shortcode)).toEqual(['ABC123'])
+    expect(account?.publications.map((p) => p.shortcode)).toEqual(['ABC123'])
   })
 
   it('ne montre ni publication masquée ni publication d’un compte masqué', async () => {
-    const brut = await (await fetch('/api/social-accounts')).text()
-    expect(brut).not.toContain('CACHE1')
-    expect(brut).not.toContain('MASQ1')
-    expect(brut).not.toContain('archives')
+    const raw = await (await fetch('/api/social-accounts')).text()
+    expect(raw).not.toContain('CACHE1')
+    expect(raw).not.toContain('MASQ1')
+    expect(raw).not.toContain('archives')
   })
 
   it('n’expose ni la charge brute de Meta ni le moindre jeton', async () => {
-    const brut = await (await fetch('/api/social-accounts')).text()
-    expect(brut).not.toContain('secret_meta')
-    expect(brut).not.toContain('ciphertext')
-    expect(brut).not.toContain('access_token')
+    const raw = await (await fetch('/api/social-accounts')).text()
+    expect(raw).not.toContain('secret_meta')
+    expect(raw).not.toContain('ciphertext')
+    expect(raw).not.toContain('access_token')
   })
 })
 
@@ -200,17 +200,17 @@ describe('GET /api/site', () => {
     //
     // On ÉNUMÈRE SETTING_SCOPE plutôt que de chercher une sous-chaîne : la
     // version précédente cherchait « instagram », qui apparaît légitimement
-    // dans la clé PUBLIQUE instagram_public. Un test qui se trompe de cible
+    // dans la clé PUBLIQUE instagram_public. Un test qui se trompe de target
     // finit par être désactivé plutôt que corrigé.
     const site = await $fetch<Record<string, unknown>>('/api/site')
-    const techniques = (Object.keys(SETTING_SCOPE) as SettingKey[]).filter(
+    const technical = (Object.keys(SETTING_SCOPE) as SettingKey[]).filter(
       (c) => SETTING_SCOPE[c] === 'tech',
     )
-    expect(techniques.length).toBeGreaterThan(0)
-    for (const cle of techniques) {
-      expect(Object.keys(site), `${cle} ne doit pas être public`).not.toContain(cle)
+    expect(technical.length).toBeGreaterThan(0)
+    for (const key of technical) {
+      expect(Object.keys(site), `${key} ne doit pas être public`).not.toContain(key)
     }
-    // Et la valeur elle-même n'apparaît nulle part dans la réponse.
+    // Et la value elle-même n'apparaît nulle part dans la réponse.
     expect(await (await fetch('/api/site')).text()).not.toContain('compte-prive-123')
   })
 })

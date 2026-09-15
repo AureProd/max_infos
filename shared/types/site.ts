@@ -15,12 +15,12 @@ export interface MediaPublic {
  * public le rend disponible côté navigateur sans rien écrire de plus, et
  * renommer un champ fait échouer `pnpm typecheck` là où il est lu.
  *
- * `medias` est la seule entrée qui ne vienne pas des réglages : les champs
+ * `mediaItems` est la seule entrée qui ne vienne pas des réglages : les fields
  * `…MediaId` ne portent qu'un nombre, et une page ne sait pas afficher un
  * nombre. Le serveur les résout en une table indexée par identifiant.
  */
 export type SitePublic = {
   [K in SettingKey]: SettingValue<K>
 } & {
-  medias: Record<number, MediaPublic>
+  mediaItems: Record<number, MediaPublic>
 }

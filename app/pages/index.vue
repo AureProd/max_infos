@@ -2,13 +2,13 @@
 import { frDate, frShort } from '#shared/utils/format'
 
 const { data: site } = await useSite()
-const { data: liste } = await useFetch('/api/articles', { key: 'accueil', query: { taille: 20 } })
+const { data: list } = await useFetch('/api/articles', { key: 'accueil', query: { taille: 20 } })
 const { articles, tags, state, isActive, total, toggleTag } = useFilters()
 
-const tous = computed(() => liste.value?.items ?? [])
-const feature = computed(() => tous.value[0])
-const rail = computed(() => tous.value.slice(1, 4))
-const rest = computed(() => tous.value.slice(1))
+const all = computed(() => list.value?.items ?? [])
+const feature = computed(() => all.value[0])
+const rail = computed(() => all.value.slice(1, 4))
+const rest = computed(() => all.value.slice(1))
 
 useSeoMeta({
   title: () => site.value?.identity.name,
@@ -92,7 +92,7 @@ useSeoMeta({
       <div class="section-head">
         <h2>Les articles</h2>
         <span class="rule" />
-        <span class="note">{{ liste?.total ?? 0 }} publiés</span>
+        <span class="note">{{ list?.total ?? 0 }} publiés</span>
       </div>
       <ul class="cards">
         <li v-for="article in rest" :key="article.slug">

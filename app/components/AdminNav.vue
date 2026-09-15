@@ -1,39 +1,39 @@
 <script setup lang="ts">
-const { utilisateur, peut, deconnecter } = useUtilisateur()
+const { user, peut, signOut } = useUser()
 
 /**
- * Les écrans techniques ne sont PAS dans le menu de Max.
+ * Les écrans technical ne sont PAS dans le menu de Max.
  *
  * Ce masquage est du confort, pas une sécurité : le serveur refuse de
  * toute façon, et c'est lui seul qui protège. Mais un menu qui propose des
  * écrans interdits donne le sentiment d'un outil qui n'est pas fait pour
  * soi.
  */
-const voitLaTechnique = peut('tech')
+const seesTech = peut('tech')
 
-const ecrans = computed(() =>
+const screens = computed(() =>
   [
-    { to: '/admin', libelle: 'Tableau de bord', tech: false },
-    { to: '/admin/articles', libelle: 'Articles', tech: false },
-    { to: '/admin/publications', libelle: 'Publications', tech: false },
-    { to: '/admin/social', libelle: 'Réseaux', tech: false },
-    { to: '/admin/home', libelle: 'Accueil', tech: false },
-    { to: '/admin/about', libelle: 'À propos', tech: false },
-    { to: '/admin/appearance', libelle: 'Apparence', tech: false },
-    { to: '/admin/tech', libelle: 'Technique', tech: true },
-  ].filter((e) => !e.tech || voitLaTechnique.value),
+    { to: '/admin', label: 'Tableau de bord', tech: false },
+    { to: '/admin/articles', label: 'Articles', tech: false },
+    { to: '/admin/publications', label: 'Publications', tech: false },
+    { to: '/admin/social', label: 'Réseaux', tech: false },
+    { to: '/admin/home', label: 'Accueil', tech: false },
+    { to: '/admin/about', label: 'À propos', tech: false },
+    { to: '/admin/appearance', label: 'Apparence', tech: false },
+    { to: '/admin/tech', label: 'Technique', tech: true },
+  ].filter((e) => !e.tech || seesTech.value),
 )
 </script>
 
 <template>
   <div class="admin-bar">
     <nav class="cnav">
-      <NuxtLink v-for="e in ecrans" :key="e.to" :to="e.to">{{ e.libelle }}</NuxtLink>
+      <NuxtLink v-for="e in screens" :key="e.to" :to="e.to">{{ e.label }}</NuxtLink>
     </nav>
     <div class="cluster">
-      <span class="pill">{{ utilisateur?.name ?? utilisateur?.email }}</span>
+      <span class="pill">{{ user?.name ?? user?.email }}</span>
       <slot />
-      <button class="btn" type="button" @click="deconnecter">Se déconnecter</button>
+      <button class="btn" type="button" @click="signOut">Se déconnecter</button>
     </div>
   </div>
 </template>

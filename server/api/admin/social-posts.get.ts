@@ -1,18 +1,18 @@
 import { desc, eq, sql } from 'drizzle-orm'
-import { useBase } from '~~/server/database/client'
+import { useDatabase } from '~~/server/database/client'
 import { socialAccount, socialPost } from '~~/server/database/schema'
-import { exigerRole } from '~~/server/utils/auth'
+import { requireRole } from '~~/server/utils/auth'
 
 /**
  * Toutes les publications, masquées comprises. Rôle `editor`.
  *
- * `raw` reste exclu même ici : Max n'a rien à faire de la charge brute de
+ * `raw` reste exclu même here : Max n'a rien à faire de la charge brute de
  * Meta, et la laisser passer serait une habitude à ne pas prendre.
  */
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'editor')
+  await requireRole(event, 'editor')
 
-  return await useBase()
+  return await useDatabase()
     .select({
       id: socialPost.id,
       network: socialPost.network,
@@ -25,15 +25,15 @@ export default defineEventHandler(async (event) => {
       hidden: socialPost.hidden,
       position: socialPost.position,
       source: socialPost.source,
-      // De quel compte vient la publication : avec plusieurs comptes, une
-      // liste qui ne le dit pas devient illisible. Jointure EXTERNE — une
-      // saisie manuelle n'a pas de compte.
+      // De quel account vient la publication : avec plusieurs accounts, une
+      // list qui ne le dit pas devient illisible. Jointure EXTERNE — une
+      // input manuelle n'a pas de account.
       accountId: socialPost.accountId,
       accountUsername: socialAccount.username,
       accountAvatarUrl: socialAccount.avatarUrl,
       // L'article rattaché, en SOUS-REQUÊTE et non en jointure : la table de
       // liaison autorise plusieurs articles par publication, et une jointure
-      // dupliquerait alors la ligne. L'écran n'en rattache qu'un.
+      // dupliquerait alors la ligne. L'écran n'en attached qu'un.
       articleSlug: sql<string | null>`(
         select a.slug
         from article_social_post asp

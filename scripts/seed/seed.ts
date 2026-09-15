@@ -1,26 +1,26 @@
 /**
- * Migration one-shot du contenu de la maquette vers la base.
+ * Migration one-shot du content de la maquette vers la base.
  *
  *   pnpm seed              écrit par-dessus l'existant (idempotent)
- *   pnpm seed --reset      vide les tables de contenu d'abord
+ *   pnpm seed --reset      vide les tables de content d'abord
  *
  * Idempotent par construction : chaque écriture passe par un
- * onConflictDoUpdate sur une contrainte d'unicité. Le relancer deux fois de
+ * onConflictDoUpdate sur une contrainte d'unicité. Le relancer two fois de
  * suite donne le même résultat, ce qui permet de le rejouer après un ajout
  * sans craindre les doublons.
  *
  * Ce que ce script NE migre PAS, délibérément : les publications marquées
  * `placeholder` dans posts.ts. Ce sont des emplacements de maquette dont le
- * texte dit « Colle ici le texte réel » — les écrire en base reviendrait à
- * publier du faux contenu. Seules les deux publications Instagram réelles,
+ * text dit « Colle here le text réel » — les écrire en base reviendrait à
+ * publier du falsy content. Seules les two publications Instagram réelles,
  * celles qui portent un shortcode, sont reprises.
  */
 import { eq, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from '../../server/database/schema'
-import { GABARITS_PAR_DEFAUT } from '../../server/utils/gabarits'
-import { rendreMarkdown } from '../../server/utils/markdown'
+import { renderMarkdown } from '../../server/utils/markdown'
+import { DEFAULT_TEMPLATES } from '../../server/utils/templates'
 import { SETTING_SCOPE, type SettingKey } from '../../shared/schemas/settings'
 import { slugify } from '../../shared/utils/slug'
 import { ARTICLES } from './data/articles'
@@ -48,21 +48,21 @@ async function main(): Promise<void> {
   }
 
   // --- Sujets -------------------------------------------------------------
-  const libelles = [...new Set(ARTICLES.flatMap((a) => a.tags))]
-  const sujets = new Map<string, number>()
-  for (const label of libelles) {
+  const labels = [...new Set(ARTICLES.flatMap((a) => a.tags))]
+  const tags = new Map<string, number>()
+  for (const label of labels) {
     const [ligne] = await db
       .insert(schema.tag)
       .values({ slug: slugify(label), label })
       .onConflictDoUpdate({ target: schema.tag.slug, set: { label } })
       .returning({ id: schema.tag.id, slug: schema.tag.slug })
-    if (ligne) sujets.set(label, ligne.id)
+    if (ligne) tags.set(label, ligne.id)
   }
-  console.log(`▸ ${sujets.size} sujets`)
+  console.log(`▸ ${tags.size} sujets`)
 
-  // --- Articles et leurs couvertures --------------------------------------
+  // --- Articles et leurs covers --------------------------------------
   for (const a of ARTICLES) {
-    // La couverture vit encore sur le CDN de Substack : on enregistre son
+    // La couverture vit again sur le CDN de Substack : on enregistre son
     // URL sans clé R2, en attendant le ré-hébergement du lot 5.
     let coverId: number | null = null
     if (a.cover) {
@@ -90,13 +90,13 @@ async function main(): Promise<void> {
         title: a.title,
         dek: a.dek,
         bodyMd: a.body,
-        // Rendu par le MÊME moteur que le back-office : les articles
+        // Rendu par le MÊME engine que le back-office : les articles
         // migrés sont servis exactement comme ceux écrits ensuite.
-        bodyHtml: rendreMarkdown(a.body),
+        bodyHtml: renderMarkdown(a.body),
         status: 'published',
         publishedAt: new Date(`${a.date}T12:00:00Z`),
         coverMediaId: coverId,
-        // Les valeurs du fichier sont reprises TELLES QUELLES, et non
+        // Les values du file sont reprises TELLES QUELLES, et non
         // recalculées : `chars` sert de graine au visuel de repli
         // (`chars % 97`), donc le recalculer changerait l'apparence des
         // cinq articles existants. Les nouveaux articles, eux, seront
@@ -112,7 +112,7 @@ async function main(): Promise<void> {
           title: a.title,
           dek: a.dek,
           bodyMd: a.body,
-          bodyHtml: rendreMarkdown(a.body),
+          bodyHtml: renderMarkdown(a.body),
           coverMediaId: coverId,
         },
       })
@@ -121,7 +121,7 @@ async function main(): Promise<void> {
     if (!art) continue
 
     for (const label of a.tags) {
-      const tagId = sujets.get(label)
+      const tagId = tags.get(label)
       if (tagId) {
         await db
           .insert(schema.articleTag)
@@ -132,13 +132,13 @@ async function main(): Promise<void> {
   }
   console.log(`▸ ${ARTICLES.length} articles`)
 
-  // --- Le compte Instagram de la maquette ---------------------------------
+  // --- Le account Instagram de la maquette ---------------------------------
   //
-  // `externalId` porte une valeur repère plutôt que NULL : sous PostgreSQL
-  // deux NULL sont DISTINCTS, et un semis rejoué créerait un second compte
-  // au lieu de retrouver le premier. La première connexion réelle le
+  // `externalId` porte une value repère plutôt que NULL : sous PostgreSQL
+  // two NULL sont DISTINCTS, et un semis rejoué créerait un second account
+  // au lieu de retrouver le first. La première connection réelle le
   // remplacera par l'identifiant Meta.
-  const [compte] = await db
+  const [account] = await db
     .insert(schema.socialAccount)
     .values({
       network: 'instagram',
@@ -154,13 +154,13 @@ async function main(): Promise<void> {
     .returning({ id: schema.socialAccount.id })
 
   // --- Publications Instagram réelles -------------------------------------
-  let liees = 0
+  let linked = 0
   for (const [i, m] of IG_MEDIA.entries()) {
     const [post] = await db
       .insert(schema.socialPost)
       .values({
         network: 'instagram',
-        accountId: compte?.id ?? null,
+        accountId: account?.id ?? null,
         externalId: m.shortcode,
         shortcode: m.shortcode,
         url: m.url,
@@ -174,7 +174,7 @@ async function main(): Promise<void> {
       })
       .onConflictDoUpdate({
         target: [schema.socialPost.network, schema.socialPost.externalId],
-        set: { url: m.url, permalink: m.url, accountId: compte?.id ?? null },
+        set: { url: m.url, permalink: m.url, accountId: account?.id ?? null },
       })
       .returning({ id: schema.socialPost.id })
 
@@ -189,13 +189,13 @@ async function main(): Promise<void> {
         .insert(schema.articleSocialPost)
         .values({ articleId: art.id, socialPostId: post.id, position: i })
         .onConflictDoNothing()
-      liees++
+      linked++
     }
   }
-  console.log(`▸ ${IG_MEDIA.length} publications Instagram, ${liees} rattachées`)
+  console.log(`▸ ${IG_MEDIA.length} publications Instagram, ${linked} rattachées`)
 
   // --- Réglages publics ---------------------------------------------------
-  const reglages: Record<string, unknown> = {
+  const settings: Record<string, unknown> = {
     identity: {
       name: SITE.name,
       author: SITE.author,
@@ -205,7 +205,7 @@ async function main(): Promise<void> {
     },
     contact: {
       // Chaque champ porte SON PROPRE interrupteur de visibilité. Ceux qui
-      // viennent de la maquette sont des liens publics par nature ; les
+      // viennent de la maquette sont des links publics par nature ; les
       // données personnelles du CV (téléphone, adresse, date de naissance)
       // arriveront masquées, comme le prévoit le plan.
       fields: SITE.links.map((l) => ({
@@ -224,17 +224,17 @@ async function main(): Promise<void> {
       featured: [],
     },
     theme: { variables: {} },
-    templates: GABARITS_PAR_DEFAUT,
+    templates: DEFAULT_TEMPLATES,
   }
 
-  for (const [key, value] of Object.entries(reglages)) {
+  for (const [key, value] of Object.entries(settings)) {
     await db
       .insert(schema.setting)
-      // La portée vient de la table, jamais d'une valeur écrite ici.
+      // La portée vient de la table, jamais d'une value écrite here.
       .values({ key, value, scope: SETTING_SCOPE[key as SettingKey] ?? 'public' })
       .onConflictDoUpdate({ target: schema.setting.key, set: { value, updatedAt: sql`now()` } })
   }
-  console.log(`▸ ${Object.keys(reglages).length} réglages publics`)
+  console.log(`▸ ${Object.keys(settings).length} réglages publics`)
 }
 
 main()

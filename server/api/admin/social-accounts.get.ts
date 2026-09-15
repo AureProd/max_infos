@@ -1,24 +1,24 @@
 import { asc, count, like } from 'drizzle-orm'
-import { useBase } from '~~/server/database/client'
+import { useDatabase } from '~~/server/database/client'
 import { secret, socialAccount, socialPost } from '~~/server/database/schema'
-import { exigerRole } from '~~/server/utils/auth'
-import { cleJeton } from '~~/server/utils/instagram'
+import { requireRole } from '~~/server/utils/auth'
+import { tokenKey } from '~~/server/utils/instagram'
 
 /**
- * Les comptes connectés, masqués COMPRIS. Rôle `editor`.
+ * Les accounts connectés, masqués COMPRIS. Rôle `editor`.
  *
- * Masqués compris, sans quoi un compte retiré de l'accueil deviendrait
+ * Masqués compris, sans quoi un account retiré de l'accueil deviendrait
  * impossible à y remettre.
  *
- * L'état du jeton est joint ici : c'est le même écran qui prévient qu'une
+ * L'état du token est joint here : c'est le même écran qui prévient qu'une
  * reconnexion approche. Sa DATE seule est lue — le `ciphertext` ne quitte
  * jamais la base.
  */
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'editor')
-  const db = useBase()
+  await requireRole(event, 'editor')
+  const db = useDatabase()
 
-  const comptes = await db
+  const accounts = await db
     .select({
       id: socialAccount.id,
       network: socialAccount.network,
@@ -37,33 +37,31 @@ export default defineEventHandler(async (event) => {
     .from(socialAccount)
     .orderBy(asc(socialAccount.position), asc(socialAccount.id))
 
-  const jetons = await db
+  const tokens = await db
     .select({ key: secret.key, updatedAt: secret.updatedAt })
     .from(secret)
     .where(like(secret.key, 'instagram_access_token:%'))
 
-  const nombres = await db
+  const numbers = await db
     .select({ accountId: socialPost.accountId, n: count() })
     .from(socialPost)
     .groupBy(socialPost.accountId)
 
-  return comptes.map((compte) => {
-    const jeton = jetons.find((j) => j.key === cleJeton(compte.id))
-    // Le jeton longue durée vaut 60 jours. On alerte à 15 jours de la fin :
+  return accounts.map((account) => {
+    const token = tokens.find((j) => j.key === tokenKey(account.id))
+    // Le token longue durée vaut 60 jours. On alerte à 15 jours de la fin :
     // passé l'expiration, il ne se rafraîchit plus et il faut refaire l'OAuth
     // à la main.
-    const ageJours = jeton
-      ? Math.floor((Date.now() - jeton.updatedAt.getTime()) / 86_400_000)
-      : null
+    const ageDays = token ? Math.floor((Date.now() - token.updatedAt.getTime()) / 86_400_000) : null
 
     return {
-      ...compte,
-      lastSyncAt: compte.lastSyncAt?.toISOString() ?? null,
-      url: compte.username ? `https://www.instagram.com/${compte.username}` : null,
-      connecte: Boolean(jeton),
-      jetonAgeJours: ageJours,
-      jetonAlerte: ageJours !== null && ageJours > 45,
-      nbPublications: nombres.find((n) => n.accountId === compte.id)?.n ?? 0,
+      ...account,
+      lastSyncAt: account.lastSyncAt?.toISOString() ?? null,
+      url: account.username ? `https://www.instagram.com/${account.username}` : null,
+      signedIn: Boolean(token),
+      jetonAgeJours: ageDays,
+      jetonAlerte: ageDays !== null && ageDays > 45,
+      nbPublications: numbers.find((n) => n.accountId === account.id)?.n ?? 0,
     }
   })
 })

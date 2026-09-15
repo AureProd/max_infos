@@ -5,10 +5,10 @@ definePageMeta({ middleware: 'admin' })
 
 const { data: bord } = await useFetch('/api/admin/dashboard', { key: 'admin-bord' })
 
-const { utilisateur } = useUtilisateur()
+const { user } = useUser()
 
 /** « Bonjour Max » plutôt qu'un titre d'écran : c'est sa page d'accueil. */
-const prenom = computed(() => utilisateur.value?.name?.split(' ')[0] ?? '')
+const firstName = computed(() => user.value?.name?.split(' ')[0] ?? '')
 
 useSeoMeta({ title: 'Rédaction', robots: 'noindex, nofollow' })
 </script>
@@ -20,11 +20,11 @@ useSeoMeta({ title: 'Rédaction', robots: 'noindex, nofollow' })
         <NuxtLink class="btn btn-primary" to="/admin/articles">Écrire</NuxtLink>
       </AdminNav>
 
-      <h1>{{ prenom ? `Bonjour ${prenom}` : 'Tableau de bord' }}</h1>
+      <h1>{{ firstName ? `Bonjour ${firstName}` : 'Tableau de bord' }}</h1>
 
-      <ul v-if="bord?.alertes.length" class="alertes">
-        <li v-for="(a, i) in bord.alertes" :key="i" :class="a.niveau">
-          <NuxtLink :to="a.lien">{{ a.message }}</NuxtLink>
+      <ul v-if="bord?.alerts.length" class="alertes">
+        <li v-for="(a, i) in bord.alerts" :key="i" :class="a.niveau">
+          <NuxtLink :to="a.link">{{ a.message }}</NuxtLink>
         </li>
       </ul>
 
@@ -71,7 +71,7 @@ useSeoMeta({ title: 'Rédaction', robots: 'noindex, nofollow' })
               <div class="entry">
                 <div>
                   <h3><NuxtLink :to="`/article/${p.slug}`" target="_blank">{{ p.title }}</NuxtLink></h3>
-                  <div class="meta"><span class="pill">{{ p.vues }} lectures</span></div>
+                  <div class="meta"><span class="pill">{{ p.views }} lectures</span></div>
                 </div>
               </div>
             </li>

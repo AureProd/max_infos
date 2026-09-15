@@ -1,32 +1,32 @@
 import { and, eq, inArray, notInArray } from 'drizzle-orm'
-import { SLUGS_RESERVES, slugify } from '#shared/utils/slug'
-import { useBase } from '~~/server/database/client'
+import { RESERVED_SLUGS, slugify } from '#shared/utils/slug'
+import { useDatabase } from '~~/server/database/client'
 import { article, articleTag, tag } from '~~/server/database/schema'
-import { compterCaracteres, minutesDeLecture, rendreMarkdown } from './markdown'
+import { countCharacters, readingMinutes, renderMarkdown } from './markdown'
 
 /**
- * Rattache un article à une liste de sujets, en créant ceux qui manquent.
+ * Rattache un article à une list de tags, en créant ceux qui manquent.
  *
- * Remplace l'ensemble plutôt que d'ajouter : c'est ce qu'attend un
- * formulaire où l'on retire un sujet. Les sujets devenus orphelins ne sont
+ * Remplace l'ensemble plutôt que d'add : c'est ce qu'attend un
+ * formulaire où l'on retire un sujet. Les tags devenus orphans ne sont
  * pas supprimés — ils resservent, et les effacer ferait disparaître une
  * couleur choisie à la main.
  */
-export async function remplacerSujets(articleId: number, libelles: string[]): Promise<void> {
-  const db = useBase()
-  const voulus = [...new Set(libelles.map((l) => l.trim()).filter(Boolean))]
+export async function replaceTags(articleId: number, labels: string[]): Promise<void> {
+  const db = useDatabase()
+  const wanted = [...new Set(labels.map((l) => l.trim()).filter(Boolean))]
 
-  if (voulus.length === 0) {
+  if (wanted.length === 0) {
     await db.delete(articleTag).where(eq(articleTag.articleId, articleId))
     return
   }
 
   const ids: number[] = []
-  for (const libelle of voulus) {
+  for (const label of wanted) {
     const [ligne] = await db
       .insert(tag)
-      .values({ slug: slugify(libelle), label: libelle })
-      .onConflictDoUpdate({ target: tag.slug, set: { label: libelle } })
+      .values({ slug: slugify(label), label: label })
+      .onConflictDoUpdate({ target: tag.slug, set: { label: label } })
       .returning({ id: tag.id })
     if (ligne) ids.push(ligne.id)
   }
@@ -41,57 +41,54 @@ export async function remplacerSujets(articleId: number, libelles: string[]): Pr
 }
 
 /**
- * Les champs dérivés du corps, recalculés à chaque enregistrement.
+ * Les fields dérivés du body, recalculés à chaque record.
  *
- * Le HTML est rendu ICI et nulle part ailleurs : c'est ce qui garantit que
+ * Le HTML est rendered ICI et nulle part ailleurs : c'est ce qui garantit que
  * rien de non assaini n'entre en base.
  */
-export function champsDerives(bodyMd: string) {
+export function derivedFields(bodyMd: string) {
   return {
-    bodyHtml: rendreMarkdown(bodyMd),
-    charCount: compterCaracteres(bodyMd),
-    readingMinutes: minutesDeLecture(bodyMd),
+    bodyHtml: renderMarkdown(bodyMd),
+    charCount: countCharacters(bodyMd),
+    readingMinutes: readingMinutes(bodyMd),
   }
 }
 
 /**
- * Trouve un slug libre à partir d'un titre : `mon-titre`, puis `mon-titre-2`…
+ * Trouve un slug libre à partir d'un titre : `mon-titre`, then `mon-titre-2`…
  *
- * Sans cela, publier deux articles au titre proche renverrait une violation
+ * Sans cela, publier two articles au titre proche renverrait une violation
  * de contrainte à la figure de Max, qui n'y peut rien.
  */
-export async function slugLibre(titre: string, sauf?: number): Promise<string> {
-  const db = useBase()
-  const brut = slugify(titre) || 'article'
+export async function freeSlug(titre: string, sauf?: number): Promise<string> {
+  const db = useDatabase()
+  const raw = slugify(titre) || 'article'
   // Un slug réservé est décalé d'emblée : `accueil` devient `accueil-2`,
-  // plutôt que d'être rendu inaccessible par le routage du back-office.
-  const base = (SLUGS_RESERVES as readonly string[]).includes(brut) ? `${brut}-2` : brut
+  // plutôt que d'être rendered inaccessible par le routage du back-office.
+  const base = (RESERVED_SLUGS as readonly string[]).includes(raw) ? `${raw}-2` : raw
   for (let n = 1; n < 200; n++) {
-    const candidat = n === 1 ? base : `${base}-${n}`
+    const candidate = n === 1 ? base : `${base}-${n}`
     const [pris] = await db
       .select({ id: article.id })
       .from(article)
-      .where(eq(article.slug, candidat))
+      .where(eq(article.slug, candidate))
       .limit(1)
-    if (!pris || pris.id === sauf) return candidat
+    if (!pris || pris.id === sauf) return candidate
   }
   return `${base}-${Date.now()}`
 }
 
-/** Supprime les sujets qui ne portent plus aucun article. */
-export async function nettoyerSujetsOrphelins(): Promise<number> {
-  const db = useBase()
-  const utilises = db.selectDistinct({ id: articleTag.tagId }).from(articleTag)
-  const supprimes = await db
-    .delete(tag)
-    .where(notInArray(tag.id, utilises))
-    .returning({ id: tag.id })
-  return supprimes.length
+/** Supprime les tags qui ne portent plus aucun article. */
+export async function cleanOrphanTags(): Promise<number> {
+  const db = useDatabase()
+  const used = db.selectDistinct({ id: articleTag.tagId }).from(articleTag)
+  const removed = await db.delete(tag).where(notInArray(tag.id, used)).returning({ id: tag.id })
+  return removed.length
 }
 
-/** Les identifiants de sujets d'un article, pour l'API d'administration. */
-export async function sujetsDe(articleId: number) {
-  return await useBase()
+/** Les identifiants de tags d'un article, pour l'API d'administration. */
+export async function tagsOf(articleId: number) {
+  return await useDatabase()
     .select({ slug: tag.slug, label: tag.label })
     .from(articleTag)
     .innerJoin(tag, eq(tag.id, articleTag.tagId))

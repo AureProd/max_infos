@@ -9,8 +9,8 @@ import * as schema from '../../server/database/schema'
  * compose de développement (en mémoire, sans durabilité).
  *
  * Chaque test s'exécute dans une transaction annulée à la fin : isolation
- * parfaite, aucun nettoyage, aucune fuite d'un test à l'autre. Le motif ne
- * vaut QUE pour les tests qui utilisent la connexion fournie ici — un
+ * parfaite, aucun nettoyage, aucune fuite d'un test à l'autre. Le pattern ne
+ * vaut QUE pour les tests qui utilisent la connection fournie here — un
  * handler Nitro ouvre ses propres connexions et ne verrait rien de ce que
  * la transaction a écrit.
  */
@@ -20,53 +20,53 @@ import * as schema from '../../server/database/schema'
 const URL_TEST =
   process.env.TEST_DATABASE_URL ?? 'postgres://unmaxdinfo:test@127.0.0.1:15000/unmaxdinfo_test'
 
-export type BaseDeTest = ReturnType<typeof drizzle<typeof schema>>
+export type TestDatabase = ReturnType<typeof drizzle<typeof schema>>
 
 /** Rejoue toutes les migrations, dans l'ordre du journal. */
-export async function migrer(sql: postgres.Sql): Promise<void> {
-  const dossier = join(process.cwd(), 'drizzle')
-  const fichiers = readdirSync(dossier)
+export async function migrate(sql: postgres.Sql): Promise<void> {
+  const folder = join(process.cwd(), 'drizzle')
+  const files = readdirSync(folder)
     .filter((f) => f.endsWith('.sql'))
     .sort()
   await sql.unsafe('drop schema if exists public cascade; create schema public;')
-  for (const fichier of fichiers) {
-    const contenu = readFileSync(join(dossier, fichier), 'utf8')
+  for (const file of files) {
+    const content = readFileSync(join(folder, file), 'utf8')
     // drizzle-kit sépare les instructions par ce marqueur.
-    for (const instruction of contenu.split('--> statement-breakpoint')) {
-      const nettoyee = instruction.trim()
-      if (nettoyee) await sql.unsafe(nettoyee)
+    for (const statement of content.split('--> statement-breakpoint')) {
+      const cleaned = statement.trim()
+      if (cleaned) await sql.unsafe(cleaned)
     }
   }
 }
 
-export function connexion(): postgres.Sql {
+export function connection(): postgres.Sql {
   return postgres(URL_TEST, { max: 1, onnotice: () => {} })
 }
 
-export function base(sql: postgres.Sql): BaseDeTest {
+export function base(sql: postgres.Sql): TestDatabase {
   return drizzle(sql, { schema, casing: 'snake_case' })
 }
 
 /**
  * Vérifie qu'une écriture est refusée PAR LA CONTRAINTE ATTENDUE.
  *
- * Drizzle enveloppe l'erreur PostgreSQL : son message ne contient que la
- * requête, et le nom de la contrainte vit dans `cause`. Se contenter de
- * « ça a échoué » laisserait passer un échec pour une tout autre raison —
+ * Drizzle enveloppe l'error PostgreSQL : son message ne contient que la
+ * requête, et le name de la contrainte vit dans `cause`. Se contenter de
+ * « ça a échoué » laisserait passer un échec pour une all autre raison —
  * une faute de frappe dans le test, par exemple.
  */
-export async function refuseParLaContrainte(
+export async function rejectedByConstraint(
   action: () => Promise<unknown>,
   contrainte: string,
 ): Promise<void> {
   try {
     await action()
-  } catch (erreur) {
-    const cause = (erreur as { cause?: unknown }).cause ?? erreur
-    const nom = (cause as { constraint_name?: string }).constraint_name
+  } catch (error) {
+    const cause = (error as { cause?: unknown }).cause ?? error
+    const name = (cause as { constraint_name?: string }).constraint_name
     const message = (cause as { message?: string }).message ?? String(cause)
-    if (nom !== contrainte && !message.includes(contrainte)) {
-      throw new Error(`Refus attendu par « ${contrainte} », obtenu « ${nom ?? message} »`)
+    if (name !== contrainte && !message.includes(contrainte)) {
+      throw new Error(`Refus attendu par « ${contrainte} », obtenu « ${name ?? message} »`)
     }
     return
   }
@@ -76,10 +76,10 @@ export async function refuseParLaContrainte(
 /**
  * Remplit la base de test avec un jeu minimal et lisible.
  *
- * Volontairement distinct du contenu réel : un test qui dépend des vrais
+ * Volontairement distinct du content réel : un test qui dépend des vrais
  * articles casse dès que Max en publie un.
  */
-export async function semerJeuDeTest(db: BaseDeTest): Promise<void> {
+export async function seedTestData(db: TestDatabase): Promise<void> {
   const s = await import('../../server/database/schema')
 
   const [tagGeo] = await db.insert(s.tag).values({ slug: 'geo', label: 'Géographie' }).returning()
@@ -128,10 +128,10 @@ export async function semerJeuDeTest(db: BaseDeTest): Promise<void> {
   if (ancien && tagMem)
     await db.insert(s.articleTag).values({ articleId: ancien.id, tagId: tagMem.id })
 
-  // Deux comptes Instagram : un affiché, un masqué. C'est le minimum pour
-  // que « une section par compte » se vérifie, et pour qu'un test de fuite
+  // Deux accounts Instagram : un affiché, un masqué. C'est le minimum pour
+  // que « une section par account » se vérifie, et pour qu'un test de fuite
   // ait quelque chose à ne PAS laisser passer.
-  const [compte] = await db
+  const [account] = await db
     .insert(s.socialAccount)
     .values({
       network: 'instagram',
@@ -164,7 +164,7 @@ export async function semerJeuDeTest(db: BaseDeTest): Promise<void> {
     .insert(s.socialPost)
     .values({
       network: 'instagram',
-      accountId: compte?.id ?? null,
+      accountId: account?.id ?? null,
       externalId: 'ABC123',
       shortcode: 'ABC123',
       mediaType: 'reel',
@@ -179,7 +179,7 @@ export async function semerJeuDeTest(db: BaseDeTest): Promise<void> {
 
   await db.insert(s.socialPost).values({
     network: 'instagram',
-    accountId: compte?.id ?? null,
+    accountId: account?.id ?? null,
     externalId: 'CACHE1',
     shortcode: 'CACHE1',
     hidden: true,
@@ -189,13 +189,13 @@ export async function semerJeuDeTest(db: BaseDeTest): Promise<void> {
   // publication doit laisser de côté.
   await db.insert(s.socialPost).values({
     network: 'instagram',
-    accountId: compte?.id ?? null,
+    accountId: account?.id ?? null,
     externalId: 'DEF456',
     shortcode: 'DEF456',
     postedAt: new Date('2026-01-01T12:00:00Z'),
   })
 
-  // Visible en soi, mais rattachée au compte MASQUÉ : elle ne doit pas
+  // Visible en soi, mais rattachée au account MASQUÉ : elle ne doit pas
   // paraître sur l'accueil.
   await db.insert(s.socialPost).values({
     network: 'instagram',

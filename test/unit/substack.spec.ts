@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { analyserFluxSubstack } from '../../server/utils/substack'
+import { parseSubstackFeed } from '../../server/utils/substack'
 
-/** Un flux de la forme exacte que Substack produit, réduit à l'essentiel. */
-const FLUX = `<?xml version="1.0" encoding="UTF-8"?>
+/** Un feed de la shape exacte que Substack produit, réduit à l'essentiel. */
+const FEED = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
 <channel>
   <title><![CDATA[Un Max d'info]]></title>
@@ -28,11 +28,11 @@ const FLUX = `<?xml version="1.0" encoding="UTF-8"?>
 </rss>`
 
 describe('flux Substack', () => {
-  const articles = analyserFluxSubstack(FLUX)
+  const articles = parseSubstackFeed(FEED)
 
   it('écarte les entrées sans titre ou sans lien', () => {
     // Une entrée incomplète créerait un article fantôme, impossible à
-    // rattacher à quoi que ce soit.
+    // attach à quoi que ce soit.
     expect(articles).toHaveLength(2)
   })
 
@@ -46,10 +46,10 @@ describe('flux Substack', () => {
   })
 
   it('ne confond pas le chapô et le corps', () => {
-    // `description` est tronquée par Substack : importer un corps depuis
+    // `description` est tronquée par Substack : importer un body since
     // elle donnerait des articles amputés, sans que rien ne le signale.
     expect(articles[0]?.chapo).toBe('Une enquête sur la mémoire.')
-    expect(articles[0]?.corpsHtml).toBe('<p>Le corps complet.</p>')
+    expect(articles[0]?.bodyHtml).toBe('<p>Le corps complet.</p>')
   })
 
   it('prend la couverture de l’enclosure quand elle existe', () => {

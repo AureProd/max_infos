@@ -1,58 +1,58 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'admin' })
 
-const identite = useReglage('identity')
-const contact = useReglage('contact')
-const cv = useReglage('cv')
+const identity = useSetting('identity')
+const contact = useSetting('contact')
+const cv = useSetting('cv')
 
-await Promise.all([identite.charger(), contact.charger(), cv.charger()])
+await Promise.all([identity.load(), contact.load(), cv.load()])
 
-const etat = computed(() =>
-  [identite.etat.value, contact.etat.value, cv.etat.value].includes('échec')
+const state = computed(() =>
+  [identity.state.value, contact.state.value, cv.state.value].includes('échec')
     ? 'échec'
-    : [identite.etat.value, contact.etat.value, cv.etat.value].every((e) => e === 'enregistré')
+    : [identity.state.value, contact.state.value, cv.state.value].every((e) => e === 'enregistré')
       ? 'enregistré'
       : 'repos',
 )
 
-async function enregistrerTout(): Promise<void> {
-  await Promise.all([identite.enregistrer(), contact.enregistrer(), cv.enregistrer()])
+async function saveAll(): Promise<void> {
+  await Promise.all([identity.save(), contact.save(), cv.save()])
 }
 
 /**
  * Les rubriques du CV, dans l'ordre où elles s'affichent.
- * Chaque rubrique ET chaque entrée porte son propre interrupteur.
+ * Chaque section ET chaque entrée porte son clean interrupteur.
  */
-const RUBRIQUES = [
-  { cle: 'education' as const, libelle: 'Formations' },
-  { cle: 'experience' as const, libelle: 'Expériences' },
-  { cle: 'engagements' as const, libelle: 'Engagements' },
+const SECTIONS = [
+  { key: 'education' as const, label: 'Formations' },
+  { key: 'experience' as const, label: 'Expériences' },
+  { key: 'engagements' as const, label: 'Engagements' },
 ]
 
-function ajouterEntree(rubrique: 'education' | 'experience' | 'engagements'): void {
-  if (!cv.valeur.value) return
-  cv.valeur.value[rubrique].entrees.push({ title: '', visible: true })
+function addEntry(section: 'education' | 'experience' | 'engagements'): void {
+  if (!cv.value.value) return
+  cv.value.value[section].entries.push({ title: '', visible: true })
 }
 
-function retirerEntree(rubrique: 'education' | 'experience' | 'engagements', i: number): void {
-  cv.valeur.value?.[rubrique].entrees.splice(i, 1)
+function removeEntry(section: 'education' | 'experience' | 'engagements', i: number): void {
+  cv.value.value?.[section].entries.splice(i, 1)
 }
 
 /**
- * Les champs de contact dont la publication mérite réflexion.
+ * Les fields de contact dont la publication mérite réflexion.
  *
  * Le CV comporte des données personnelles qui n'ont rien à faire sur une
  * page publique indexée. L'avertissement s'affiche au moment de rendre
  * l'un d'eux visible, pas après.
  */
-const SENSIBLES = /t[ée]l[ée]phone|adresse|naissance|portable|mobile|domicile/i
+const SENSITIVE = /t[ée]l[ée]phone|adresse|naissance|portable|mobile|domicile/i
 
-function estSensible(champ: { key: string; label: string; sensible?: boolean }): boolean {
-  return champ.sensible === true || SENSIBLES.test(`${champ.key} ${champ.label}`)
+function isSensitive(champ: { key: string; label: string; sensible?: boolean }): boolean {
+  return champ.sensible === true || SENSITIVE.test(`${champ.key} ${champ.label}`)
 }
 
-function ajouterContact(): void {
-  contact.valeur.value?.fields.push({
+function addContact(): void {
+  contact.value.value?.fields.push({
     key: '',
     label: '',
     value: '',
@@ -70,34 +70,34 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
   <div class="wrap">
     <section class="admin-page">
       <AdminNav>
-        <span v-if="etat === 'enregistré'" class="note">enregistré</span>
-        <span v-else-if="etat === 'échec'" class="err">échec</span>
-        <button class="btn btn-primary" type="button" @click="enregistrerTout">Enregistrer</button>
+        <span v-if="state === 'enregistré'" class="note">enregistré</span>
+        <span v-else-if="state === 'échec'" class="err">échec</span>
+        <button class="btn btn-primary" type="button" @click="saveAll">Enregistrer</button>
       </AdminNav>
 
       <h1>À propos</h1>
 
       <h2>Identité du site</h2>
-      <div v-if="identite.valeur.value">
+      <div v-if="identity.value.value">
         <div class="field">
           <label for="i-name">Nom du site</label>
-          <input id="i-name" v-model="identite.valeur.value.name" type="text" />
+          <input id="i-name" v-model="identity.value.value.name" type="text" />
         </div>
         <div class="field">
           <label for="i-author">Auteur</label>
-          <input id="i-author" v-model="identite.valeur.value.author" type="text" />
+          <input id="i-author" v-model="identity.value.value.author" type="text" />
         </div>
         <div class="field">
           <label for="i-byline">Signature courte</label>
-          <input id="i-byline" v-model="identite.valeur.value.byline" type="text" />
+          <input id="i-byline" v-model="identity.value.value.byline" type="text" />
         </div>
         <div class="field">
           <label for="i-tagline">Accroche</label>
-          <input id="i-tagline" v-model="identite.valeur.value.tagline" type="text" />
+          <input id="i-tagline" v-model="identity.value.value.tagline" type="text" />
         </div>
         <div class="field">
           <label for="i-pitch">Présentation</label>
-          <textarea id="i-pitch" v-model="identite.valeur.value.pitch" rows="3" />
+          <textarea id="i-pitch" v-model="identity.value.value.pitch" rows="3" />
         </div>
       </div>
 
@@ -105,8 +105,8 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
       <p class="hint">
         Chaque champ a son propre interrupteur. Un champ ajouté est masqué par défaut.
       </p>
-      <ul v-if="contact.valeur.value" class="list">
-        <li v-for="(champ, i) in contact.valeur.value.fields" :key="i">
+      <ul v-if="contact.value.value" class="list">
+        <li v-for="(champ, i) in contact.value.value.fields" :key="i">
           <div class="entry">
             <div style="flex: 1">
               <div class="cluster">
@@ -114,7 +114,7 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                 <input v-model="champ.value" type="text" placeholder="Valeur" />
                 <input v-model="champ.href" type="text" placeholder="Lien (facultatif)" />
               </div>
-              <p v-if="estSensible(champ) && champ.visible" class="err">
+              <p v-if="isSensitive(champ) && champ.visible" class="err">
                 ⚠ Cette donnée personnelle sera publique et indexée par les moteurs de
                 recherche. Elle restera consultable même après l'avoir retirée.
               </p>
@@ -127,7 +127,7 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
               <button
                 class="btn"
                 type="button"
-                @click="contact.valeur.value?.fields.splice(i, 1)"
+                @click="contact.value.value?.fields.splice(i, 1)"
               >
                 Retirer
               </button>
@@ -135,36 +135,36 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
           </div>
         </li>
       </ul>
-      <button class="btn" type="button" @click="ajouterContact">+ Ajouter un champ</button>
+      <button class="btn" type="button" @click="addContact">+ Ajouter un champ</button>
 
-      <template v-if="cv.valeur.value">
+      <template v-if="cv.value.value">
         <h2>Curriculum</h2>
         <div class="field">
           <label for="cv-headline">Titre</label>
-          <input id="cv-headline" v-model="cv.valeur.value.headline" type="text" />
+          <input id="cv-headline" v-model="cv.value.value.headline" type="text" />
         </div>
         <div class="field">
           <label for="cv-intro">Introduction</label>
-          <textarea id="cv-intro" v-model="cv.valeur.value.intro" rows="4" />
+          <textarea id="cv-intro" v-model="cv.value.value.intro" rows="4" />
         </div>
 
-        <MediaPicker v-model="cv.valeur.value.photoMediaId" libelle="Photo du CV" />
-        <MediaPicker v-model="cv.valeur.value.pdfMediaId" genre="pdf" libelle="CV en PDF" />
+        <MediaPicker v-model="cv.value.value.photoMediaId" libelle="Photo du CV" />
+        <MediaPicker v-model="cv.value.value.pdfMediaId" genre="pdf" libelle="CV en PDF" />
         <p class="hint">
           Le PDF est proposé au téléchargement en bas de la page « À propos ». Sans photo, la page
           s'affiche sans encadré : rien ne casse.
         </p>
 
-        <template v-for="r in RUBRIQUES" :key="r.cle">
+        <template v-for="r in SECTIONS" :key="r.key">
           <h3>
-            {{ r.libelle }}
+            {{ r.label }}
             <label class="pill">
-              <input v-model="cv.valeur.value[r.cle].visible" type="checkbox" />
+              <input v-model="cv.value.value[r.key].visible" type="checkbox" />
               rubrique visible
             </label>
           </h3>
           <ul class="list">
-            <li v-for="(e, i) in cv.valeur.value[r.cle].entrees" :key="i">
+            <li v-for="(e, i) in cv.value.value[r.key].entries" :key="i">
               <div class="entry">
                 <div style="flex: 1" class="cluster">
                   <input v-model="e.title" type="text" placeholder="Intitulé" />
@@ -177,12 +177,12 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                     <input v-model="e.visible" type="checkbox" />
                     visible
                   </label>
-                  <button class="btn" type="button" @click="retirerEntree(r.cle, i)">Retirer</button>
+                  <button class="btn" type="button" @click="removeEntry(r.key, i)">Retirer</button>
                 </div>
               </div>
             </li>
           </ul>
-          <button class="btn" type="button" @click="ajouterEntree(r.cle)">+ Ajouter</button>
+          <button class="btn" type="button" @click="addEntry(r.key)">+ Ajouter</button>
         </template>
       </template>
     </section>

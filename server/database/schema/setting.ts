@@ -1,10 +1,10 @@
 import { check, integer, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
-import { SETTING_SCOPE, type SettingScope, uneValeurParmi } from './enums'
+import { oneOf, SETTING_SCOPE, type SettingScope } from './enums'
 import { appUser } from './user'
 
 /**
  * Tout ce que Max peut modifier sans coder : identité, contact, CV,
- * accueil, thème, référencement, gabarits de déclinaison. En JSON, donc
+ * accueil, thème, référencement, templates de déclinaison. En JSON, donc
  * intégralement exportable.
  *
  * `scope` est ce qui sépare ce que Max voit de ce que seul JB voit. La
@@ -21,18 +21,18 @@ export const setting = pgTable(
     updatedBy: integer().references(() => appUser.id, { onDelete: 'set null' }),
     updatedAt: timestamp({ withTimezone: true, mode: 'date' }).notNull().defaultNow(),
   },
-  (t) => [check('setting_scope', uneValeurParmi(t.scope, SETTING_SCOPE))],
+  (t) => [check('setting_scope', oneOf(t.scope, SETTING_SCOPE))],
 )
 
 /**
- * Les jetons tiers, chiffrés (AES-256-GCM, clé en variable
- * d'environnement). Rien d'autre n'entre ici.
+ * Les tokens tiers, chiffrés (AES-256-GCM, clé en variable
+ * d'environnement). Rien d'autre n'entre here.
  *
  * N'est JAMAIS exporté et n'apparaît JAMAIS dans une réponse d'API — un
  * test vérifie qu'aucune réponse ne contient le mot « ciphertext ».
  *
  * Les clés d'infrastructure (R2, base, Google) restent en variables
- * d'environnement : elles sont nécessaires AU DÉMARRAGE, donc avant que la
+ * d'environnement : elles sont nécessaires AU DÉMARRAGE, donc before que la
  * base ne soit lisible.
  */
 export const secret = pgTable('secret', {

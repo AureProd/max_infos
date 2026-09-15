@@ -1,13 +1,13 @@
 import { desc } from 'drizzle-orm'
-import { useBase } from '~~/server/database/client'
+import { useDatabase } from '~~/server/database/client'
 import { article } from '~~/server/database/schema'
-import { exigerRole } from '~~/server/utils/auth'
+import { requireRole } from '~~/server/utils/auth'
 
 /** Tous les articles, brouillons compris. Rôle `editor` suffisant. */
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'editor')
+  await requireRole(event, 'editor')
 
-  return await useBase()
+  return await useDatabase()
     .select({
       slug: article.slug,
       title: article.title,

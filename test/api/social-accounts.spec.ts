@@ -2,29 +2,29 @@ import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { appUser } from '../../server/database/schema'
-import { type BaseDeTest, base, connexion, migrer, semerJeuDeTest } from '../setup/db'
+import { base, connection, migrate, seedTestData, type TestDatabase } from '../setup/db'
 
 /**
- * Les comptes sociaux vus du back-office.
+ * Les accounts sociaux vus du back-office.
  *
- * C'est l'écran Réseaux qui se joue ici : Max connecte, ordonne, masque,
+ * C'est l'écran Réseaux qui se joue here : Max signedIn, ordonne, masque,
  * déconnecte. Les tests portent sur ce qu'il constate — l'accueil change —
- * et non sur la forme des requêtes.
+ * et non sur la shape des requêtes.
  */
 let sqlClient: postgres.Sql
-let db: BaseDeTest
-let editeur = 0
+let db: TestDatabase
+let editor = 0
 
 beforeAll(async () => {
-  sqlClient = connexion()
-  await migrer(sqlClient)
+  sqlClient = connection()
+  await migrate(sqlClient)
   db = base(sqlClient)
-  await semerJeuDeTest(db)
+  await seedTestData(db)
   const [e] = await db
     .insert(appUser)
     .values({ email: 'max@exemple.test', role: 'editor' })
     .returning({ id: appUser.id })
-  editeur = e?.id ?? 0
+  editor = e?.id ?? 0
 }, 60_000)
 
 afterAll(async () => {
@@ -36,7 +36,7 @@ await setup({ server: true, browser: false })
 async function cookieEditeur(): Promise<string> {
   const r = await fetch('/api/test/session', {
     method: 'POST',
-    body: JSON.stringify({ id: editeur }),
+    body: JSON.stringify({ id: editor }),
     headers: { 'content-type': 'application/json' },
   })
   return r.headers.get('set-cookie') ?? ''
@@ -44,38 +44,38 @@ async function cookieEditeur(): Promise<string> {
 
 describe('GET /api/admin/social-accounts', () => {
   it('montre AUSSI les comptes masqués — sinon on ne peut plus les réafficher', async () => {
-    const comptes = await $fetch('/api/admin/social-accounts', {
+    const accounts = await $fetch('/api/admin/social-accounts', {
       headers: { cookie: await cookieEditeur() },
     })
-    expect(comptes.map((c) => c.username)).toEqual(['maxinfo', 'archives'])
-    expect(comptes.find((c) => c.username === 'archives')?.visible).toBe(false)
+    expect(accounts.map((c) => c.username)).toEqual(['maxinfo', 'archives'])
+    expect(accounts.find((c) => c.username === 'archives')?.visible).toBe(false)
   })
 
   it('dit combien de publications chaque compte emporterait', async () => {
-    // L'écran prévient avant de déconnecter : la suppression est définitive.
-    const comptes = await $fetch('/api/admin/social-accounts', {
+    // L'écran prévient before de déconnecter : la suppression est définitive.
+    const accounts = await $fetch('/api/admin/social-accounts', {
       headers: { cookie: await cookieEditeur() },
     })
-    expect(comptes.find((c) => c.username === 'maxinfo')?.nbPublications).toBe(3)
-    expect(comptes.find((c) => c.username === 'archives')?.nbPublications).toBe(1)
+    expect(accounts.find((c) => c.username === 'maxinfo')?.nbPublications).toBe(3)
+    expect(accounts.find((c) => c.username === 'archives')?.nbPublications).toBe(1)
   })
 
   it('signale qu’un compte n’a pas de jeton, sans jamais le montrer', async () => {
     const r = await fetch('/api/admin/social-accounts', {
       headers: { cookie: await cookieEditeur() },
     })
-    const brut = await r.text()
-    expect(brut).not.toContain('ciphertext')
-    expect(JSON.parse(brut)[0].connecte).toBe(false)
+    const raw = await r.text()
+    expect(raw).not.toContain('ciphertext')
+    expect(JSON.parse(raw)[0].signedIn).toBe(false)
   })
 })
 
 describe('PUT /api/admin/social-accounts/[id]', () => {
   it('change l’ordre des sections de l’accueil', async () => {
     const cookie = await cookieEditeur()
-    const comptes = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
-    const max = comptes.find((c) => c.username === 'maxinfo')
-    const archives = comptes.find((c) => c.username === 'archives')
+    const accounts = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
+    const max = accounts.find((c) => c.username === 'maxinfo')
+    const archives = accounts.find((c) => c.username === 'archives')
 
     await $fetch(`/api/admin/social-accounts/${archives?.id}`, {
       method: 'PUT',
@@ -96,8 +96,8 @@ describe('PUT /api/admin/social-accounts/[id]', () => {
 
   it('change le nombre de publications montrées', async () => {
     const cookie = await cookieEditeur()
-    const comptes = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
-    const max = comptes.find((c) => c.username === 'maxinfo')
+    const accounts = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
+    const max = accounts.find((c) => c.username === 'maxinfo')
 
     await $fetch(`/api/admin/social-accounts/${max?.id}`, {
       method: 'PUT',
@@ -111,8 +111,8 @@ describe('PUT /api/admin/social-accounts/[id]', () => {
 
   it('retire la section de l’accueil quand Max la masque', async () => {
     const cookie = await cookieEditeur()
-    const comptes = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
-    const archives = comptes.find((c) => c.username === 'archives')
+    const accounts = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
+    const archives = accounts.find((c) => c.username === 'archives')
 
     await $fetch(`/api/admin/social-accounts/${archives?.id}`, {
       method: 'PUT',
@@ -136,17 +136,17 @@ describe('PUT /api/admin/social-accounts/[id]', () => {
 describe('DELETE /api/admin/social-accounts/[id]', () => {
   it('emporte le compte, ses publications et son jeton', async () => {
     const cookie = await cookieEditeur()
-    const comptes = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
-    const archives = comptes.find((c) => c.username === 'archives')
+    const accounts = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
+    const archives = accounts.find((c) => c.username === 'archives')
 
     await $fetch(`/api/admin/social-accounts/${archives?.id}`, {
       method: 'DELETE',
       headers: { cookie },
     })
 
-    const restants = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
-    expect(restants.map((c) => c.username)).toEqual(['maxinfo'])
-    // MASQ1 appartenait au compte supprimé.
+    const remaining = await $fetch('/api/admin/social-accounts', { headers: { cookie } })
+    expect(remaining.map((c) => c.username)).toEqual(['maxinfo'])
+    // MASQ1 appartenait au account supprimé.
     expect((await $fetch('/api/social-posts')).map((p) => p.shortcode)).not.toContain('MASQ1')
   })
 

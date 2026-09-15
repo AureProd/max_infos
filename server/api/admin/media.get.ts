@@ -1,13 +1,13 @@
 import { desc } from 'drizzle-orm'
-import { useBase } from '~~/server/database/client'
+import { useDatabase } from '~~/server/database/client'
 import { media } from '~~/server/database/schema'
-import { exigerRole } from '~~/server/utils/auth'
-import { stockageConfigure } from '~~/server/utils/stockage'
+import { requireRole } from '~~/server/utils/auth'
+import { storageConfigured } from '~~/server/utils/storage'
 
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'editor')
+  await requireRole(event, 'editor')
 
-  const items = await useBase()
+  const items = await useDatabase()
     .select({
       id: media.id,
       url: media.url,
@@ -23,5 +23,5 @@ export default defineEventHandler(async (event) => {
 
   // Dit clairement si le stockage est configuré, pour que l'admin affiche
   // « R2 n'est pas branché » plutôt qu'un bouton qui échoue.
-  return { items, stockage: stockageConfigure() }
+  return { items, stockage: storageConfigured() }
 })

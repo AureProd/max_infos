@@ -1,8 +1,8 @@
 import { and, count, desc, eq, ilike, inArray, or } from 'drizzle-orm'
-import { listeArticlesQuery } from '#shared/schemas/api'
-import { useBase } from '~~/server/database/client'
+import { listArticlesQuery } from '#shared/schemas/api'
+import { useDatabase } from '~~/server/database/client'
 import { article, articleTag, media, tag } from '~~/server/database/schema'
-import { jour } from '~~/server/utils/serialize'
+import { day } from '~~/server/utils/serialize'
 
 /**
  * Liste paginée des articles publiés.
@@ -12,14 +12,14 @@ import { jour } from '~~/server/utils/serialize'
  * d'articles grandira.
  */
 export default defineEventHandler(async (event) => {
-  const { tag: sujet, q, page, taille } = await getValidatedQuery(event, listeArticlesQuery.parse)
-  const db = useBase()
+  const { tag: sujet, q, page, taille } = await getValidatedQuery(event, listArticlesQuery.parse)
+  const db = useDatabase()
 
   const conditions = [eq(article.status, 'published')]
 
   if (sujet) {
     // Sous-requête plutôt que jointure : une jointure dupliquerait les
-    // lignes d'un article portant plusieurs sujets, et fausserait le total.
+    // lines d'un article portant plusieurs tags, et fausserait le total.
     const ids = db
       .select({ id: articleTag.articleId })
       .from(articleTag)
@@ -29,10 +29,13 @@ export default defineEventHandler(async (event) => {
   }
 
   if (q) {
-    const motif = `%${q}%`
+    const pattern = `%${q}%`
     conditions.push(
-      or(ilike(article.title, motif), ilike(article.dek, motif), ilike(article.bodyMd, motif)) ??
-        eq(article.id, article.id),
+      or(
+        ilike(article.title, pattern),
+        ilike(article.dek, pattern),
+        ilike(article.bodyMd, pattern),
+      ) ?? eq(article.id, article.id),
     )
   }
 
@@ -40,7 +43,7 @@ export default defineEventHandler(async (event) => {
 
   const [total] = await db.select({ n: count() }).from(article).where(where)
 
-  const lignes = await db
+  const lines = await db
     .select({
       slug: article.slug,
       title: article.title,
@@ -59,8 +62,8 @@ export default defineEventHandler(async (event) => {
     .limit(taille)
     .offset((page - 1) * taille)
 
-  const slugs = lignes.map((l) => l.slug)
-  const sujets = slugs.length
+  const slugs = lines.map((l) => l.slug)
+  const tags = slugs.length
     ? await db
         .select({ slug: article.slug, label: tag.label, tagSlug: tag.slug })
         .from(articleTag)
@@ -70,12 +73,10 @@ export default defineEventHandler(async (event) => {
     : []
 
   return {
-    items: lignes.map((l) => ({
+    items: lines.map((l) => ({
       ...l,
-      publishedAt: jour(l.publishedAt),
-      tags: sujets
-        .filter((s) => s.slug === l.slug)
-        .map((s) => ({ slug: s.tagSlug, label: s.label })),
+      publishedAt: day(l.publishedAt),
+      tags: tags.filter((s) => s.slug === l.slug).map((s) => ({ slug: s.tagSlug, label: s.label })),
     })),
     total: total?.n ?? 0,
     page,

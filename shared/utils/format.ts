@@ -1,4 +1,4 @@
-const MOIS = [
+const MONTHS = [
   'janvier',
   'février',
   'mars',
@@ -15,23 +15,23 @@ const MOIS = [
 
 /**
  * Midi, et non minuit : une date nue interprétée à minuit UTC bascule la
- * veille dans les fuseaux à l'ouest, et le rendu serveur n'a pas le même
+ * veille dans les fuseaux à l'ouest, et le rendered serveur n'a pas le même
  * fuseau que le navigateur.
  */
 const parse = (iso: string): Date => new Date(`${iso}T12:00:00`)
 
 export const frDate = (iso: string): string => {
   const d = parse(iso)
-  return `${d.getDate()} ${MOIS[d.getMonth()]} ${d.getFullYear()}`
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
 
 export const frShort = (iso: string): string => {
   const d = parse(iso)
-  return `${d.getDate()} ${MOIS[d.getMonth()]?.slice(0, 4)}.`
+  return `${d.getDate()} ${MONTHS[d.getMonth()]?.slice(0, 4)}.`
 }
 
 /** Espace fine insécable, séparateur des milliers en typographie française. */
-const FINE_INSECABLE = ' '
+const NARROW_NO_BREAK_SPACE = ' '
 
 /**
  * Groupe les milliers à la française.
@@ -42,10 +42,11 @@ const FINE_INSECABLE = ' '
  * d'hydratation sur chaque nombre affiché. Le même piège guette
  * `toLocaleDateString`, d'où la table de mois ci-dessus.
  */
-export const nb = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, FINE_INSECABLE)
+export const nb = (n: number): string =>
+  String(n).replace(/\B(?=(\d{3})+(?!\d))/g, NARROW_NO_BREAK_SPACE)
 
 /**
- * Compte les caractères d'un texte, espaces normalisées.
+ * Compte les caractères d'un text, espaces normalisées.
  *
  * `\s` inclut U+00A0 et U+202F en JavaScript : les espaces insécables de la
  * typographie française sont donc traitées comme les autres, ce qui est le

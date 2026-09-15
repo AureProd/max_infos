@@ -1,23 +1,23 @@
-import { publicationManuelle } from '#shared/schemas/api'
-import { useBase } from '~~/server/database/client'
+import { manualPost } from '#shared/schemas/api'
+import { useDatabase } from '~~/server/database/client'
 import { socialPost } from '~~/server/database/schema'
-import { exigerRole } from '~~/server/utils/auth'
-import { parseInstagramUrl } from '~~/server/utils/liens'
+import { requireRole } from '~~/server/utils/auth'
+import { parseInstagramUrl } from '~~/server/utils/links'
 
 /**
- * Enregistre une publication saisie à la main.
+ * Enregistre une publication input à la main.
  *
  * C'est la seule voie pour LinkedIn : le scope `r_member_social` est fermé
- * aux nouvelles applications, donc lire ses propres publications est
+ * aux fresh applications, donc read ses propres publications est
  * impossible. Contrainte vérifiée, à ne pas réapprendre.
  */
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'editor')
-  const d = await readValidatedBody(event, publicationManuelle.parse)
+  await requireRole(event, 'editor')
+  const d = await readValidatedBody(event, manualPost.parse)
 
   const ref = d.network === 'instagram' ? parseInstagramUrl(d.url) : null
 
-  const [cree] = await useBase()
+  const [created] = await useDatabase()
     .insert(socialPost)
     .values({
       network: d.network,
@@ -35,5 +35,5 @@ export default defineEventHandler(async (event) => {
     .returning()
 
   setResponseStatus(event, 201)
-  return cree
+  return created
 })

@@ -5,20 +5,20 @@ import { z } from 'zod'
  *
  * Transposition directe de `refuse_to_start_in_prod_without_secrets` de
  * l'ancien backend/app/core/config.py : mieux vaut un démarrage qui échoue
- * qu'une production ouverte. Les valeurs par défaut restent VIDES, jamais
+ * qu'une production ouverte. Les values par défaut restent VIDES, jamais
  * factices, pour que rien ne puisse tourner en production avec un secret de
  * démonstration.
  */
 
-export const ENVIRONNEMENTS = ['dev', 'preview', 'prod'] as const
-export type Environnement = (typeof ENVIRONNEMENTS)[number]
+export const ENVIRONMENTS = ['dev', 'preview', 'prod'] as const
+export type Environment = (typeof ENVIRONMENTS)[number]
 
 /**
- * Les secrets sans lesquels la production ne doit pas démarrer. Même liste
+ * Les secrets sans lesquels la production ne doit pas démarrer. Même list
  * qu'au lot 1 : `postgres_password` y est devenu `databaseUrl`, qui le
  * contient.
  */
-export const SECRETS_REQUIS_EN_PROD = [
+export const SECRETS_REQUIRED_IN_PROD = [
   'databaseUrl',
   'secretEncryptionKey',
   'sessionPassword',
@@ -27,27 +27,27 @@ export const SECRETS_REQUIS_EN_PROD = [
 ] as const
 
 /**
- * Où lire chaque secret dans la configuration, et sous quel nom de variable
- * l'opérateur le renseigne. Les deux diffèrent : nuxt-auth-utils impose
- * `session.password` et `oauth.google.*`, qui ne se déduisent pas du nom
+ * Où read chaque secret dans la configuration, et sous quel name de variable
+ * l'opérateur le renseigne. Les two diffèrent : nuxt-auth-utils impose
+ * `session.password` et `oauth.google.*`, qui ne se déduisent pas du name
  * plat qu'on emploie dans les messages.
  */
-export const CHEMIN_DES_SECRETS: Record<
-  (typeof SECRETS_REQUIS_EN_PROD)[number],
-  { chemin: readonly string[]; variable: string }
+export const SECRETS_PATH: Record<
+  (typeof SECRETS_REQUIRED_IN_PROD)[number],
+  { path: readonly string[]; variable: string }
 > = {
-  databaseUrl: { chemin: ['databaseUrl'], variable: 'NUXT_DATABASE_URL' },
+  databaseUrl: { path: ['databaseUrl'], variable: 'NUXT_DATABASE_URL' },
   secretEncryptionKey: {
-    chemin: ['secretEncryptionKey'],
+    path: ['secretEncryptionKey'],
     variable: 'NUXT_SECRET_ENCRYPTION_KEY',
   },
-  sessionPassword: { chemin: ['session', 'password'], variable: 'NUXT_SESSION_PASSWORD' },
+  sessionPassword: { path: ['session', 'password'], variable: 'NUXT_SESSION_PASSWORD' },
   googleClientId: {
-    chemin: ['oauth', 'google', 'clientId'],
+    path: ['oauth', 'google', 'clientId'],
     variable: 'NUXT_OAUTH_GOOGLE_CLIENT_ID',
   },
   googleClientSecret: {
-    chemin: ['oauth', 'google', 'clientSecret'],
+    path: ['oauth', 'google', 'clientSecret'],
     variable: 'NUXT_OAUTH_GOOGLE_CLIENT_SECRET',
   },
 }
@@ -56,7 +56,7 @@ const configSchema = z.object({
   databaseUrl: z.string(),
   secretEncryptionKey: z.string(),
   session: z.object({
-    // nuxt-auth-utils impose ce chemin et 32 caractères au minimum.
+    // nuxt-auth-utils impose ce path et 32 caractères au minimum.
     password: z.string(),
     name: z.string().min(1).optional(),
   }),
@@ -80,7 +80,7 @@ const configSchema = z.object({
   // Seul bloc qui part jusqu'au navigateur.
   public: z.object({
     version: z.string().min(1),
-    appEnv: z.enum(ENVIRONNEMENTS),
+    appEnv: z.enum(ENVIRONMENTS),
     baseUrl: z.string().min(1),
     r2BaseUrl: z.string(),
   }),
@@ -89,22 +89,22 @@ const configSchema = z.object({
 export type Config = z.infer<typeof configSchema>
 
 /**
- * Traduit une clé de configuration en nom de variable d'environnement.
- * L'opérateur qui lit le message d'erreur cherche `NUXT_SESSION_SECRET`
- * dans son fichier .env, pas `sessionSecret` dans le code.
+ * Traduit une clé de configuration en name de variable d'environnement.
+ * L'opérateur qui lit le message d'error cherche `NUXT_SESSION_SECRET`
+ * dans son file .env, pas `sessionSecret` dans le code.
  */
-export function nomVariable(cle: string): string {
-  const connu = CHEMIN_DES_SECRETS[cle as keyof typeof CHEMIN_DES_SECRETS]
-  if (connu) return connu.variable
-  return `NUXT_${cle.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase()}`
+export function variableName(key: string): string {
+  const known = SECRETS_PATH[key as keyof typeof SECRETS_PATH]
+  if (known) return known.variable
+  return `NUXT_${key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase()}`
 }
 
-/** Lit une valeur imbriquée, sans supposer qu'elle existe. */
-function valeurA(objet: unknown, chemin: readonly string[]): unknown {
-  return chemin.reduce<unknown>(
-    (courant, cle) =>
+/** Lit une value imbriquée, sans supposer qu'elle existe. */
+function readPath(objet: unknown, path: readonly string[]): unknown {
+  return path.reduce<unknown>(
+    (courant, key) =>
       courant && typeof courant === 'object'
-        ? (courant as Record<string, unknown>)[cle]
+        ? (courant as Record<string, unknown>)[key]
         : undefined,
     objet,
   )
@@ -112,21 +112,19 @@ function valeurA(objet: unknown, chemin: readonly string[]): unknown {
 
 /**
  * Valide la configuration, et refuse la production s'il manque un secret.
- * Lève une erreur dont le message nomme les variables manquantes, triées.
+ * Lève une error dont le message nomme les variables manquantes, triées.
  */
-export function parseConfig(brut: unknown): Config {
-  const config = configSchema.parse(brut)
+export function parseConfig(raw: unknown): Config {
+  const config = configSchema.parse(raw)
 
   if (config.public.appEnv === 'prod') {
-    const manquants = SECRETS_REQUIS_EN_PROD.filter(
-      (cle) => !valeurA(config, CHEMIN_DES_SECRETS[cle].chemin),
+    const missing = SECRETS_REQUIRED_IN_PROD.filter(
+      (key) => !readPath(config, SECRETS_PATH[key].path),
     )
-      .map(nomVariable)
+      .map(variableName)
       .sort()
-    if (manquants.length > 0) {
-      throw new Error(
-        `Variables d'environnement manquantes en production : ${manquants.join(', ')}`,
-      )
+    if (missing.length > 0) {
+      throw new Error(`Variables d'environnement manquantes en production : ${missing.join(', ')}`)
     }
   }
 

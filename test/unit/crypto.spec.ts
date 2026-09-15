@@ -2,30 +2,30 @@ import { createCipheriv, randomBytes } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
- * Le chiffrement des jetons tiers, testé hors contexte Nuxt : on simule
+ * Le chiffrement des tokens tiers, testé hors context Nuxt : on simule
  * useRuntimeConfig, qui est la seule dépendance du module.
  */
-const CLE = randomBytes(32).toString('base64')
-let cleCourante = CLE
+const KEY = randomBytes(32).toString('base64')
+let currentKey = KEY
 
-vi.stubGlobal('useRuntimeConfig', () => ({ secretEncryptionKey: cleCourante }))
+vi.stubGlobal('useRuntimeConfig', () => ({ secretEncryptionKey: currentKey }))
 vi.stubGlobal('createError', (o: { statusMessage?: string }) => new Error(o.statusMessage ?? 'err'))
 
-const { chiffrer, dechiffrer } = await import('../../server/utils/crypto')
+const { encrypt, decrypt } = await import('../../server/utils/crypto')
 
 beforeEach(() => {
-  cleCourante = CLE
+  currentKey = KEY
 })
 
 describe('chiffrement des secrets', () => {
   it('fait l’aller-retour', () => {
-    const jeton = 'IGQWRO...un-jeton-instagram-de-longue-duree'
-    expect(dechiffrer(chiffrer(jeton))).toBe(jeton)
+    const token = 'IGQWRO...a-long-lived-instagram-token'
+    expect(decrypt(encrypt(token))).toBe(token)
   })
 
   it('supporte l’accentuation et les chaînes vides', () => {
     for (const v of ['', 'é à ù — “guillemets”', '🔑']) {
-      expect(dechiffrer(chiffrer(v))).toBe(v)
+      expect(decrypt(encrypt(v))).toBe(v)
     }
   })
 
@@ -33,50 +33,52 @@ describe('chiffrement des secrets', () => {
     // Un IV réutilisé avec GCM casse la confidentialité ET
     // l'authentification d'un coup. Deux chiffrements du même clair
     // doivent donc différer.
-    const a = chiffrer('même valeur')
-    const b = chiffrer('même valeur')
+    const a = encrypt('même valeur')
+    const b = encrypt('même valeur')
     expect(a).not.toBe(b)
-    expect(dechiffrer(a)).toBe(dechiffrer(b))
+    expect(decrypt(a)).toBe(decrypt(b))
   })
 
   it('ne laisse jamais le clair apparaître', () => {
-    expect(chiffrer('mot-de-passe-très-secret')).not.toContain('secret')
+    expect(encrypt('mot-de-passe-très-secret')).not.toContain('secret')
   })
 
   it('REFUSE un message altéré', () => {
-    // C'est tout l'intérêt d'un chiffrement authentifié : une modification
+    // C'est all l'intérêt d'un chiffrement authentifié : une modification
     // est détectée, elle ne produit pas du bruit qu'on prendrait pour bon.
-    const scelle = chiffrer('valeur')
-    const parts = scelle.split('.')
-    const altere = [parts[0], parts[1], parts[2], Buffer.from('autre').toString('base64')].join('.')
-    expect(() => dechiffrer(altere)).toThrow()
+    const sealed = encrypt('valeur')
+    const parts = sealed.split('.')
+    const altered = [parts[0], parts[1], parts[2], Buffer.from('autre').toString('base64')].join(
+      '.',
+    )
+    expect(() => decrypt(altered)).toThrow()
   })
 
   it('REFUSE une étiquette d’authentification bidouillée', () => {
-    const parts = chiffrer('valeur').split('.')
-    const faux = [parts[0], parts[1], randomBytes(16).toString('base64'), parts[3]].join('.')
-    expect(() => dechiffrer(faux)).toThrow()
+    const parts = encrypt('valeur').split('.')
+    const falsy = [parts[0], parts[1], randomBytes(16).toString('base64'), parts[3]].join('.')
+    expect(() => decrypt(falsy)).toThrow()
   })
 
   it('refuse un format inconnu', () => {
-    for (const mauvais of ['', 'nimporte', 'v2.a.b.c', 'v1.a.b']) {
-      expect(() => dechiffrer(mauvais)).toThrow()
+    for (const wrong of ['', 'nimporte', 'v2.a.b.c', 'v1.a.b']) {
+      expect(() => decrypt(wrong)).toThrow()
     }
   })
 
   it('refuse une clé de mauvaise taille, plutôt que de chiffrer faiblement', () => {
-    cleCourante = randomBytes(16).toString('base64')
-    expect(() => chiffrer('x')).toThrow(/32 octets/)
+    currentKey = randomBytes(16).toString('base64')
+    expect(() => encrypt('x')).toThrow(/32 octets/)
   })
 
   it('refuse une clé absente', () => {
-    cleCourante = ''
-    expect(() => chiffrer('x')).toThrow(/NUXT_SECRET_ENCRYPTION_KEY/)
+    currentKey = ''
+    expect(() => encrypt('x')).toThrow(/NUXT_SECRET_ENCRYPTION_KEY/)
   })
 
   it('ne déchiffre pas avec une AUTRE clé', () => {
-    const scelle = chiffrer('valeur')
-    cleCourante = randomBytes(32).toString('base64')
-    expect(() => dechiffrer(scelle)).toThrow()
+    const sealed = encrypt('valeur')
+    currentKey = randomBytes(32).toString('base64')
+    expect(() => decrypt(sealed)).toThrow()
   })
 })

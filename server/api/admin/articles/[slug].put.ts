@@ -1,17 +1,17 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
-import { brouillonArticle, slugParam } from '#shared/schemas/api'
-import { useBase } from '~~/server/database/client'
+import { articleDraft, slugParam } from '#shared/schemas/api'
+import { useDatabase } from '~~/server/database/client'
 import { article } from '~~/server/database/schema'
-import { champsDerives, remplacerSujets, sujetsDe } from '~~/server/utils/articles'
-import { exigerRole } from '~~/server/utils/auth'
+import { derivedFields, replaceTags, tagsOf } from '~~/server/utils/articles'
+import { requireRole } from '~~/server/utils/auth'
 
-/** Enregistre un article. Le statut ne change PAS ici : voir status.put.ts. */
+/** Enregistre un article. Le status ne change PAS here : voir status.put.ts. */
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'editor')
+  await requireRole(event, 'editor')
   const { slug } = await getValidatedRouterParams(event, z.object({ slug: slugParam }).parse)
-  const corps = await readValidatedBody(event, brouillonArticle.parse)
-  const db = useBase()
+  const body = await readValidatedBody(event, articleDraft.parse)
+  const db = useDatabase()
 
   const [existant] = await db
     .select({ id: article.id })
@@ -20,22 +20,22 @@ export default defineEventHandler(async (event) => {
     .limit(1)
   if (!existant) throw createError({ statusCode: 404, statusMessage: 'Article introuvable' })
 
-  const [maj] = await db
+  const [update] = await db
     .update(article)
     .set({
-      title: corps.title,
-      dek: corps.dek ?? null,
-      bodyMd: corps.bodyMd,
-      ...champsDerives(corps.bodyMd),
-      coverMediaId: corps.coverMediaId ?? null,
-      seoTitle: corps.seoTitle ?? null,
-      seoDescription: corps.seoDescription ?? null,
-      substackUrl: corps.substackUrl ?? null,
-      featured: corps.featured,
+      title: body.title,
+      dek: body.dek ?? null,
+      bodyMd: body.bodyMd,
+      ...derivedFields(body.bodyMd),
+      coverMediaId: body.coverMediaId ?? null,
+      seoTitle: body.seoTitle ?? null,
+      seoDescription: body.seoDescription ?? null,
+      substackUrl: body.substackUrl ?? null,
+      featured: body.featured,
     })
     .where(eq(article.id, existant.id))
     .returning()
 
-  await remplacerSujets(existant.id, corps.tags)
-  return { ...maj, tags: await sujetsDe(existant.id) }
+  await replaceTags(existant.id, body.tags)
+  return { ...update, tags: await tagsOf(existant.id) }
 })

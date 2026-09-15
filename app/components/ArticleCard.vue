@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { frDate } from '#shared/utils/format'
 
-import type listeArticles from '~~/server/api/articles/index.get'
+import type listArticles from '~~/server/api/articles/index.get'
 
 /**
  * Le type est INFÉRÉ du handler, il n'est pas recopié : renommer une
- * colonne dans le schéma Drizzle fait échouer `pnpm typecheck` ici même.
+ * colonne dans le schéma Drizzle fait échouer `pnpm typecheck` here même.
  * C'est précisément ce qu'on achète avec la bascule en TypeScript, et ce
  * que FastAPI + Vue en JavaScript nu ne pouvaient pas donner.
  *
  * `import type` est effacé à la compilation : aucun code serveur n'entre
  * dans le paquet envoyé au navigateur.
  */
-type ArticleListe = Awaited<ReturnType<typeof listeArticles>>['items'][number]
+type ArticleList = Awaited<ReturnType<typeof listArticles>>['items'][number]
 
-defineProps<{ article: ArticleListe; byline?: string }>()
+defineProps<{ article: ArticleList; byline?: string }>()
 </script>
 
 <template>

@@ -10,39 +10,39 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
-import { horodatage } from '../columns'
+import { timestamps } from '../columns'
 import { article } from './article'
 import {
+  oneOf,
   SOCIAL_MEDIA_TYPE,
   SOCIAL_NETWORK,
   SOCIAL_SOURCE,
   type SocialMediaType,
   type SocialNetwork,
   type SocialSource,
-  uneValeurParmi,
 } from './enums'
 
 /**
- * Un compte de réseau social connecté.
+ * Un account de réseau social connecté.
  *
- * Il n'existait pas tant qu'il n'y en avait qu'un : le « compte Instagram »
- * se réduisait alors à un jeton dans `secret` et à un profil figé dans
- * `setting`. Plusieurs comptes en font une entité — c'est elle qui porte le
- * jeton (par sa clé), l'identité affichée et la façon dont sa section paraît
+ * Il n'existait pas tant qu'il n'y en avait qu'un : le « account Instagram »
+ * se réduisait alors à un token dans `secret` et à un profile figé dans
+ * `setting`. Plusieurs accounts en font une entité — c'est elle qui porte le
+ * token (par sa clé), l'identité affichée et la façon dont sa section paraît
  * sur l'accueil.
  *
  * L'identité affichée (`username`, `displayName`, `biography`, `avatarUrl`,
- * les compteurs) est TOUJOURS reprise du profil Meta à la synchronisation :
+ * les compteurs) est TOUJOURS reprise du profile Meta à la synchronisation :
  * elle ne se saisit pas à la main, et une correction faite sur Instagram
- * arrive ici toute seule.
+ * arrive here toute seule.
  */
 export const socialAccount = pgTable(
   'social_account',
   {
     id: integer().generatedByDefaultAsIdentity().primaryKey(),
     network: text().$type<SocialNetwork>().notNull(),
-    // L'identifiant du compte chez Meta. Nullable : la reprise de l'unique
-    // compte d'avant peut ne pas le connaître, la première synchronisation
+    // L'identifiant du account chez Meta. Nullable : la reprise de l'unique
+    // account d'before peut ne pas le connaître, la première synchronisation
     // le renseigne.
     externalId: text(),
     username: text(),
@@ -51,23 +51,23 @@ export const socialAccount = pgTable(
     avatarUrl: text(),
     followers: integer(),
     mediaCount: integer(),
-    /** L'interrupteur de Max : le compte est connecté, mais paraît-il ? */
+    /** L'interrupteur de Max : le account est connecté, mais paraît-il ? */
     visible: boolean().notNull().default(true),
     /** L'ordre des sections sur l'accueil. */
     position: integer().notNull().default(0),
     /** Combien de publications la section montre. */
     postsOnHome: integer().notNull().default(6),
     lastSyncAt: timestamp({ withTimezone: true, mode: 'date' }),
-    ...horodatage,
+    ...timestamps,
   },
   (t) => [
-    // La cible de l'onConflictDoUpdate de la connexion et de la synchro :
-    // reconnecter un compte déjà connu doit retomber sur SA ligne, et donc
+    // La target de l'onConflictDoUpdate de la connection et de la syncTask :
+    // reconnecter un account déjà known doit retomber sur SA ligne, et donc
     // préserver l'ordre, la visibilité et le nombre de publications que Max
     // a choisis. Sans contrainte d'unicité, l'upsert échouerait seulement à
     // l'exécution.
     uniqueIndex('uq_social_account_network_external_id').on(t.network, t.externalId),
-    check('social_account_network', uneValeurParmi(t.network, SOCIAL_NETWORK)),
+    check('social_account_network', oneOf(t.network, SOCIAL_NETWORK)),
   ],
 )
 
@@ -76,13 +76,13 @@ export const socialPost = pgTable(
   {
     id: integer().generatedByDefaultAsIdentity().primaryKey(),
     network: text().$type<SocialNetwork>().notNull(),
-    // De quel compte vient la publication. Nul pour LinkedIn et pour les
+    // De quel account vient la publication. Nul pour LinkedIn et pour les
     // saisies manuelles, qui n'en ont pas. En cascade : déconnecter un
-    // compte emporte ses publications, c'est ce qui a été décidé.
+    // account emporte ses publications, c'est ce qui a été décidé.
     accountId: integer().references(() => socialAccount.id, { onDelete: 'cascade' }),
     // Nul pour les publications LinkedIn saisies à la main : leur
     // découverte automatique est impossible (le scope r_member_social est
-    // fermé aux nouvelles applications).
+    // fermé aux fresh applications).
     externalId: text(),
     url: text(),
     shortcode: text(),
@@ -97,26 +97,26 @@ export const socialPost = pgTable(
     // Charge brute renvoyée par Meta. Volontairement peu typée : elle
     // change sans prévenir, et elle n'est JAMAIS exposée publiquement.
     raw: jsonb().$type<Record<string, unknown>>(),
-    ...horodatage,
+    ...timestamps,
   },
   (t) => [
     // LA contrainte qui rend la synchronisation Instagram idempotente : le
     // worker fait un onConflictDoUpdate dessus, si bien qu'une publication
-    // déjà connue est mise à jour au lieu d'être dupliquée.
+    // déjà connue est mise à day au lieu d'être dupliquée.
     //
     // externalId étant nul pour LinkedIn, et les NULL étant DISTINCTS sous
-    // PostgreSQL, plusieurs publications LinkedIn sans identifiant externe
+    // PostgreSQL, plusieurs publications LinkedIn sans identifiant external
     // coexistent sans conflit. C'est le comportement voulu.
     uniqueIndex('uq_social_post_network_external_id').on(t.network, t.externalId),
     index('ix_social_post_posted').on(t.network, t.postedAt.desc()),
-    check('social_post_network', uneValeurParmi(t.network, SOCIAL_NETWORK)),
-    check('social_post_source', uneValeurParmi(t.source, SOCIAL_SOURCE)),
-    check('social_post_media_type', uneValeurParmi(t.mediaType, SOCIAL_MEDIA_TYPE)),
+    check('social_post_network', oneOf(t.network, SOCIAL_NETWORK)),
+    check('social_post_source', oneOf(t.source, SOCIAL_SOURCE)),
+    check('social_post_media_type', oneOf(t.mediaType, SOCIAL_MEDIA_TYPE)),
   ],
 )
 
 /**
- * Le lien article ↔ publication, FACULTATIF DES DEUX CÔTÉS.
+ * Le link article ↔ publication, FACULTATIF DES DEUX CÔTÉS.
  *
  * Table à part, jamais une clé étrangère sur `article` : un article peut
  * n'avoir aucune déclinaison, et une publication peut exister sans article.

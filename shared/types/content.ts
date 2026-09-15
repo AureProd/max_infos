@@ -1,5 +1,5 @@
 /**
- * Types du contenu d'origine, lu par le script de semis.
+ * Types du content d'origine, lu par le script de semis.
  *
  * Ils ne décrivent QUE ce que le script de migration consomme. Le reste du
  * code se sert des types que Drizzle déduit du schéma, ou de ceux que Nitro

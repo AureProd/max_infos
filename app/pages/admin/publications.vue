@@ -7,22 +7,22 @@ const { data: publications, refresh } = await useFetch('/api/admin/social-posts'
   key: 'admin-publications',
 })
 const { data: articles } = await useFetch('/api/admin/articles', { key: 'admin-articles-liste' })
-const { data: liees } = await useFetch('/api/social-posts', { key: 'publications-liees' })
+const { data: linked } = await useFetch('/api/social-posts', { key: 'publications-liees' })
 
-/** Les publications découvertes et non encore rattachées : le travail à faire. */
-const aRattacher = computed(
+/** Les publications découvertes et non again rattachées : le travail à faire. */
+const toAttach = computed(
   () => (publications.value ?? []).filter((p) => !p.hidden && !p.articleSlug).length,
 )
 
 /**
- * Le filtre par compte.
+ * Le filtre par account.
  *
- * Purement local : la liste est déjà chargée, et la trier côté serveur
+ * Purement local : la list est déjà chargée, et la trier côté serveur
  * coûterait une requête par clic.
  */
-const compteFiltre = ref('')
+const filterCount = ref('')
 
-const comptes = computed(() => {
+const accounts = computed(() => {
   const vus = new Map<number, string>()
   for (const p of publications.value ?? []) {
     if (p.accountId && p.accountUsername) vus.set(p.accountId, p.accountUsername)
@@ -30,13 +30,13 @@ const comptes = computed(() => {
   return [...vus].map(([id, username]) => ({ id, username }))
 })
 
-const visibles = computed(() =>
-  compteFiltre.value === ''
+const visible = computed(() =>
+  filterCount.value === ''
     ? (publications.value ?? [])
-    : (publications.value ?? []).filter((p) => String(p.accountId ?? '') === compteFiltre.value),
+    : (publications.value ?? []).filter((p) => String(p.accountId ?? '') === filterCount.value),
 )
 
-async function rattacher(id: number, slug: string): Promise<void> {
+async function attach(id: number, slug: string): Promise<void> {
   await $fetch(`/api/admin/social-posts/${id}/article`, {
     method: 'PUT',
     body: { articleSlug: slug || null },
@@ -44,29 +44,29 @@ async function rattacher(id: number, slug: string): Promise<void> {
   await refresh()
 }
 
-async function basculerVisibilite(id: number, hidden: boolean): Promise<void> {
+async function toggleVisibility(id: number, hidden: boolean): Promise<void> {
   await $fetch(`/api/admin/social-posts/${id}/visibility`, { method: 'PUT', body: { hidden } })
   await refresh()
 }
 
-async function supprimer(id: number): Promise<void> {
+async function remove(id: number): Promise<void> {
   if (!confirm('Supprimer cette publication ? Cette action est définitive.')) return
   await $fetch(`/api/admin/social-posts/${id}`, { method: 'DELETE' })
   await refresh()
 }
 
 // --- Saisie manuelle -------------------------------------------------------
-const saisie = ref({ network: 'linkedin' as 'linkedin' | 'instagram', url: '', caption: '' })
-const erreurSaisie = ref('')
+const input = ref({ network: 'linkedin' as 'linkedin' | 'instagram', url: '', caption: '' })
+const inputError = ref('')
 
-async function ajouter(): Promise<void> {
-  erreurSaisie.value = ''
+async function add(): Promise<void> {
+  inputError.value = ''
   try {
-    await $fetch('/api/admin/social-posts', { method: 'POST', body: saisie.value })
-    saisie.value = { network: 'linkedin', url: '', caption: '' }
+    await $fetch('/api/admin/social-posts', { method: 'POST', body: input.value })
+    input.value = { network: 'linkedin', url: '', caption: '' }
     await refresh()
   } catch (e) {
-    erreurSaisie.value = (e as { statusMessage?: string }).statusMessage ?? 'Adresse non reconnue.'
+    inputError.value = (e as { statusMessage?: string }).statusMessage ?? 'Adresse non reconnue.'
   }
 }
 
@@ -79,8 +79,8 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
       <AdminNav />
 
       <h1>Publications</h1>
-      <p v-if="aRattacher" class="note">
-        {{ aRattacher }} publication(s) découverte(s) et non rattachée(s) à un article.
+      <p v-if="toAttach" class="note">
+        {{ toAttach }} publication(s) découverte(s) et non rattachée(s) à un article.
       </p>
 
       <!--
@@ -88,37 +88,37 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
         publications y est impossible, le scope r_member_social étant fermé
         aux nouvelles applications.
       -->
-      <form class="field" style="margin: 24px 0" @submit.prevent="ajouter">
+      <form class="field" style="margin: 24px 0" @submit.prevent="add">
         <label for="p-url">Coller l'adresse d'une publication</label>
         <div class="cluster">
-          <select v-model="saisie.network" aria-label="Réseau">
+          <select v-model="input.network" aria-label="Réseau">
             <option value="linkedin">LinkedIn</option>
             <option value="instagram">Instagram</option>
           </select>
           <input
             id="p-url"
-            v-model="saisie.url"
+            v-model="input.url"
             type="url"
             placeholder="https://www.linkedin.com/posts/…"
             required
           />
           <button class="btn btn-primary" type="submit">Ajouter</button>
         </div>
-        <p v-if="erreurSaisie" class="err">{{ erreurSaisie }}</p>
+        <p v-if="inputError" class="err">{{ inputError }}</p>
       </form>
 
-      <div v-if="comptes.length > 1" class="field" style="margin-bottom: 16px">
+      <div v-if="accounts.length > 1" class="field" style="margin-bottom: 16px">
         <label for="p-compte">Compte</label>
-        <select id="p-compte" v-model="compteFiltre">
+        <select id="p-compte" v-model="filterCount">
           <option value="">— tous les comptes —</option>
-          <option v-for="c in comptes" :key="c.id" :value="String(c.id)">@{{ c.username }}</option>
+          <option v-for="c in accounts" :key="c.id" :value="String(c.id)">@{{ c.username }}</option>
         </select>
       </div>
 
       <p v-if="!publications?.length" class="empty">Aucune publication pour l'instant.</p>
 
       <ul v-else class="list">
-        <li v-for="p in visibles" :key="p.id">
+        <li v-for="p in visible" :key="p.id">
           <div class="entry">
             <div>
               <h3>
@@ -143,24 +143,24 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
               <select
                 :value="p.articleSlug ?? ''"
                 aria-label="Article rattaché"
-                @change="rattacher(p.id, ($event.target as HTMLSelectElement).value)"
+                @change="attach(p.id, ($event.target as HTMLSelectElement).value)"
               >
                 <option value="">— non rattachée —</option>
                 <option v-for="a in articles ?? []" :key="a.slug" :value="a.slug">
                   {{ a.title }}
                 </option>
               </select>
-              <button class="btn" type="button" @click="basculerVisibilite(p.id, !p.hidden)">
+              <button class="btn" type="button" @click="toggleVisibility(p.id, !p.hidden)">
                 {{ p.hidden ? 'Afficher' : 'Masquer' }}
               </button>
-              <button class="btn" type="button" @click="supprimer(p.id)">Supprimer</button>
+              <button class="btn" type="button" @click="remove(p.id)">Supprimer</button>
             </div>
           </div>
         </li>
       </ul>
 
       <p class="hint" style="margin-top: 24px">
-        {{ liees?.length ?? 0 }} publication(s) visible(s) sur le site.
+        {{ linked?.length ?? 0 }} publication(s) visible(s) sur le site.
       </p>
     </section>
   </div>

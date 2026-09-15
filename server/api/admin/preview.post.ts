@@ -1,20 +1,20 @@
-import { apercuMarkdown } from '#shared/schemas/api'
-import { exigerRole } from '~~/server/utils/auth'
-import { compterCaracteres, minutesDeLecture, rendreMarkdown } from '~~/server/utils/markdown'
+import { previewMarkdown } from '#shared/schemas/api'
+import { requireRole } from '~~/server/utils/auth'
+import { countCharacters, readingMinutes, renderMarkdown } from '~~/server/utils/markdown'
 
 /**
- * Aperçu du rendu, par le MÊME moteur que l'enregistrement.
+ * Aperçu du rendered, par le MÊME engine que l'record.
  *
  * C'est ce qui garantit que ce que Max voit en écrivant est exactement ce
- * qui sera publié. Un aperçu rendu côté navigateur finirait par diverger.
+ * qui sera publié. Un aperçu rendered côté navigateur finirait par diverger.
  */
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'editor')
-  const { bodyMd } = await readValidatedBody(event, apercuMarkdown.parse)
+  await requireRole(event, 'editor')
+  const { bodyMd } = await readValidatedBody(event, previewMarkdown.parse)
 
   return {
-    html: rendreMarkdown(bodyMd),
-    charCount: compterCaracteres(bodyMd),
-    readingMinutes: minutesDeLecture(bodyMd),
+    html: renderMarkdown(bodyMd),
+    charCount: countCharacters(bodyMd),
+    readingMinutes: readingMinutes(bodyMd),
   }
 })

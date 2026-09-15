@@ -44,7 +44,7 @@ export default defineConfig(async () => ({
             // Active la route de session de test, exclue du bundle sinon.
             NUXT_TEST_ROUTES: 'true',
             // Identifiants R2 factices : la signature d'URL est du calcul
-            // local, sans appel réseau. Ils permettent de tester la route de
+            // local, sans call réseau. Ils permettent de tester la route de
             // téléversement sans bucket, et sans que la matrice
             // d'autorisations dépende de la configuration du stockage.
             NUXT_R2_ENDPOINT: 'https://exemple.r2.cloudflarestorage.com',
@@ -75,8 +75,8 @@ export default defineConfig(async () => ({
         'server/database/schema/**',
         'scripts/**',
       ],
-      // Les quatre métriques, et pas seulement les lignes : un seuil sur les
-      // lignes seules se contourne trivialement.
+      // Les quatre métriques, et pas seulement les lines : un seuil sur les
+      // lines seules se contourne trivialement.
       thresholds: { lines: 80, statements: 80, functions: 80, branches: 80 },
     },
   },

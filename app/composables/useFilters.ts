@@ -1,15 +1,15 @@
-import type { ListeArticlesQuery } from '#shared/schemas/api'
+import type { ListArticlesQuery } from '#shared/schemas/api'
 
-export interface EtatFiltres {
+export interface FiltersState {
   q: string
   tag: string | null
 }
 
 /**
- * Filtrage de la liste d'articles : recherche libre et sujet.
+ * Filtrage de la list d'articles : recherche libre et sujet.
  *
  * Le filtrage se fait désormais EN SQL, côté serveur : le navigateur ne
- * télécharge plus tous les articles pour en cacher la plupart. C'est le
+ * télécharge plus all les articles pour en cacher la plupart. C'est le
  * gain direct du passage en base.
  *
  * `useState` et NON un état au niveau du module : ce dernier serait
@@ -17,9 +17,9 @@ export interface EtatFiltres {
  * visiteur apparaîtrait chez le suivant.
  */
 export function useFilters() {
-  const state = useState<EtatFiltres>('filtres', () => ({ q: '', tag: null }))
+  const state = useState<FiltersState>('filtres', () => ({ q: '', tag: null }))
 
-  const query = computed<Partial<ListeArticlesQuery>>(() => ({
+  const query = computed<Partial<ListArticlesQuery>>(() => ({
     ...(state.value.q ? { q: state.value.q } : {}),
     ...(state.value.tag ? { tag: state.value.tag } : {}),
   }))
@@ -29,7 +29,7 @@ export function useFilters() {
   const { data, status } = useFetch('/api/articles', {
     key: 'articles-filtres',
     query,
-    // Le serveur ne rend que la liste non filtrée ; les filtres sont une
+    // Le serveur ne rend que la list non filtrée ; les filtres sont une
     // action du visiteur, donc la requête ne part qu'au navigateur.
     watch: [query],
   })

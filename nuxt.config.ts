@@ -1,7 +1,7 @@
-// Configuration Nuxt. Voir docs/PLAN.md pour le contexte du projet.
+// Configuration Nuxt. Voir docs/PLAN.md pour le context du projet.
 //
-// Deux règles à ne pas perdre de vue dans ce fichier :
-//   1. Ce qui est lu ici par `process.env` est FIGÉ AU BUILD. Les valeurs qui
+// Deux règles à ne pas perdre de vue dans ce file :
+//   1. Ce qui est lu here par `process.env` est FIGÉ AU BUILD. Les values qui
 //      doivent varier à l'exécution passent par `runtimeConfig` et les
 //      variables d'environnement préfixées `NUXT_`, injectées au démarrage.
 //      C'est ce qui évite qu'une image construite en CI embarque les
@@ -21,13 +21,13 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-09-14',
   devtools: { enabled: true },
 
-  // nuxt-auth-utils fournit la session scellée en cookie et le flux OAuth
+  // nuxt-auth-utils fournit la session scellée en cookie et le feed OAuth
   // Google. Il remplace ce que faisaient authlib et itsdangerous côté
   // Python, en moins de code.
   modules: ['nuxt-auth-utils'],
 
-  // Le design entier vit dans ce fichier. Il est chargé globalement, comme
-  // avant, et exclu du formateur (voir biome.json).
+  // Le design entier vit dans ce file. Il est chargé globalement, comme
+  // before, et exclu du formateur (voir biome.json).
   css: ['~/assets/css/base.css'],
 
   app: {
@@ -52,16 +52,16 @@ export default defineNuxtConfig({
   },
 
   /**
-   * Cache de rendu côté serveur.
+   * Cache de rendered côté serveur.
    *
    * `swr` sert la dernière version rendue pendant qu'il en prépare une
-   * nouvelle. Deux gains : les pages publiques ne refont pas leurs requêtes
+   * nouvelle. Deux gains : les pages publicOnes ne refont pas leurs requêtes
    * à chaque visiteur, et — c'est le point important — une base momentanément
    * indisponible ne fait plus tomber le site, qui continue de servir ce
    * qu'il a en cache.
    *
    * Le back-office et l'API en sont exclus : Max doit voir ses
-   * modifications tout de suite, et une réponse d'API mise en cache
+   * modifications all de suite, et une réponse d'API mise en cache
    * mentirait sur l'état réel.
    */
   routeRules: {
@@ -71,7 +71,7 @@ export default defineNuxtConfig({
     '/publication/**': { swr: 600 },
     '/rss.xml': { swr: 900 },
     '/sitemap.xml': { swr: 3600 },
-    // En-tête HTTP plutôt que balise : un robot qui n'exécute pas le
+    // En-tête HTTP plutôt que tagName : un robot qui n'exécute pas le
     // JavaScript, ou qui récupère une réponse non HTML, le voit quand même.
     '/admin/**': { swr: false, headers: { 'x-robots-tag': 'noindex, nofollow' } },
     '/login': { swr: false, headers: { 'x-robots-tag': 'noindex, nofollow' } },
@@ -83,7 +83,7 @@ export default defineNuxtConfig({
     compressPublicAssets: true,
     // server/api/test/ contient une route qui ouvre une session sans preuve
     // d'identité, pour le test d'autorisations. Elle n'entre dans le bundle
-    // que si on le demande EXPLICITEMENT au moment du build. Par défaut,
+    // que si on le request EXPLICITEMENT au moment du build. Par défaut,
     // elle n'existe pas dans l'image — pas même désactivée : absente.
     ignore: process.env.NUXT_TEST_ROUTES === 'true' ? [] : ['api/test/**'],
   },
@@ -93,12 +93,12 @@ export default defineNuxtConfig({
   // démarrage vit dans server/plugins/00.config.ts.
   //
   // Clés à plat, et non imbriquées : le découpage des `_` d'une variable
-  // d'environnement en clés imbriquées dépend de la forme déclarée ici et
+  // d'environnement en clés imbriquées dépend de la shape déclarée here et
   // devient vite piégeux. `NUXT_GOOGLE_CLIENT_ID` alimente `googleClientId`.
   runtimeConfig: {
     databaseUrl: '',
     // Lu par nuxt-auth-utils pour sceller le cookie de session. Il impose
-    // ce chemin exact (runtimeConfig.session.password) et un minimum de
+    // ce path exact (runtimeConfig.session.password) et un minimum de
     // 32 caractères.
     session: {
       name: 'umdi_session',
@@ -108,9 +108,9 @@ export default defineNuxtConfig({
     },
     // Chemin imposé par nuxt-auth-utils, alimenté par
     // NUXT_OAUTH_GOOGLE_CLIENT_ID et NUXT_OAUTH_GOOGLE_CLIENT_SECRET.
-    // On ne double PAS ces clés ailleurs : deux noms pour un même secret,
-    // c'est la garantie qu'un jour l'un des deux sera renseigné et pas
-    // l'autre, avec un message d'erreur qui ne dira pas lequel.
+    // On ne double PAS ces clés ailleurs : two noms pour un même secret,
+    // c'est la garantie qu'un day l'un des two sera renseigné et pas
+    // l'autre, avec un message d'error qui ne dira pas lequel.
     oauth: {
       google: { clientId: '', clientSecret: '', redirectURL: '' },
     },
@@ -124,9 +124,9 @@ export default defineNuxtConfig({
     instagramAppId: '',
     instagramAppSecret: '',
     instagramSyncIntervalMinutes: 60,
-    // Les tâches planifiées ne tournent que là où cette valeur est vraie.
+    // Les tâches planifiées ne tournent que là où cette value est vraie.
     // Le dédoublonnage de Nitro est PAR INSTANCE : sans cet interrupteur,
-    // deux répliques synchroniseraient Instagram deux fois.
+    // two répliques synchroniseraient Instagram two fois.
     schedulerEnabled: false,
     // `public` est le seul bloc qui part au navigateur.
     public: {
@@ -147,26 +147,26 @@ export default defineNuxtConfig({
   vite: {
     server: {
       // Vite autorise déjà `localhost` et les domaines en `.localhost`.
-      // Explicite quand même, pour le jour où URL_HOST devient un vrai
+      // Explicite quand même, pour le day où URL_HOST devient un vrai
       // domaine de préproduction.
       allowedHosts: [urlHost],
       // Vite 8 : server.hmr.* est déprécié au profit de server.ws.*.
       //
-      // Un seul réglage est nécessaire, et c'est le seul qui compte :
+      // Un seul réglage est nécessaire, et c'est le seul qui account :
       // clientPort. Le navigateur compose l'URL du WebSocket avec le port
-      // qu'on lui donne ici ; sans lui il viserait le 3000 du conteneur,
-      // injoignable depuis l'hôte.
+      // qu'on lui donne here ; sans lui il viserait le 3000 du conteneur,
+      // injoignable since l'hôte.
       //
       // Contrairement à ce qu'on pourrait croire, Nuxt 4 n'ouvre PAS de
       // serveur WebSocket séparé pour le client : celui-ci est porté par le
-      // serveur principal, sur /_nuxt/_nuxt_hmr. Le routeur Traefik de
+      // serveur main, sur /_nuxt/_nuxt_hmr. Le routeur Traefik de
       // l'application le couvre donc déjà, et aucun routeur dédié n'est
       // nécessaire. Vérifié avec un vrai client WebSocket — curl n'en est
-      // pas un et renvoie 400 même quand tout fonctionne.
+      // pas un et renvoie 400 même quand all fonctionne.
       ws: {
         protocol: 'ws',
         // `host` volontairement absent : le client retombe sur l'hôte de la
-        // page. Le figer casserait les clones servis sur un autre nom.
+        // page. Le figer casserait les clones servis sur un autre name.
         clientPort: urlPort,
       },
     },

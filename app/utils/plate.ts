@@ -1,7 +1,7 @@
 /**
  * Visuels d'atelier générés, déterministes pour une graine donnée.
  * Aucune requête réseau, et surtout : la SORTIE NE DÉPEND QUE DE LA GRAINE.
- * C'est ce qui les rend compatibles avec le rendu serveur — le serveur et le
+ * C'est ce qui les rend compatibles avec le rendered serveur — le serveur et le
  * navigateur produisent exactement le même SVG, sans écart d'hydratation.
  *
  * Ces plaques servent de repli tant qu'un article n'a pas de vraie image.
@@ -69,7 +69,7 @@ export function plate(seed: number, w = 400, h = 400): Plate {
   }
 
   // lueur de lampe d'établi ; l'identifiant inclut les dimensions pour éviter
-  // les collisions entre deux plaques de même graine à des tailles différentes
+  // les collisions entre two plaques de même graine à des tailles différentes
   const gid = `g${seed}-${w}x${h}`
   p.push(
     `<defs><radialGradient id="${gid}" cx="${(r() * 100).toFixed(0)}%" cy="${(r() * 60).toFixed(0)}%" r="72%">` +

@@ -1,22 +1,22 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { slugParam } from '#shared/schemas/api'
-import { useBase } from '~~/server/database/client'
+import { useDatabase } from '~~/server/database/client'
 import { article, setting } from '~~/server/database/schema'
-import { exigerRole } from '~~/server/utils/auth'
-import { GABARITS_PAR_DEFAUT, resoudre, VARIABLES } from '~~/server/utils/gabarits'
+import { requireRole } from '~~/server/utils/auth'
+import { DEFAULT_TEMPLATES, resolve, VARIABLES } from '~~/server/utils/templates'
 
 /**
  * Les squelettes de déclinaison d'un article, variables déjà résolues.
  *
- * Le but est que Max parte d'un texte à corriger plutôt que d'une page
- * blanche. Le site ne publie rien : il prépare, Max copie et publie
+ * Le but est que Max parte d'un text à corriger plutôt que d'une page
+ * blanche. Le site ne publie rien : il prépare, Max copied et publie
  * lui-même.
  */
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'editor')
+  await requireRole(event, 'editor')
   const { slug } = await getValidatedRouterParams(event, z.object({ slug: slugParam }).parse)
-  const db = useBase()
+  const db = useDatabase()
 
   const [a] = await db
     .select({
@@ -31,26 +31,30 @@ export default defineEventHandler(async (event) => {
     .limit(1)
   if (!a) throw createError({ statusCode: 404, statusMessage: 'Article introuvable' })
 
-  const sujets = await useBase().select().from(setting).where(eq(setting.key, 'templates')).limit(1)
+  const tags = await useDatabase()
+    .select()
+    .from(setting)
+    .where(eq(setting.key, 'templates'))
+    .limit(1)
 
-  const modeles = {
-    ...GABARITS_PAR_DEFAUT,
-    ...((sujets[0]?.value as Record<string, string> | undefined) ?? {}),
+  const models = {
+    ...DEFAULT_TEMPLATES,
+    ...((tags[0]?.value as Record<string, string> | undefined) ?? {}),
   }
 
   const { public: pub } = useRuntimeConfig()
-  const contexte = {
+  const context = {
     titre: a.title,
     chapo: a.dek ?? '',
     url: `${pub.baseUrl.replace(/\/+$/, '')}/article/${a.slug}`,
-    sujets: '',
+    tags: '',
     minutes: a.readingMinutes,
     caracteres: a.charCount,
   }
 
   return {
     variables: VARIABLES,
-    linkedin: resoudre(modeles.linkedin, contexte),
-    reel: resoudre(modeles.reel, contexte),
+    linkedin: resolve(models.linkedin, context),
+    reel: resolve(models.reel, context),
   }
 })

@@ -10,12 +10,12 @@ const { data: article, error } = await useFetch(() => `/api/articles/${slug.valu
 })
 
 /**
- * Le 404 de l'API ne se propage PAS tout seul : useFetch le range dans
+ * Le 404 de l'API ne se propage PAS all seul : useFetch le range dans
  * `error` et rend la page avec `data` à null, ce qui produirait un 200 sur
- * un article inexistant. Les robots l'indexeraient comme une page valide,
+ * un article inexistant. Les robots l'indexeraient comme une page valid,
  * et c'est précisément ce que le plan cherche à éviter.
  *
- * À savoir : le serveur de DÉVELOPPEMENT de Nuxt sert la page d'erreur avec
+ * À savoir : le serveur de DÉVELOPPEMENT de Nuxt sert la page d'error avec
  * un code 200 malgré cela. Le build de production, lui, répond bien 404 —
  * c'est vérifié par test/api/seo.spec.ts, qui tourne contre un vrai build.
  * Inutile de « corriger » ce qu'on observe en développement.
@@ -43,12 +43,12 @@ useSeoMeta({
  * JSON-LD Article.
  *
  * Ce que lisent Google et les agrégateurs pour comprendre qu'il s'agit d'un
- * article, de qui et de quand — là où les balises Open Graph ne servent
- * qu'à l'aperçu de partage. Les deux sont nécessaires, ils ne s'adressent
+ * article, de qui et de quand — là où les tagNames Open Graph ne servent
+ * qu'à l'aperçu de partage. Les two sont nécessaires, ils ne s'adressent
  * pas aux mêmes lecteurs.
  */
 // Lu ICI et non dans la fonction ci-dessous : useRuntimeConfig doit être
-// appelé dans le contexte du composant, pas au moment du rendu de l'entête.
+// appelé dans le context du composant, pas au moment du rendered de l'entête.
 const baseUrl = useRuntimeConfig().public.baseUrl.replace(/\/+$/, '')
 
 useHead({
@@ -84,8 +84,8 @@ useHead({
   },
 })
 
-// Compteur de vues : anonyme, sans cookie ni adresse IP. Uniquement côté
-// navigateur, sinon chaque rendu serveur — y compris ceux des robots —
+// Compteur de views : anonyme, sans cookie ni adresse IP. Uniquement côté
+// navigateur, sinon chaque rendered serveur — y compris ceux des robots —
 // gonflerait le compteur.
 onMounted(() => {
   $fetch(`/api/articles/${slug.value}/view`, { method: 'POST' }).catch(() => {
@@ -130,8 +130,8 @@ onMounted(() => {
 
       <p class="endnote">
         <span>{{ nb(article.charCount) }} caractères</span>
-        <span v-if="article.declinaisons.length">
-          {{ article.declinaisons.length }} déclinaison(s) courte(s)
+        <span v-if="article.variants.length">
+          {{ article.variants.length }} déclinaison(s) courte(s)
         </span>
         <a v-if="article.substackUrl" :href="article.substackUrl" target="_blank" rel="noopener">
           Lire sur la newsletter ↗

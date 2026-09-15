@@ -2,24 +2,24 @@ import { fetch, setup } from '@nuxt/test-utils/e2e'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { appUser } from '../../server/database/schema'
-import { type BaseDeTest, base, connexion, migrer, semerJeuDeTest } from '../setup/db'
+import { base, connection, migrate, seedTestData, type TestDatabase } from '../setup/db'
 
 /**
  * Les écrans du back-office s'affichent-ils vraiment ?
  *
  * Une page qui compile n'est pas une page qui s'affiche : un composable mal
  * appelé, un réglage absent ou un type de réponse inattendu la fait tomber
- * en 500, et rien avant ce test ne le montrerait.
+ * en 500, et rien before ce test ne le montrerait.
  */
 let sqlClient: postgres.Sql
-let db: BaseDeTest
+let db: TestDatabase
 const cookies: Record<'editor' | 'tech', string> = { editor: '', tech: '' }
 
 beforeAll(async () => {
-  sqlClient = connexion()
-  await migrer(sqlClient)
+  sqlClient = connection()
+  await migrate(sqlClient)
   db = base(sqlClient)
-  await semerJeuDeTest(db)
+  await seedTestData(db)
   await db.insert(appUser).values([
     { email: 'max@bo.test', role: 'editor' },
     { email: 'jb@bo.test', role: 'tech' },
@@ -33,8 +33,8 @@ afterAll(async () => {
 await setup({ server: true, browser: false })
 
 beforeAll(async () => {
-  const comptes = await db.select({ id: appUser.id, role: appUser.role }).from(appUser)
-  for (const c of comptes) {
+  const accounts = await db.select({ id: appUser.id, role: appUser.role }).from(appUser)
+  for (const c of accounts) {
     if (c.role !== 'editor' && c.role !== 'tech') continue
     const r = await fetch('/api/test/session', {
       method: 'POST',
@@ -45,7 +45,7 @@ beforeAll(async () => {
   }
 })
 
-const ECRANS_EDITEUR = [
+const EDITOR_SCREENS = [
   '/admin',
   '/admin/articles',
   '/admin/publications',
@@ -55,10 +55,10 @@ const ECRANS_EDITEUR = [
 ]
 
 describe('accès', () => {
-  it.each([...ECRANS_EDITEUR, '/admin/tech'])(
+  it.each([...EDITOR_SCREENS, '/admin/tech'])(
     '%s redirige vers la connexion sans session',
-    async (chemin) => {
-      const r = await fetch(chemin, { redirect: 'manual' })
+    async (path) => {
+      const r = await fetch(path, { redirect: 'manual' })
       expect(r.status).toBe(302)
       expect(r.headers.get('location')).toContain('/login')
     },
@@ -66,11 +66,11 @@ describe('accès', () => {
 })
 
 describe('affichage pour un editor', () => {
-  it.each(ECRANS_EDITEUR)('%s s’affiche', async (chemin) => {
-    const r = await fetch(chemin, { headers: { cookie: cookies.editor } })
+  it.each(EDITOR_SCREENS)('%s s’affiche', async (path) => {
+    const r = await fetch(path, { headers: { cookie: cookies.editor } })
     expect(r.status).toBe(200)
     const html = await r.text()
-    // Une page Nuxt en erreur renvoie 200 avec sa page d'erreur : on
+    // Une page Nuxt en error renvoie 200 avec sa page d'error : on
     // vérifie donc le CONTENU, pas seulement le code.
     expect(html).not.toContain('statusCode:500')
     expect(html).toContain('admin-page')

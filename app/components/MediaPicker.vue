@@ -3,8 +3,8 @@
  * Choix d'une image : bibliothèque existante ou téléversement.
  *
  * Le téléversement se fait EN DEUX TEMPS : le serveur enregistre le média
- * et renvoie une URL signée, puis le navigateur envoie le fichier
- * directement à R2. Le fichier ne traverse jamais Nitro — la mémoire du
+ * et renvoie une URL signée, then le navigateur envoie le file
+ * directement à R2. Le file ne traverse jamais Nitro — la mémoire du
  * conteneur ne monte pas avec la taille des images, et le serveur ne
  * devient pas un relais ouvert.
  */
@@ -16,53 +16,53 @@ interface Media {
   mime: string
 }
 
-const modele = defineModel<number | null>({ default: null })
-const props = withDefaults(defineProps<{ genre?: 'image' | 'pdf'; libelle?: string }>(), {
-  genre: 'image',
-  libelle: 'Image',
+const model = defineModel<number | null>({ default: null })
+const props = withDefaults(defineProps<{ kind?: 'image' | 'pdf'; label?: string }>(), {
+  kind: 'image',
+  label: 'Image',
 })
 
 const { data, refresh } = await useFetch<{ items: Media[]; stockage: boolean }>(
   '/api/admin/media',
-  { key: 'media-picker', headers: enTetesDeSession() },
+  { key: 'media-picker', headers: sessionHeaders() },
 )
 
-const disponibles = computed(() => (data.value?.items ?? []).filter((m) => m.kind === props.genre))
-const choisi = computed(() => disponibles.value.find((m) => m.id === modele.value) ?? null)
+const available = computed(() => (data.value?.items ?? []).filter((m) => m.kind === props.kind))
+const chosen = computed(() => available.value.find((m) => m.id === model.value) ?? null)
 
-const etat = ref<'repos' | 'envoi' | 'échec'>('repos')
-const erreur = ref('')
+const state = ref<'repos' | 'envoi' | 'échec'>('repos')
+const error = ref('')
 
-async function televerser(evenement: Event): Promise<void> {
-  const fichier = (evenement.target as HTMLInputElement).files?.[0]
-  if (!fichier) return
+async function upload(evenement: Event): Promise<void> {
+  const file = (evenement.target as HTMLInputElement).files?.[0]
+  if (!file) return
 
-  etat.value = 'envoi'
-  erreur.value = ''
+  state.value = 'envoi'
+  error.value = ''
   try {
     const { media, uploadUrl } = await $fetch<{
       media: { id: number; url: string }
       uploadUrl: string
     }>('/api/admin/media/upload-url', {
       method: 'POST',
-      body: { filename: fichier.name, contentType: fichier.type, bytes: fichier.size },
+      body: { filename: file.name, contentType: file.type, bytes: file.size },
     })
 
     // Envoi direct à R2. Le Content-Type doit être EXACTEMENT celui signé,
     // sinon R2 refuse la requête — la signature le couvre.
-    const reponse = await fetch(uploadUrl, {
+    const response = await fetch(uploadUrl, {
       method: 'PUT',
-      body: fichier,
-      headers: { 'content-type': fichier.type },
+      body: file,
+      headers: { 'content-type': file.type },
     })
-    if (!reponse.ok) throw new Error(`Le stockage a refusé le fichier (${reponse.status})`)
+    if (!response.ok) throw new Error(`Le stockage a refusé le fichier (${response.status})`)
 
-    modele.value = media.id
+    model.value = media.id
     await refresh()
-    etat.value = 'repos'
+    state.value = 'repos'
   } catch (e) {
-    etat.value = 'échec'
-    erreur.value =
+    state.value = 'échec'
+    error.value =
       (e as { statusMessage?: string }).statusMessage ?? (e as Error).message ?? 'Envoi impossible'
   }
 }
@@ -70,47 +70,47 @@ async function televerser(evenement: Event): Promise<void> {
 
 <template>
   <div class="field">
-    <span class="label">{{ libelle }}</span>
+    <span class="label">{{ label }}</span>
 
     <p v-if="data && !data.stockage" class="err">
       Le stockage n'est pas configuré : renseigner les variables NUXT_R2_* pour téléverser.
     </p>
 
-    <div v-if="choisi" class="cluster" style="margin-bottom: 10px">
+    <div v-if="chosen" class="cluster" style="margin-bottom: 10px">
       <img
-        v-if="choisi.kind === 'image'"
-        :src="choisi.url"
-        :alt="choisi.alt ?? ''"
+        v-if="chosen.kind === 'image'"
+        :src="chosen.url"
+        :alt="chosen.alt ?? ''"
         style="width: 90px; height: 112px; object-fit: cover; border-radius: 3px"
       />
-      <span v-else class="pill">{{ choisi.mime }}</span>
-      <button class="btn" type="button" @click="modele = null">Retirer</button>
+      <span v-else class="pill">{{ chosen.mime }}</span>
+      <button class="btn" type="button" @click="model = null">Retirer</button>
     </div>
 
     <div class="cluster">
       <select
-        :value="modele ?? ''"
-        :aria-label="`Choisir : ${libelle}`"
-        @change="modele = Number(($event.target as HTMLSelectElement).value) || null"
+        :value="model ?? ''"
+        :aria-label="`Choisir : ${label}`"
+        @change="model = Number(($event.target as HTMLSelectElement).value) || null"
       >
         <option value="">— aucune —</option>
-        <option v-for="m in disponibles" :key="m.id" :value="m.id">
+        <option v-for="m in available" :key="m.id" :value="m.id">
           {{ m.alt || m.url.split('/').pop() }}
         </option>
       </select>
 
       <label class="btn">
-        {{ etat === 'envoi' ? 'Envoi…' : 'Téléverser' }}
+        {{ state === 'envoi' ? 'Envoi…' : 'Téléverser' }}
         <input
           type="file"
-          :accept="genre === 'pdf' ? 'application/pdf' : 'image/*'"
-          :disabled="etat === 'envoi' || !data?.stockage"
+          :accept="kind === 'pdf' ? 'application/pdf' : 'image/*'"
+          :disabled="state === 'envoi' || !data?.stockage"
           style="display: none"
-          @change="televerser"
+          @change="upload"
         />
       </label>
     </div>
 
-    <p v-if="erreur" class="err">{{ erreur }}</p>
+    <p v-if="error" class="err">{{ error }}</p>
   </div>
 </template>

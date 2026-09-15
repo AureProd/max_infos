@@ -1,10 +1,10 @@
 import { eq, sql } from 'drizzle-orm'
 import type { H3Event } from 'h3'
-import { aLeDroit, type Role } from '#shared/utils/roles'
-import { useBase } from '~~/server/database/client'
+import { isAllowed, type Role } from '#shared/utils/roles'
+import { useDatabase } from '~~/server/database/client'
 import { appUser } from '~~/server/database/schema'
 
-export interface UtilisateurConnecte {
+export interface SignedInUser {
   id: number
   email: string
   name: string | null
@@ -13,19 +13,19 @@ export interface UtilisateurConnecte {
 }
 
 /**
- * L'utilisateur de la session, ou null.
+ * L'user de la session, ou null.
  *
  * Relit le rôle EN BASE à chaque requête plutôt que de se fier à celui
- * scellé dans le cookie : retirer un rôle ou désactiver un compte doit
- * prendre effet tout de suite, pas à l'expiration de la session — qui dure
+ * scellé dans le cookie : retirer un rôle ou désactiver un account doit
+ * prendre effet all de suite, pas à l'expiration de la session — qui dure
  * quatorze jours.
  */
-export async function utilisateurCourant(event: H3Event): Promise<UtilisateurConnecte | null> {
+export async function currentUser(event: H3Event): Promise<SignedInUser | null> {
   const session = await getUserSession(event)
   const id = (session.user as { id?: number } | undefined)?.id
   if (!id) return null
 
-  const [ligne] = await useBase()
+  const [ligne] = await useDatabase()
     .select({
       id: appUser.id,
       email: appUser.email,
@@ -49,13 +49,13 @@ export async function utilisateurCourant(event: H3Event): Promise<UtilisateurCon
 }
 
 /**
- * Exige une session valide. Répond 401 sinon.
+ * Exige une session valid. Répond 401 sinon.
  *
  * 401 et non 403 : le client n'est pas identifié, il peut le devenir en se
- * connectant. Les deux codes ne disent pas la même chose à un navigateur.
+ * connectant. Les two codes ne disent pas la même chose à un navigateur.
  */
-export async function exigerConnexion(event: H3Event): Promise<UtilisateurConnecte> {
-  const u = await utilisateurCourant(event)
+export async function requireSignIn(event: H3Event): Promise<SignedInUser> {
+  const u = await currentUser(event)
   if (!u) throw createError({ statusCode: 401, statusMessage: 'Connexion requise' })
   return u
 }
@@ -67,28 +67,28 @@ export async function exigerConnexion(event: H3Event): Promise<UtilisateurConnec
  * `/api/admin/*` passe par elle. Le test paramétré de
  * test/api/authorization.spec.ts vérifie qu'aucune n'y échappe.
  */
-export async function exigerRole(event: H3Event, requis: Role): Promise<UtilisateurConnecte> {
-  const u = await exigerConnexion(event)
-  if (!aLeDroit(u.role, requis)) {
+export async function requireRole(event: H3Event, required: Role): Promise<SignedInUser> {
+  const u = await requireSignIn(event)
+  if (!isAllowed(u.role, required)) {
     throw createError({ statusCode: 403, statusMessage: 'Droits insuffisants' })
   }
   return u
 }
 
 /**
- * Trouve ou crée le compte correspondant à une adresse Google.
+ * Trouve ou crée le account correspondant à une adresse Google.
  *
- * LISTE BLANCHE : personne ne se crée de compte. Une adresse inconnue est
- * refusée, sauf si elle est celle du compte technique d'amorçage — le seul
- * moyen d'avoir un premier utilisateur sur une base vierge.
+ * LISTE BLANCHE : personne ne se crée de account. Une adresse inconnue est
+ * refusée, sauf si elle est celle du account technique d'amorçage — le seul
+ * moyen d'avoir un first user sur une base vierge.
  */
-export async function connecterOuRefuser(profil: {
+export async function signInOrReject(profile: {
   email: string
   name?: string | null
   avatarUrl?: string | null
-}): Promise<UtilisateurConnecte> {
-  const db = useBase()
-  const email = profil.email.trim()
+}): Promise<SignedInUser> {
+  const db = useDatabase()
+  const email = profile.email.trim()
   const { bootstrapTechEmail } = useRuntimeConfig()
 
   // Comparaison insensible à la casse : Google renvoie l'adresse avec une
@@ -113,28 +113,28 @@ export async function connecterOuRefuser(profil: {
     }
     await db
       .update(appUser)
-      .set({ lastLoginAt: new Date(), name: profil.name ?? existant.name })
+      .set({ lastLoginAt: new Date(), name: profile.name ?? existant.name })
       .where(eq(appUser.id, existant.id))
     return {
       id: existant.id,
       email: existant.email,
-      name: profil.name ?? existant.name,
-      avatarUrl: profil.avatarUrl ?? existant.avatarUrl,
+      name: profile.name ?? existant.name,
+      avatarUrl: profile.avatarUrl ?? existant.avatarUrl,
       role: existant.role,
     }
   }
 
-  const amorce = bootstrapTechEmail.trim()
-  if (!amorce || amorce.toLowerCase() !== email.toLowerCase()) {
+  const bootstrap = bootstrapTechEmail.trim()
+  if (!bootstrap || bootstrap.toLowerCase() !== email.toLowerCase()) {
     throw createError({ statusCode: 403, statusMessage: 'Adresse non autorisée' })
   }
 
-  const [cree] = await db
+  const [created] = await db
     .insert(appUser)
     .values({
       email,
-      name: profil.name ?? null,
-      avatarUrl: profil.avatarUrl ?? null,
+      name: profile.name ?? null,
+      avatarUrl: profile.avatarUrl ?? null,
       role: 'tech',
       lastLoginAt: new Date(),
     })
@@ -146,6 +146,6 @@ export async function connecterOuRefuser(profil: {
       role: appUser.role,
     })
 
-  if (!cree) throw createError({ statusCode: 500, statusMessage: 'Création impossible' })
-  return cree
+  if (!created) throw createError({ statusCode: 500, statusMessage: 'Création impossible' })
+  return created
 }

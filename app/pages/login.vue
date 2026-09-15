@@ -2,7 +2,7 @@
 const route = useRoute()
 const { data: site } = await useSite()
 
-const echec = computed(() => route.query.connexion === 'echec')
+const failure = computed(() => route.query.connection === 'echec')
 
 useSeoMeta({ title: 'Connexion', robots: 'noindex, nofollow' })
 </script>
@@ -15,7 +15,7 @@ useSeoMeta({ title: 'Connexion', robots: 'noindex, nofollow' })
         L'accès à la rédaction de {{ site?.identity.name }} est réservé aux comptes autorisés.
       </p>
 
-      <p v-if="echec" class="err">
+      <p v-if="failure" class="err">
         La connexion a échoué. Si cette adresse devrait avoir accès, demande à JB de l'ajouter.
       </p>
 

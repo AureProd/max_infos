@@ -1,7 +1,7 @@
 import { asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { slugParam } from '#shared/schemas/api'
-import { useBase } from '~~/server/database/client'
+import { useDatabase } from '~~/server/database/client'
 import {
   article,
   articleSocialPost,
@@ -10,16 +10,16 @@ import {
   socialPost,
   tag,
 } from '~~/server/database/schema'
-import { iso, jour } from '~~/server/utils/serialize'
+import { day, iso } from '~~/server/utils/serialize'
 
-/** Un article publié, avec ses sujets et ses déclinaisons sociales. */
+/** Un article publié, avec ses tags et ses déclinaisons sociales. */
 export default defineEventHandler(async (event) => {
-  // getValidatedRouterParams et non slugParam.parse() : le premier traduit
+  // getValidatedRouterParams et non slugParam.parse() : le first traduit
   // un échec de validation en 400, le second laisse remonter une ZodError
-  // que Nitro transforme en 500. Un slug mal formé est une erreur du
+  // que Nitro transforme en 500. Un slug mal formé est une error du
   // client, pas une panne du serveur — et un 500 réveille une astreinte.
   const { slug } = await getValidatedRouterParams(event, z.object({ slug: slugParam }).parse)
-  const db = useBase()
+  const db = useDatabase()
 
   const [trouve] = await db
     .select({
@@ -42,13 +42,13 @@ export default defineEventHandler(async (event) => {
     .where(eq(article.slug, slug))
     .limit(1)
 
-  // Un brouillon doit être introuvable, pas « interdit » : répondre 403
+  // Un draft doit être introuvable, pas « interdit » : répondre 403
   // révélerait son existence.
   if (!trouve || !trouve.publishedAt) {
     throw createError({ statusCode: 404, statusMessage: 'Article introuvable' })
   }
 
-  const sujets = await db
+  const tags = await db
     .select({ slug: tag.slug, label: tag.label })
     .from(articleTag)
     .innerJoin(article, eq(article.id, articleTag.articleId))
@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
     .where(eq(article.slug, slug))
     .orderBy(asc(tag.label))
 
-  const declinaisons = await db
+  const variants = await db
     .select({
       id: socialPost.id,
       network: socialPost.network,
@@ -74,8 +74,8 @@ export default defineEventHandler(async (event) => {
 
   return {
     ...trouve,
-    publishedAt: jour(trouve.publishedAt),
-    tags: sujets,
-    declinaisons: declinaisons.map((d) => ({ ...d, postedAt: iso(d.postedAt) })),
+    publishedAt: day(trouve.publishedAt),
+    tags: tags,
+    variants: variants.map((d) => ({ ...d, postedAt: iso(d.postedAt) })),
   }
 })

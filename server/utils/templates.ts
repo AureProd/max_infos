@@ -3,41 +3,43 @@
  *
  * Le but est que Max parte d'un squelette au lieu d'une page blanche. Les
  * variables sont volontairement peu nombreuses et nommées en français : un
- * gabarit doit rester lisible par quelqu'un qui n'écrit pas de code.
+ * template doit rester lisible par quelqu'un qui n'écrit pas de code.
  */
 
-export interface ContexteArticle {
+export interface ArticleContext {
   titre: string
   chapo: string
   url: string
-  sujets: string
+  tags: string
   minutes: number
   caracteres: number
 }
 
-const MOTIF = /\{\{\s*([a-zA-Zà-ÿ]+)\s*\}\}/g
+const PATTERN = /\{\{\s*([a-zA-Zà-ÿ]+)\s*\}\}/g
 
 /**
  * Remplace les variables connues. Une variable INCONNUE est laissée telle
- * quelle, et non effacée : Max voit alors qu'il s'est trompé de nom, au
- * lieu de découvrir un trou dans son texte.
+ * quelle, et non effacée : Max voit alors qu'il s'est trompé de name, au
+ * lieu de découvrir un trou dans son text.
  */
-export function resoudre(gabarit: string, contexte: ContexteArticle): string {
-  const valeurs: Record<string, string> = {
-    titre: contexte.titre,
-    chapo: contexte.chapo,
-    url: contexte.url,
-    sujets: contexte.sujets,
-    minutes: String(contexte.minutes),
-    caracteres: String(contexte.caracteres),
+export function resolve(template: string, context: ArticleContext): string {
+  const values: Record<string, string> = {
+    titre: context.titre,
+    chapo: context.chapo,
+    url: context.url,
+    // La CLÉ est le nom de variable écrit par Max dans son gabarit : elle
+    // relève du contenu, et reste donc en français.
+    sujets: context.tags,
+    minutes: String(context.minutes),
+    caracteres: String(context.caracteres),
   }
-  return gabarit.replace(MOTIF, (tout, nom: string) => valeurs[nom.toLowerCase()] ?? tout)
+  return template.replace(PATTERN, (all, name: string) => values[name.toLowerCase()] ?? all)
 }
 
 /** Les noms de variables reconnus, pour l'aide affichée dans l'admin. */
 export const VARIABLES = ['titre', 'chapo', 'url', 'sujets', 'minutes', 'caracteres'] as const
 
-export const GABARITS_PAR_DEFAUT = {
+export const DEFAULT_TEMPLATES = {
   linkedin: `{{titre}}
 
 {{chapo}}

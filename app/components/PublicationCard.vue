@@ -23,17 +23,17 @@ interface Publication {
 
 const props = defineProps<{ publication: Publication }>()
 
-const LIBELLES: Record<string, string> = {
+const LABELS: Record<string, string> = {
   reel: 'Reel',
   carousel: 'Carrousel',
   image: 'Image',
   post: 'Publication',
 }
 
-const genre = computed(() => LIBELLES[props.publication.mediaType ?? 'post'] ?? 'Publication')
+const kind = computed(() => LABELS[props.publication.mediaType ?? 'post'] ?? 'Publication')
 
 /** Tronquée sur un mot entier : couper au milieu d'un mot se voit. */
-const legende = computed(() => {
+const caption = computed(() => {
   const t = props.publication.caption ?? ''
   if (t.length <= 140) return t
   return `${t.slice(0, t.lastIndexOf(' ', 140))}…`
@@ -46,13 +46,13 @@ const legende = computed(() => {
       <img
         v-if="publication.thumbnailUrl"
         :src="publication.thumbnailUrl"
-        :alt="legende || genre"
+        :alt="caption || kind"
         loading="lazy"
       />
-      <PlateImage v-else :seed="publication.id * 7" :w="400" :h="500" :alt="genre" />
-      <span class="pub-type">{{ genre }}</span>
+      <PlateImage v-else :seed="publication.id * 7" :w="400" :h="500" :alt="kind" />
+      <span class="pub-type">{{ kind }}</span>
     </div>
-    <p v-if="legende" class="pub-legende">{{ legende }}</p>
+    <p v-if="caption" class="pub-legende">{{ caption }}</p>
     <div class="meta">
       <time v-if="publication.postedAt" :datetime="publication.postedAt">
         {{ frShort(publication.postedAt.slice(0, 10)) }}

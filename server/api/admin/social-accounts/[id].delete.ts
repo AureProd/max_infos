@@ -1,31 +1,31 @@
 import { eq } from 'drizzle-orm'
-import { useBase } from '~~/server/database/client'
+import { useDatabase } from '~~/server/database/client'
 import { socialAccount } from '~~/server/database/schema'
-import { exigerRole } from '~~/server/utils/auth'
-import { supprimerJeton } from '~~/server/utils/instagram'
+import { requireRole } from '~~/server/utils/auth'
+import { removeToken } from '~~/server/utils/instagram'
 
 /**
- * Déconnecte un compte. Rôle `editor`.
+ * Déconnecte un account. Rôle `editor`.
  *
- * DÉFINITIF : le jeton est oublié, la ligne supprimée, et ses publications
+ * DÉFINITIF : le token est oublié, la ligne supprimée, et ses publications
  * partent avec elle par la cascade de la clé étrangère — leurs rattachements
  * aux articles compris. C'est la décision prise ; l'écran prévient en
  * annonçant le nombre de publications concernées.
  */
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'editor')
+  await requireRole(event, 'editor')
 
   const id = Number(getRouterParam(event, 'id'))
   if (!Number.isInteger(id)) {
     throw createError({ statusCode: 400, statusMessage: 'Identifiant de compte invalide' })
   }
 
-  // Le jeton d'abord : si la suppression de la ligne échouait ensuite, mieux
-  // vaut un compte sans jeton — reconnectable — qu'un jeton orphelin que
-  // plus rien ne rattache à un compte.
-  await supprimerJeton(id)
+  // Le token d'abord : si la suppression de la ligne échouait ensuite, mieux
+  // vaut un account sans token — reconnectable — qu'un token orphelin que
+  // plus rien ne attached à un account.
+  await removeToken(id)
 
-  const [ligne] = await useBase()
+  const [ligne] = await useDatabase()
     .delete(socialAccount)
     .where(eq(socialAccount.id, id))
     .returning({ id: socialAccount.id })

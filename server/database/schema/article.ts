@@ -10,13 +10,13 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
-import { horodatage } from '../columns'
+import { timestamps } from '../columns'
 import {
   ARTICLE_SOURCE,
   ARTICLE_STATUS,
   type ArticleSource,
   type ArticleStatus,
-  uneValeurParmi,
+  oneOf,
 } from './enums'
 import { media } from './media'
 
@@ -26,10 +26,10 @@ export const article = pgTable(
     /**
      * BY DEFAULT et non ALWAYS.
      *
-     * `GENERATED ALWAYS` refuse toute insertion explicite d'identifiant, ce
+     * `GENERATED ALWAYS` refuse toute insertion explicit d'identifiant, ce
      * qui rend un import impossible à restaurer : les tables de liaison
      * référencent ces identifiants, et les laisser se régénérer romprait
-     * tous les liens. C'est précisément le cas pour lequel `BY DEFAULT`
+     * all les links. C'est précisément le cas pour lequel `BY DEFAULT`
      * existe. Toutes les tables du schéma suivent cette règle.
      */
     id: integer().generatedByDefaultAsIdentity().primaryKey(),
@@ -37,7 +37,7 @@ export const article = pgTable(
     title: text().notNull(),
     dek: text(),
     bodyMd: text().notNull().default(''),
-    // Rendu assaini côté serveur au moment de l'enregistrement : la lecture
+    // Rendu assaini côté serveur au moment de l'record : la lecture
     // ne coûte alors rien et le HTML servi est sûr par construction.
     bodyHtml: text().notNull().default(''),
     status: text().$type<ArticleStatus>().notNull().default('draft'),
@@ -51,17 +51,17 @@ export const article = pgTable(
     seoDescription: text(),
     substackUrl: text(),
     source: text().$type<ArticleSource>().notNull().default('site'),
-    ...horodatage,
+    ...timestamps,
   },
   (t) => [
     uniqueIndex('uq_article_slug').on(t.slug),
     // La requête de la page d'accueil : les publiés, du plus récent au plus
     // ancien.
     index('ix_article_published').on(t.status, t.publishedAt.desc()),
-    check('article_status', uneValeurParmi(t.status, ARTICLE_STATUS)),
-    check('article_source', uneValeurParmi(t.source, ARTICLE_SOURCE)),
+    check('article_status', oneOf(t.status, ARTICLE_STATUS)),
+    check('article_source', oneOf(t.source, ARTICLE_SOURCE)),
     // Un article publié SANS date de publication est une incohérence que
-    // rien d'autre ne rattraperait : ni le flux RSS, ni le tri, ni le
+    // rien d'autre ne rattraperait : ni le feed RSS, ni le tri, ni le
     // sitemap ne sauraient quoi en faire.
     check(
       'article_published_coherent',
@@ -78,7 +78,7 @@ export const tag = pgTable(
     label: text().notNull(),
     // Une variable CSS du thème, pas une couleur en dur.
     color: text(),
-    ...horodatage,
+    ...timestamps,
   },
   (t) => [uniqueIndex('uq_tag_slug').on(t.slug)],
 )

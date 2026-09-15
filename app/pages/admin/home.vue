@@ -1,14 +1,14 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'admin' })
 
-const { valeur: accueil, etat, charger, enregistrer } = useReglage('home')
-await charger()
+const { value: accueil, state, load, save } = useSetting('home')
+await load()
 
 const { data: articles } = await useFetch('/api/admin/articles', { key: 'accueil-articles' })
-const publies = computed(() => (articles.value ?? []).filter((a) => a.status === 'published'))
+const published = computed(() => (articles.value ?? []).filter((a) => a.status === 'published'))
 
 /** Les sections de la page d'accueil, dans l'ordre où elles s'affichent. */
-const LIBELLES: Record<string, string> = {
+const LABELS: Record<string, string> = {
   hero: 'Accroche',
   front: 'À la une',
   marquee: 'Bandeau défilant',
@@ -17,7 +17,7 @@ const LIBELLES: Record<string, string> = {
   all: 'Tout parcourir',
 }
 
-const TOUTES = Object.keys(LIBELLES)
+const ALL = Object.keys(LABELS)
 
 const actives = computed({
   get: () => accueil.value?.sections ?? [],
@@ -26,22 +26,22 @@ const actives = computed({
   },
 })
 
-function basculer(section: string): void {
+function toggle(section: string): void {
   actives.value = actives.value.includes(section)
     ? actives.value.filter((s) => s !== section)
     : [...actives.value, section]
 }
 
-function deplacer(section: string, sens: -1 | 1): void {
-  const liste = [...actives.value]
-  const i = liste.indexOf(section)
+function move(section: string, sens: -1 | 1): void {
+  const list = [...actives.value]
+  const i = list.indexOf(section)
   const j = i + sens
-  if (i < 0 || j < 0 || j >= liste.length) return
-  ;[liste[i], liste[j]] = [liste[j] as string, liste[i] as string]
-  actives.value = liste
+  if (i < 0 || j < 0 || j >= list.length) return
+  ;[list[i], list[j]] = [list[j] as string, list[i] as string]
+  actives.value = list
 }
 
-function basculerUne(slug: string): void {
+function toggleOne(slug: string): void {
   if (!accueil.value) return
   accueil.value.featured = accueil.value.featured.includes(slug)
     ? accueil.value.featured.filter((s) => s !== slug)
@@ -55,9 +55,9 @@ useSeoMeta({ title: 'Accueil', robots: 'noindex, nofollow' })
   <div class="wrap">
     <section class="admin-page">
       <AdminNav>
-        <span v-if="etat === 'enregistré'" class="note">enregistré</span>
-        <span v-else-if="etat === 'échec'" class="err">échec</span>
-        <button class="btn btn-primary" type="button" @click="enregistrer">Enregistrer</button>
+        <span v-if="state === 'enregistré'" class="note">enregistré</span>
+        <span v-else-if="state === 'échec'" class="err">échec</span>
+        <button class="btn btn-primary" type="button" @click="save">Enregistrer</button>
       </AdminNav>
 
       <h1>Page d'accueil</h1>
@@ -67,22 +67,22 @@ useSeoMeta({ title: 'Accueil', robots: 'noindex, nofollow' })
         <li v-for="(section, i) in actives" :key="section">
           <div class="entry">
             <div>
-              <h3>{{ LIBELLES[section] ?? section }}</h3>
+              <h3>{{ LABELS[section] ?? section }}</h3>
               <div class="meta"><span>position {{ i + 1 }}</span></div>
             </div>
             <div class="cluster">
-              <button class="btn" type="button" :disabled="i === 0" @click="deplacer(section, -1)">
+              <button class="btn" type="button" :disabled="i === 0" @click="move(section, -1)">
                 ↑
               </button>
               <button
                 class="btn"
                 type="button"
                 :disabled="i === actives.length - 1"
-                @click="deplacer(section, 1)"
+                @click="move(section, 1)"
               >
                 ↓
               </button>
-              <button class="btn" type="button" @click="basculer(section)">Retirer</button>
+              <button class="btn" type="button" @click="toggle(section)">Retirer</button>
             </div>
           </div>
         </li>
@@ -91,16 +91,16 @@ useSeoMeta({ title: 'Accueil', robots: 'noindex, nofollow' })
       <h2>Sections masquées</h2>
       <div class="chips">
         <button
-          v-for="s in TOUTES.filter((s) => !actives.includes(s))"
+          v-for="s in ALL.filter((s) => !actives.includes(s))"
           :key="s"
           class="chip"
           type="button"
-          @click="basculer(s)"
+          @click="toggle(s)"
         >
-          + {{ LIBELLES[s] ?? s }}
+          + {{ LABELS[s] ?? s }}
         </button>
       </div>
-      <p v-if="TOUTES.every((s) => actives.includes(s))" class="hint">
+      <p v-if="ALL.every((s) => actives.includes(s))" class="hint">
         Toutes les sections sont affichées.
       </p>
 
@@ -110,12 +110,12 @@ useSeoMeta({ title: 'Accueil', robots: 'noindex, nofollow' })
       </p>
       <div class="chips">
         <button
-          v-for="a in publies"
+          v-for="a in published"
           :key="a.slug"
           class="chip"
           type="button"
           :aria-pressed="accueil?.featured.includes(a.slug)"
-          @click="basculerUne(a.slug)"
+          @click="toggleOne(a.slug)"
         >
           {{ accueil?.featured.includes(a.slug) ? '★' : '☆' }} {{ a.title }}
         </button>

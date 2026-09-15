@@ -1,39 +1,39 @@
-import { creationArticle } from '#shared/schemas/api'
-import { useBase } from '~~/server/database/client'
+import { articleCreation } from '#shared/schemas/api'
+import { useDatabase } from '~~/server/database/client'
 import { article } from '~~/server/database/schema'
-import { champsDerives, remplacerSujets, slugLibre, sujetsDe } from '~~/server/utils/articles'
-import { exigerRole } from '~~/server/utils/auth'
+import { derivedFields, freeSlug, replaceTags, tagsOf } from '~~/server/utils/articles'
+import { requireRole } from '~~/server/utils/auth'
 
-/** Crée un article, toujours en brouillon. */
+/** Crée un article, toujours en draft. */
 export default defineEventHandler(async (event) => {
-  await exigerRole(event, 'editor')
-  const corps = await readValidatedBody(event, creationArticle.parse)
+  await requireRole(event, 'editor')
+  const body = await readValidatedBody(event, articleCreation.parse)
 
-  const slug = corps.slug ?? (await slugLibre(corps.title))
+  const slug = body.slug ?? (await freeSlug(body.title))
 
-  const [cree] = await useBase()
+  const [created] = await useDatabase()
     .insert(article)
     .values({
       slug,
-      title: corps.title,
-      dek: corps.dek ?? null,
-      bodyMd: corps.bodyMd,
-      ...champsDerives(corps.bodyMd),
-      // Un article naît TOUJOURS en brouillon : publier est un geste
-      // explicite, jamais un effet de bord de la création.
+      title: body.title,
+      dek: body.dek ?? null,
+      bodyMd: body.bodyMd,
+      ...derivedFields(body.bodyMd),
+      // Un article naît TOUJOURS en draft : publier est un geste
+      // explicit, jamais un effet de bord de la création.
       status: 'draft',
-      coverMediaId: corps.coverMediaId ?? null,
-      seoTitle: corps.seoTitle ?? null,
-      seoDescription: corps.seoDescription ?? null,
-      substackUrl: corps.substackUrl ?? null,
-      featured: corps.featured,
+      coverMediaId: body.coverMediaId ?? null,
+      seoTitle: body.seoTitle ?? null,
+      seoDescription: body.seoDescription ?? null,
+      substackUrl: body.substackUrl ?? null,
+      featured: body.featured,
       source: 'site',
     })
     .returning()
 
-  if (!cree) throw createError({ statusCode: 500, statusMessage: 'Création impossible' })
-  await remplacerSujets(cree.id, corps.tags)
+  if (!created) throw createError({ statusCode: 500, statusMessage: 'Création impossible' })
+  await replaceTags(created.id, body.tags)
 
   setResponseStatus(event, 201)
-  return { ...cree, tags: await sujetsDe(cree.id) }
+  return { ...created, tags: await tagsOf(created.id) }
 })

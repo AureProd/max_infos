@@ -1,18 +1,18 @@
 <script setup lang="ts">
 const { data: site } = await useSite()
-const { data: liste } = await useFetch('/api/articles', { key: 'a-propos', query: { taille: 1 } })
+const { data: list } = await useFetch('/api/articles', { key: 'a-propos', query: { taille: 1 } })
 
-const liens = computed(() => site.value?.contact.fields.filter((f) => f.visible) ?? [])
+const links = computed(() => site.value?.contact.fields.filter((f) => f.visible) ?? [])
 
-/** Les identifiants de média sont résolus par /api/site ; ici on ne fait que lire. */
-const medias = computed(() => site.value?.medias ?? {})
+/** Les identifiants de média sont résolus par /api/site ; here on ne fait que read. */
+const mediaItems = computed(() => site.value?.mediaItems ?? {})
 const photo = computed(() => {
   const id = site.value?.cv.photoMediaId
-  return id ? (medias.value[id] ?? null) : null
+  return id ? (mediaItems.value[id] ?? null) : null
 })
 const pdf = computed(() => {
   const id = site.value?.cv.pdfMediaId
-  return id ? (medias.value[id] ?? null) : null
+  return id ? (mediaItems.value[id] ?? null) : null
 })
 
 useSeoMeta({
@@ -46,7 +46,7 @@ useSeoMeta({
             Ce site rassemble les trois au même endroit.
           </p>
           <p>
-            {{ liste?.total ?? 0 }} articles publiés à ce jour. Rien n'est sponsorisé, rien n'est
+            {{ list?.total ?? 0 }} articles publiés à ce jour. Rien n'est sponsorisé, rien n'est
             affilié, et ce site ne dépose aucun traceur.
           </p>
           <p v-if="pdf">
@@ -65,13 +65,13 @@ useSeoMeta({
             <h4>Ailleurs</h4>
             <div class="links">
               <a
-                v-for="lien in liens"
-                :key="lien.key"
-                :href="lien.href"
+                v-for="link in links"
+                :key="link.key"
+                :href="link.href"
                 target="_blank"
                 rel="noopener"
               >
-                {{ lien.label }}<span>{{ lien.value }}</span>
+                {{ link.label }}<span>{{ link.value }}</span>
               </a>
             </div>
           </div>

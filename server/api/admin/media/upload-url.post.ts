@@ -1,49 +1,43 @@
-import { demandeTeleversement } from '#shared/schemas/api'
-import { useBase } from '~~/server/database/client'
+import { uploadRequest } from '#shared/schemas/api'
+import { useDatabase } from '~~/server/database/client'
 import { media } from '~~/server/database/schema'
-import { exigerRole } from '~~/server/utils/auth'
-import {
-  cleDe,
-  genreDe,
-  typeAdmis,
-  urlDeTeleversement,
-  urlPublique,
-} from '~~/server/utils/stockage'
+import { requireRole } from '~~/server/utils/auth'
+import { allowedType, keyOf, kindOf, publicUrl, uploadUrl } from '~~/server/utils/storage'
 
 /**
  * Prépare un téléversement : enregistre le média et renvoie une URL signée.
  *
- * La ligne est créée AVANT le transfert. Un fichier téléversé sans ligne
- * serait invisible et impossible à nettoyer ; une ligne sans fichier se
+ * La ligne est créée AVANT le transfert. Un file téléversé sans ligne
+ * serait invisible et impossible à nettoyer ; une ligne sans file se
  * repère et se supprime. On préfère la seconde panne à la première.
  */
 export default defineEventHandler(async (event) => {
-  const u = await exigerRole(event, 'editor')
-  const d = await readValidatedBody(event, demandeTeleversement.parse)
+  const u = await requireRole(event, 'editor')
+  const d = await readValidatedBody(event, uploadRequest.parse)
 
-  if (!typeAdmis(d.contentType)) {
+  if (!allowedType(d.contentType)) {
     throw createError({
       statusCode: 415,
       statusMessage: `Type de fichier refusé : ${d.contentType}`,
     })
   }
 
-  const cle = cleDe(d.filename)
-  const url = await urlDeTeleversement(cle, d.contentType)
+  const key = keyOf(d.filename)
+  const url = await uploadUrl(key, d.contentType)
 
-  const [cree] = await useBase()
+  const [created] = await useDatabase()
     .insert(media)
     .values({
-      r2Key: cle,
-      url: urlPublique(cle),
+      r2Key: key,
+      url: publicUrl(key),
       mime: d.contentType,
       bytes: d.bytes,
       alt: d.alt ?? null,
-      kind: genreDe(d.contentType),
+      kind: kindOf(d.contentType),
       uploadedBy: u.id,
     })
     .returning({ id: media.id, url: media.url })
 
   setResponseStatus(event, 201)
-  return { media: cree, uploadUrl: url }
+  return { media: created, uploadUrl: url }
 })

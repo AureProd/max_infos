@@ -1,7 +1,7 @@
 import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import { describe, expect, it } from 'vitest'
 
-/** Les deux sondes, sur un vrai serveur Nitro relié à la base de test. */
+/** Les two sondes, sur un vrai serveur Nitro relié à la base de test. */
 await setup({ server: true, browser: false })
 
 describe('sondes', () => {

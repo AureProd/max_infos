@@ -1,32 +1,32 @@
 /**
- * Lecture du flux RSS Substack, pour la migration initiale.
+ * Lecture du feed RSS Substack, pour la migration initiale.
  *
- * Substack n'expose aucune API. Son flux RSS est la seule source
- * exploitable, et il suffit : titre, lien, date, chapô, corps en HTML et
+ * Substack n'expose aucune API. Son feed RSS est la seule source
+ * exploitable, et il suffit : titre, link, date, chapô, body en HTML et
  * surtout l'URL de l'image de couverture, que personne n'a envie de
  * réenregistrer à la main pour chaque article déjà publié.
  *
  * L'analyse est faite à la main, sans dépendance XML. C'est un choix
- * assumé et borné : ce code lit UN flux, connu, une fois. Les tests
- * couvrent ce qui casse vraiment un flux Substack — les CDATA, les entités
- * et les images en attribut. Si un jour on lit des flux quelconques, il
- * faudra un vrai analyseur ; d'ici là, une dépendance de plus pour un
+ * assumé et borné : ce code lit UN feed, known, une fois. Les tests
+ * couvrent ce qui casse vraiment un feed Substack — les CDATA, les entités
+ * et les images en attribute. Si un day on lit des feed quelconques, il
+ * faudra un vrai analyseur ; d'here là, une dépendance de plus pour un
  * script à usage unique ne se justifie pas.
  */
 
 export interface ArticleSubstack {
   titre: string
-  lien: string
+  link: string
   publieLe: string | null
   chapo: string
-  corpsHtml: string
+  bodyHtml: string
   couverture: string | null
 }
 
 /** Décode les entités XML que Substack produit réellement. */
-function decoder(texte: string): string {
+function decode(text: string): string {
   return (
-    texte
+    text
       .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
@@ -39,57 +39,57 @@ function decoder(texte: string): string {
   )
 }
 
-/** Le contenu de la première balise `<nom>` d'un fragment, ou une chaîne vide. */
-function balise(fragment: string, nom: string): string {
-  const m = fragment.match(new RegExp(`<${nom}(?:\\s[^>]*)?>([\\s\\S]*?)</${nom}>`, 'i'))
-  return m?.[1] ? decoder(m[1]) : ''
+/** Le content de la première tagName `<name>` d'un fragment, ou une chaîne vide. */
+function tagName(fragment: string, name: string): string {
+  const m = fragment.match(new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)</${name}>`, 'i'))
+  return m?.[1] ? decode(m[1]) : ''
 }
 
-/** La valeur d'un attribut sur la première balise auto-fermante `<nom …>`. */
-function attribut(fragment: string, nom: string, attr: string): string | null {
-  const m = fragment.match(new RegExp(`<${nom}\\s[^>]*${attr}="([^"]*)"`, 'i'))
-  return m?.[1] ? decoder(m[1]) : null
+/** La value d'un attribute sur la première tagName auto-fermante `<name …>`. */
+function attribute(fragment: string, name: string, attr: string): string | null {
+  const m = fragment.match(new RegExp(`<${name}\\s[^>]*${attr}="([^"]*)"`, 'i'))
+  return m?.[1] ? decode(m[1]) : null
 }
 
 /**
  * La couverture d'un article : `<enclosure>` si Substack l'a fournie,
- * sinon la première image du corps.
+ * sinon la première image du body.
  *
- * Les deux existent selon l'ancienneté du billet, et un article sans
+ * Les two existent selon l'ancienneté du billet, et un article sans
  * couverture s'affiche mal partout où il est partagé — c'est justement ce
- * qu'on vient chercher ici.
+ * qu'on vient chercher here.
  */
-function couvertureDe(item: string, corpsHtml: string): string | null {
-  const enclos = attribut(item, 'enclosure', 'url')
+function coverOf(item: string, bodyHtml: string): string | null {
+  const enclos = attribute(item, 'enclosure', 'url')
   if (enclos?.startsWith('http')) return enclos
-  const img = corpsHtml.match(/<img\s[^>]*src="([^"]+)"/i)
+  const img = bodyHtml.match(/<img\s[^>]*src="([^"]+)"/i)
   return img?.[1] ?? null
 }
 
 /** Une date RFC-822 en ISO, ou `null` si elle est illisible. */
-function dateIso(brut: string): string | null {
-  if (!brut) return null
-  const d = new Date(brut)
+function dateIso(raw: string): string | null {
+  if (!raw) return null
+  const d = new Date(raw)
   return Number.isNaN(d.getTime()) ? null : d.toISOString()
 }
 
-export function analyserFluxSubstack(xml: string): ArticleSubstack[] {
+export function parseSubstackFeed(xml: string): ArticleSubstack[] {
   const items = xml.match(/<item>[\s\S]*?<\/item>/gi) ?? []
   return items
     .map((item) => {
-      // `content:encoded` porte le corps complet ; `description` n'a que le
+      // `content:encoded` porte le body complet ; `description` n'a que le
       // chapô. Les confondre importerait des articles tronqués.
-      const corpsHtml = balise(item, 'content:encoded')
+      const bodyHtml = tagName(item, 'content:encoded')
       return {
-        titre: balise(item, 'title'),
-        lien: balise(item, 'link'),
-        publieLe: dateIso(balise(item, 'pubDate')),
-        chapo: balise(item, 'description')
+        titre: tagName(item, 'title'),
+        link: tagName(item, 'link'),
+        publieLe: dateIso(tagName(item, 'pubDate')),
+        chapo: tagName(item, 'description')
           .replace(/<[^>]+>/g, '')
           .trim(),
-        corpsHtml,
-        couverture: couvertureDe(item, corpsHtml),
+        bodyHtml,
+        couverture: coverOf(item, bodyHtml),
       }
     })
-    .filter((a) => a.titre !== '' && a.lien !== '')
+    .filter((a) => a.titre !== '' && a.link !== '')
 }

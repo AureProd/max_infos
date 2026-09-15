@@ -6,11 +6,11 @@ import { timestamp } from 'drizzle-orm/pg-core'
  *
  * Attention : `$onUpdate` est APPLICATIF, pas SQL — un UPDATE passé à la
  * main dans psql ne le déclencherait pas. Comme le projet prévoit un
- * import/export et des scripts de migration de contenu, la migration
+ * import/export et des scripts de migration de content, la migration
  * initiale ajoute en plus un déclencheur `moddatetime` pour que la colonne
  * reste vraie quoi qu'il arrive.
  */
-export const horodatage = {
+export const timestamps = {
   createdAt: timestamp({ withTimezone: true, mode: 'date' }).notNull().defaultNow(),
   updatedAt: timestamp({ withTimezone: true, mode: 'date' })
     .notNull()
@@ -19,4 +19,4 @@ export const horodatage = {
 }
 
 /** Déclencheur SQL posé par la migration initiale, pour mémoire. */
-export const DECLENCHEUR_UPDATED_AT = sql`moddatetime`
+export const UPDATED_AT_TRIGGER = sql`moddatetime`

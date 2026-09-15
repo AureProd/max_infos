@@ -13,8 +13,8 @@ import { appUser } from './user'
 export const articleRelations = relations(article, ({ one, many }) => ({
   cover: one(media, { fields: [article.coverMediaId], references: [media.id] }),
   tags: many(articleTag),
-  declinaisons: many(articleSocialPost),
-  vues: many(articleView),
+  variants: many(articleSocialPost),
+  views: many(articleView),
 }))
 
 export const tagRelations = relations(tag, ({ many }) => ({
@@ -35,7 +35,7 @@ export const socialAccountRelations = relations(socialAccount, ({ many }) => ({
 }))
 
 export const socialPostRelations = relations(socialPost, ({ one, many }) => ({
-  compte: one(socialAccount, {
+  account: one(socialAccount, {
     fields: [socialPost.accountId],
     references: [socialAccount.id],
   }),

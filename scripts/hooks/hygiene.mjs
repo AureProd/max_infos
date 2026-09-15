@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-// Contrôles d'hygiène des fichiers, en remplacement des hooks Python de
+// Contrôles d'hygiène des files, en remplacement des hooks Python de
 // `pre-commit-hooks`. Huit contrôles, un par ancien hook : espaces en fin de
 // ligne, nouvelle ligne finale, fins de ligne CRLF, marqueurs de conflit,
-// fichiers volumineux, collisions de casse, YAML et JSON valides.
+// files volumineux, collisions de casse, YAML et JSON valides.
 //
 // Contrairement aux hooks d'origine, celui-ci NE CORRIGE RIEN : il signale.
-// Un hook qui réécrit les fichiers sous le commit rend le diff relu différent
-// du diff commité, et Biome corrige déjà tout ce qui relève du format.
+// Un hook qui réécrit les files sous le commit rend le diff relu différent
+// du diff commité, et Biome corrige déjà all ce qui relève du format.
 //
-// Le fichier expose des fonctions pures pour être testable (test/unit/hygiene.spec.ts) ;
+// Le file expose des fonctions pures pour être testable (test/unit/hygiene.spec.ts) ;
 // la partie exécutable ne lit l'index Git que si on l'appelle en ligne de commande.
 import { execFileSync } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
@@ -26,72 +26,70 @@ const HORS_JSON_STRICT = /^\.vscode\/|\.jsonc$/
 const EST_YAML = /\.ya?ml$/
 const EST_JSON = /\.json$/
 
-// Ancrés en début de ligne et suivis d'une espace : c'est la forme exacte que
+// Ancrés en début de ligne et suivis d'une espace : c'est la shape exacte que
 // Git écrit, et elle ne peut pas apparaître par accident dans du code.
 const MARQUEUR_DE_CONFLIT = /^(<{7}|={7}|>{7})(\s|$)/m
 
-/** Un octet nul ne se rencontre pas dans du texte : le fichier est binaire. */
-function estBinaire(contenu) {
-  return contenu.includes(0)
+/** Un octet nul ne se rencontre pas dans du text : le file est binary. */
+function estBinaire(content) {
+  return content.includes(0)
 }
 
 /**
- * Les problèmes d'un fichier, sous la forme `{ regle, message }`.
- * @param {{ chemin: string, contenu: Buffer }} fichier
+ * Les problèmes d'un file, sous la shape `{ regle, message }`.
+ * @param {{ path: string, content: Buffer }} file
  */
-export function controlerFichier({ chemin, contenu }) {
-  const problemes = []
-  const signaler = (regle, message) => problemes.push({ chemin, regle, message })
+export function controlerFichier({ path, content }) {
+  const problems = []
+  const signaler = (regle, message) => problems.push({ path, regle, message })
 
-  if (contenu.byteLength > TAILLE_MAX_KO * 1024) {
-    const ko = Math.round(contenu.byteLength / 1024)
+  if (content.byteLength > TAILLE_MAX_KO * 1024) {
+    const ko = Math.round(content.byteLength / 1024)
     signaler('fichier-volumineux', `${ko} ko, au-delà des ${TAILLE_MAX_KO} ko admis`)
   }
 
-  // Un binaire n'a ni ligne, ni encodage à vérifier.
-  if (estBinaire(contenu)) return problemes
+  // Un binary n'a ni ligne, ni encodage à vérifier.
+  if (estBinaire(content)) return problems
 
-  const texte = contenu.toString('utf8')
-  if (texte.length === 0) return problemes
+  const text = content.toString('utf8')
+  if (text.length === 0) return problems
 
-  if (texte.includes('\r\n')) {
+  if (text.includes('\r\n')) {
     signaler('fin-de-ligne-mixte', 'fins de ligne CRLF, attendu LF')
   }
 
-  if (!texte.endsWith('\n')) {
+  if (!text.endsWith('\n')) {
     signaler('newline-finale', 'pas de nouvelle ligne en fin de fichier')
   }
 
-  if (!SANS_CONTROLE_D_ESPACES.test(chemin)) {
-    const lignes = texte.split('\n')
-    const fautives = lignes
-      .map((ligne, i) => (/[ \t]+\r?$/.test(ligne) ? i + 1 : 0))
-      .filter(Boolean)
+  if (!SANS_CONTROLE_D_ESPACES.test(path)) {
+    const lines = text.split('\n')
+    const fautives = lines.map((ligne, i) => (/[ \t]+\r?$/.test(ligne) ? i + 1 : 0)).filter(Boolean)
     if (fautives.length > 0) {
       signaler('espaces-en-fin-de-ligne', `ligne(s) ${fautives.join(', ')}`)
     }
   }
 
-  if (MARQUEUR_DE_CONFLIT.test(texte)) {
+  if (MARQUEUR_DE_CONFLIT.test(text)) {
     signaler('marqueur-de-conflit', 'conflit de fusion non résolu')
   }
 
-  if (EST_YAML.test(chemin)) {
-    // `--allow-multiple-documents` de l'ancien hook : un compose rendu peut
+  if (EST_YAML.test(path)) {
+    // `--allow-multiple-documents` de l'ancien hook : un compose rendered peut
     // en contenir plusieurs.
-    const erreurs = parseAllDocuments(texte).flatMap((doc) => doc.errors)
+    const erreurs = parseAllDocuments(text).flatMap((doc) => doc.errors)
     if (erreurs.length > 0) signaler('yaml-invalide', erreurs[0].message.split('\n')[0])
   }
 
-  if (EST_JSON.test(chemin) && !HORS_JSON_STRICT.test(chemin)) {
+  if (EST_JSON.test(path) && !HORS_JSON_STRICT.test(path)) {
     try {
-      JSON.parse(texte)
-    } catch (erreur) {
-      signaler('json-invalide', erreur.message)
+      JSON.parse(text)
+    } catch (error) {
+      signaler('json-invalide', error.message)
     }
   }
 
-  return problemes
+  return problems
 }
 
 /**
@@ -101,56 +99,56 @@ export function controlerFichier({ chemin, contenu }) {
  */
 export function controlerCollisionsDeCasse(chemins) {
   const vus = new Map()
-  const problemes = []
-  for (const chemin of chemins) {
-    const cle = chemin.toLowerCase()
-    const deja = vus.get(cle)
+  const problems = []
+  for (const path of chemins) {
+    const key = path.toLowerCase()
+    const deja = vus.get(key)
     if (deja !== undefined) {
-      problemes.push({
-        chemin,
+      problems.push({
+        path,
         regle: 'collision-de-casse',
         message: `ne diffère de ${deja} que par la casse`,
       })
     } else {
-      vus.set(cle, chemin)
+      vus.set(key, path)
     }
   }
-  return problemes
+  return problems
 }
 
-/** Les fichiers indexés, ou ceux passés en arguments. */
+/** Les files indexés, ou ceux passés en arguments. */
 function fichiersAControler(arguments_) {
   if (arguments_.length > 0) return arguments_
-  const sortie = execFileSync('git', ['diff', '--cached', '--name-only', '--diff-filter=ACMR'], {
+  const output = execFileSync('git', ['diff', '--cached', '--name-only', '--diff-filter=ACMR'], {
     encoding: 'utf8',
   })
-  return sortie.split('\n').filter(Boolean)
+  return output.split('\n').filter(Boolean)
 }
 
-function principal() {
+function main() {
   const chemins = fichiersAControler(process.argv.slice(2))
-  const problemes = controlerCollisionsDeCasse(chemins)
+  const problems = controlerCollisionsDeCasse(chemins)
 
-  for (const chemin of chemins) {
-    // Un fichier indexé puis supprimé du disque ne se lit pas : ce n'est pas
+  for (const path of chemins) {
+    // Un file indexé then supprimé du disque ne se lit pas : ce n'est pas
     // une faute d'hygiène.
-    let contenu
+    let content
     try {
-      if (!statSync(chemin).isFile()) continue
-      contenu = readFileSync(chemin)
+      if (!statSync(path).isFile()) continue
+      content = readFileSync(path)
     } catch {
       continue
     }
-    problemes.push(...controlerFichier({ chemin, contenu }))
+    problems.push(...controlerFichier({ path, content }))
   }
 
-  if (problemes.length === 0) return 0
+  if (problems.length === 0) return 0
 
   console.error('/!\\ Hygiène des fichiers :')
-  for (const { chemin, regle, message } of problemes) {
-    console.error(`    ${chemin} — ${regle} : ${message}`)
+  for (const { path, regle, message } of problems) {
+    console.error(`    ${path} — ${regle} : ${message}`)
   }
   return 1
 }
 
-if (import.meta.filename === process.argv[1]) process.exit(principal())
+if (import.meta.filename === process.argv[1]) process.exit(main())

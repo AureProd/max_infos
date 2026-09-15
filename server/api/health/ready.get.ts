@@ -1,4 +1,4 @@
-import { verifierBase } from '~~/server/database/client'
+import { checkDatabase } from '~~/server/database/client'
 
 /**
  * Sonde de disponibilité : « la base répond-elle ? ».
@@ -9,11 +9,11 @@ import { verifierBase } from '~~/server/database/client'
  * sert aux vérifications de déploiement et à la supervision.
  *
  * Renvoie 503 quand la base est injoignable : c'est le code que lisent les
- * orchestrateurs, et il ne doit pas être confondu avec une erreur 500 de
+ * orchestrateurs, et il ne doit pas être confondu avec une error 500 de
  * l'application.
  *
- * Ce chemin n'a pas de test automatisé, et c'est délibéré : @nuxt/test-utils
- * attend que « / » réponde 200 avant de lancer les tests, or le rendu de
+ * Ce path n'a pas de test automatisé, et c'est délibéré : @nuxt/test-utils
+ * attend que « / » réponde 200 before de lancer les tests, or le rendered de
  * l'accueil appelle /api/site — donc avec une base coupée, le serveur de
  * test ne démarre jamais. Le comportement a été vérifié à la main.
  *
@@ -24,14 +24,14 @@ import { verifierBase } from '~~/server/database/client'
  */
 export default defineEventHandler(async (event) => {
   try {
-    const { latenceMs } = await verifierBase()
+    const { latenceMs } = await checkDatabase()
     return { status: 'ok' as const, database: 'ok' as const, latenceMs }
-  } catch (erreur) {
+  } catch (error) {
     setResponseStatus(event, 503)
     return {
       status: 'degraded' as const,
       database: 'injoignable' as const,
-      raison: erreur instanceof Error ? erreur.message : String(erreur),
+      raison: error instanceof Error ? error.message : String(error),
     }
   }
 })

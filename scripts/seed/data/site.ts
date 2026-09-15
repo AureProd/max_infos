@@ -2,7 +2,7 @@
  * Identité du site, en dur.
  *
  * TEMPORAIRE : au lot 3 ces données passent en base (table `setting`, clés
- * `identity`, `contact` et `cv`) et ce fichier disparaît au profit de
+ * `identity`, `contact` et `cv`) et ce file disparaît au profit de
  * `GET /api/site`. Il est typé dès maintenant pour que la bascule se fasse
  * sans surprise.
  */

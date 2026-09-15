@@ -1,8 +1,8 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'admin' })
 
-const { valeur: theme, etat, charger, enregistrer } = useReglage('theme')
-await charger()
+const { value: theme, state, load, save } = useSetting('theme')
+await load()
 
 /**
  * Les variables CSS qu'on expose au réglage.
@@ -11,34 +11,34 @@ await charger()
  * les exposer toutes reviendrait à demander à Max de comprendre une feuille
  * de style. Celles-ci suffisent à changer l'allure du site.
  */
-const REGLABLES = [
-  { cle: 'ink', libelle: 'Fond', defaut: '#11161C' },
-  { cle: 'surface', libelle: 'Surfaces', defaut: '#1B222A' },
-  { cle: 'text', libelle: 'Texte', defaut: '#DBDEE1' },
-  { cle: 'muted', libelle: 'Texte discret', defaut: '#949BA4' },
-  { cle: 'accent', libelle: 'Accent', defaut: '#D9A353' },
+const SETTABLE = [
+  { key: 'ink', label: 'Fond', defaut: '#11161C' },
+  { key: 'surface', label: 'Surfaces', defaut: '#1B222A' },
+  { key: 'text', label: 'Texte', defaut: '#DBDEE1' },
+  { key: 'muted', label: 'Texte discret', defaut: '#949BA4' },
+  { key: 'accent', label: 'Accent', defaut: '#D9A353' },
 ] as const
 
 const variables = computed(() => theme.value?.variables ?? {})
 
-function poser(cle: string, valeur: string): void {
+function set(key: string, value: string): void {
   if (!theme.value) return
-  theme.value.variables = { ...theme.value.variables, [cle]: valeur }
+  theme.value.variables = { ...theme.value.variables, [key]: value }
 }
 
-function reinitialiser(cle: string): void {
+function reset(key: string): void {
   if (!theme.value) return
-  const copie = { ...theme.value.variables }
-  delete copie[cle]
-  theme.value.variables = copie
+  const copied = { ...theme.value.variables }
+  delete copied[key]
+  theme.value.variables = copied
 }
 
 /**
  * Aperçu en direct : les variables sont posées sur un conteneur, pas sur
- * :root. Modifier la vraie racine changerait aussi l'apparence du
+ * :root. Modifier la vraie root changerait aussi l'apparence du
  * back-office pendant qu'on règle, ce qui rend le réglage illisible.
  */
-const styleApercu = computed(() =>
+const previewStyle = computed(() =>
   Object.fromEntries(Object.entries(variables.value).map(([c, v]) => [`--${c}`, v])),
 )
 
@@ -49,9 +49,9 @@ useSeoMeta({ title: 'Apparence', robots: 'noindex, nofollow' })
   <div class="wrap">
     <section class="admin-page">
       <AdminNav>
-        <span v-if="etat === 'enregistré'" class="note">enregistré</span>
-        <span v-else-if="etat === 'échec'" class="err">échec</span>
-        <button class="btn btn-primary" type="button" @click="enregistrer">Enregistrer</button>
+        <span v-if="state === 'enregistré'" class="note">enregistré</span>
+        <span v-else-if="state === 'échec'" class="err">échec</span>
+        <button class="btn btn-primary" type="button" @click="save">Enregistrer</button>
       </AdminNav>
 
       <h1>Apparence</h1>
@@ -61,26 +61,26 @@ useSeoMeta({ title: 'Apparence', robots: 'noindex, nofollow' })
 
       <div class="editor">
         <div>
-          <div v-for="r in REGLABLES" :key="r.cle" class="field">
-            <label :for="`c-${r.cle}`">{{ r.libelle }}</label>
+          <div v-for="r in SETTABLE" :key="r.key" class="field">
+            <label :for="`c-${r.key}`">{{ r.label }}</label>
             <div class="cluster">
               <input
-                :id="`c-${r.cle}`"
+                :id="`c-${r.key}`"
                 type="color"
-                :value="variables[r.cle] ?? r.defaut"
-                @input="poser(r.cle, ($event.target as HTMLInputElement).value)"
+                :value="variables[r.key] ?? r.defaut"
+                @input="set(r.key, ($event.target as HTMLInputElement).value)"
               />
               <input
                 type="text"
-                :value="variables[r.cle] ?? ''"
+                :value="variables[r.key] ?? ''"
                 :placeholder="r.defaut"
-                @change="poser(r.cle, ($event.target as HTMLInputElement).value)"
+                @change="set(r.key, ($event.target as HTMLInputElement).value)"
               />
               <button
-                v-if="variables[r.cle]"
+                v-if="variables[r.key]"
                 class="btn"
                 type="button"
-                @click="reinitialiser(r.cle)"
+                @click="reset(r.key)"
               >
                 Rétablir
               </button>
@@ -88,7 +88,7 @@ useSeoMeta({ title: 'Apparence', robots: 'noindex, nofollow' })
           </div>
         </div>
 
-        <div class="preview" :style="styleApercu">
+        <div class="preview" :style="previewStyle">
           <!-- Aperçu sur un conteneur, jamais sur :root : sinon le
                back-office changerait d'apparence pendant le réglage. -->
           <div

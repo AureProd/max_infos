@@ -3,26 +3,26 @@ import { strFromU8, unzipSync } from 'fflate'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { appUser, secret } from '../../server/database/schema'
-import { type BaseDeTest, base, connexion, migrer, semerJeuDeTest } from '../setup/db'
+import { base, connection, migrate, seedTestData, type TestDatabase } from '../setup/db'
 
 /**
- * L'aller-retour prévu au plan : exporter, vider, réimporter, comparer
+ * L'aller-back prévu au plan : exporter, vider, réimporter, comparer
  * terme à terme.
  *
  * C'est le seul test qui prouve qu'on peut déménager le site ou repartir
  * d'une base vierge. Le reste n'est que de la confiance.
  */
 let sqlClient: postgres.Sql
-let db: BaseDeTest
+let db: TestDatabase
 let cookie = ''
 
 beforeAll(async () => {
-  sqlClient = connexion()
-  await migrer(sqlClient)
+  sqlClient = connection()
+  await migrate(sqlClient)
   db = base(sqlClient)
-  await semerJeuDeTest(db)
+  await seedTestData(db)
   await db.insert(appUser).values({ email: 'jb@exemple.test', role: 'tech' })
-  // Un jeton chiffré, pour vérifier qu'il ne sort JAMAIS.
+  // Un token chiffré, pour vérifier qu'il ne sort JAMAIS.
   await db.insert(secret).values({
     key: 'instagram_access_token',
     ciphertext: 'v1.aaa.bbb.jeton-chiffre-a-ne-jamais-exporter',
@@ -48,15 +48,15 @@ beforeAll(async () => {
 const auth = () => ({ cookie, 'content-type': 'application/json' })
 
 /** Récupère l'archive et la décompresse réellement. */
-async function telechargerArchive(): Promise<Record<string, string>> {
+async function downloadArchive(): Promise<Record<string, string>> {
   const r = await fetch('/api/admin/export', { headers: auth() })
   expect(r.status).toBe(200)
-  const octets = new Uint8Array(await r.arrayBuffer())
-  const entrees = unzipSync(octets)
+  const bytes = new Uint8Array(await r.arrayBuffer())
+  const entries = unzipSync(bytes)
   return Object.fromEntries(
-    Object.entries(entrees).map(([nom, contenu]) => [
-      nom.split('/').slice(1).join('/'),
-      strFromU8(contenu),
+    Object.entries(entries).map(([name, content]) => [
+      name.split('/').slice(1).join('/'),
+      strFromU8(content),
     ]),
   )
 }
@@ -64,9 +64,9 @@ async function telechargerArchive(): Promise<Record<string, string>> {
 describe('export', () => {
   it('produit une VRAIE archive zip, qui s’ouvre', async () => {
     // Une archive qui se télécharge mais ne s'ouvre pas n'est pas une
-    // sauvegarde. `unzipSync` échouerait sur un fichier mal formé.
-    const fichiers = await telechargerArchive()
-    expect(Object.keys(fichiers).length).toBeGreaterThan(5)
+    // sauvegarde. `unzipSync` échouerait sur un file mal formé.
+    const files = await downloadArchive()
+    expect(Object.keys(files).length).toBeGreaterThan(5)
   })
 
   it('se propose en téléchargement, datée', async () => {
@@ -78,48 +78,48 @@ describe('export', () => {
   })
 
   it('porte une version de schéma et des comptages', async () => {
-    const fichiers = await telechargerArchive()
-    const manifeste = JSON.parse(fichiers['manifest.json'] ?? '{}')
-    expect(manifeste.version).toBe(2)
-    expect(manifeste.comptages.articles).toBeGreaterThan(0)
+    const files = await downloadArchive()
+    const manifest = JSON.parse(files['manifest.json'] ?? '{}')
+    expect(manifest.version).toBe(2)
+    expect(manifest.comptages.articles).toBeGreaterThan(0)
   })
 
   it('contient les articles en MARKDOWN, lisibles tels quels', async () => {
     // Une archive qu'on ne peut ouvrir qu'avec le logiciel qui l'a produite
     // n'est pas une sauvegarde, c'est une dépendance.
-    const fichiers = await telechargerArchive()
-    const md = Object.entries(fichiers).filter(([n]) => n.startsWith('articles/'))
+    const files = await downloadArchive()
+    const md = Object.entries(files).filter(([n]) => n.startsWith('articles/'))
     expect(md.length).toBeGreaterThan(0)
-    const [, contenu] = md[0] as [string, string]
-    expect(contenu.startsWith('---')).toBe(true)
-    expect(contenu).toContain('slug:')
-    expect(contenu).toContain('tags:')
+    const [, content] = md[0] as [string, string]
+    expect(content.startsWith('---')).toBe(true)
+    expect(content).toContain('slug:')
+    expect(content).toContain('tags:')
   })
 
   it('explique son contenu, pour dans deux ans', async () => {
-    const fichiers = await telechargerArchive()
-    expect(fichiers['LISEZ-MOI.txt']).toContain('Cloudflare R2')
+    const files = await downloadArchive()
+    expect(files['LISEZ-MOI.txt']).toContain('Cloudflare R2')
   })
 
   it('n’exporte JAMAIS les jetons tiers', async () => {
     // Les réexporter reviendrait à sortir des identifiants d'accès d'un
-    // système pour les poser dans un fichier qu'on va télécharger.
-    const fichiers = await telechargerArchive()
-    const tout = Object.values(fichiers).join('\n')
-    expect(tout).not.toContain('jeton-chiffre-a-ne-jamais-exporter')
-    expect(tout).not.toContain('ciphertext')
+    // système pour les set dans un file qu'on va télécharger.
+    const files = await downloadArchive()
+    const all = Object.values(files).join('\n')
+    expect(all).not.toContain('jeton-chiffre-a-ne-jamais-exporter')
+    expect(all).not.toContain('ciphertext')
   })
 
   it('n’exporte d’un compte que son adresse et son rôle', async () => {
-    const fichiers = await telechargerArchive()
-    const compte = JSON.parse(fichiers['data/users.json'] ?? '[]')[0]
-    expect(Object.keys(compte ?? {}).sort()).toEqual(['active', 'email', 'name', 'role'])
+    const files = await downloadArchive()
+    const account = JSON.parse(files['data/users.json'] ?? '[]')[0]
+    expect(Object.keys(account ?? {}).sort()).toEqual(['active', 'email', 'name', 'role'])
   })
 })
 
 describe('simulation d’import', () => {
   it('n’écrit RIEN et montre le différentiel', async () => {
-    const avantTest = await archiveEnObjet()
+    const beforeTest = await archiveToObject()
 
     const r = await $fetch('/api/admin/import', {
       method: 'POST',
@@ -131,11 +131,11 @@ describe('simulation d’import', () => {
       },
     })
     expect(r.simulation).toBe(true)
-    expect(r.apres).toEqual({ articles: 99 })
+    expect(r.after).toEqual({ articles: 99 })
 
-    const apresTest = await archiveEnObjet()
-    expect((apresTest.manifest as { comptages: unknown }).comptages).toEqual(
-      (avantTest.manifest as { comptages: unknown }).comptages,
+    const afterTest = await archiveToObject()
+    expect((afterTest.manifest as { comptages: unknown }).comptages).toEqual(
+      (beforeTest.manifest as { comptages: unknown }).comptages,
     )
   })
 
@@ -150,54 +150,54 @@ describe('simulation d’import', () => {
   })
 })
 
-/** Reconstruit l'objet d'import à partir des fichiers de l'archive. */
-async function archiveEnObjet(): Promise<Record<string, unknown>> {
-  const f = await telechargerArchive()
-  const lire = (n: string) => JSON.parse(f[n] ?? 'null')
-  const liens = lire('data/links.json') ?? { tags: [], social: [] }
+/** Reconstruit l'objet d'import à partir des files de l'archive. */
+async function archiveToObject(): Promise<Record<string, unknown>> {
+  const f = await downloadArchive()
+  const read = (n: string) => JSON.parse(f[n] ?? 'null')
+  const links = read('data/links.json') ?? { tags: [], social: [] }
   return {
-    manifest: lire('manifest.json'),
-    articles: lire('data/articles.json'),
-    tags: lire('data/tags.json'),
-    liaisonsTags: liens.tags,
-    liaisonsSocial: liens.social,
-    media: lire('media/manifest.json'),
-    socialAccounts: lire('data/social_accounts.json'),
-    socialPosts: lire('data/social_posts.json'),
-    settings: lire('data/settings.json'),
-    users: lire('data/users.json'),
-    views: lire('data/views.json'),
+    manifest: read('manifest.json'),
+    articles: read('data/articles.json'),
+    tags: read('data/tags.json'),
+    liaisonsTags: links.tags,
+    liaisonsSocial: links.social,
+    media: read('media/manifest.json'),
+    socialAccounts: read('data/social_accounts.json'),
+    socialPosts: read('data/social_posts.json'),
+    settings: read('data/settings.json'),
+    users: read('data/users.json'),
+    views: read('data/views.json'),
   }
 }
 
 describe('aller-retour complet', () => {
   it('emporte les comptes sociaux — sinon les publications seraient orphelines', async () => {
     // `social_post.account_id` pointe vers `social_account` : une archive
-    // qui oublierait les comptes rendrait la restauration impossible sur
+    // qui oublierait les accounts rendrait la restauration impossible sur
     // une base vierge, la clé étrangère refusant chaque publication.
-    const archive = await archiveEnObjet()
-    const comptes = archive.socialAccounts as { username: string }[]
-    expect(comptes.map((c) => c.username)).toContain('maxinfo')
+    const archive = await archiveToObject()
+    const accounts = archive.socialAccounts as { username: string }[]
+    expect(accounts.map((c) => c.username)).toContain('maxinfo')
   })
 
   it('exporter, vider, réimporter : les données sont identiques', async () => {
-    const avant = await archiveEnObjet()
+    const before = await archiveToObject()
 
-    const ecrits = await $fetch('/api/admin/import', {
+    const written = await $fetch('/api/admin/import', {
       method: 'POST',
       headers: auth(),
-      body: { archive: avant, vider: true, simulation: false },
+      body: { archive: before, vider: true, simulation: false },
     })
-    expect(ecrits.simulation).toBe(false)
+    expect(written.simulation).toBe(false)
 
-    const apres = await archiveEnObjet()
+    const after = await archiveToObject()
 
     // Terme à terme, et non « à peu près » : un import qui perd une
     // liaison ou un réglage ne se verrait pas autrement.
-    expect((apres.manifest as { comptages: unknown }).comptages).toEqual(
-      (avant.manifest as { comptages: unknown }).comptages,
+    expect((after.manifest as { comptages: unknown }).comptages).toEqual(
+      (before.manifest as { comptages: unknown }).comptages,
     )
-    for (const cle of [
+    for (const key of [
       'articles',
       'tags',
       'liaisonsTags',
@@ -209,19 +209,19 @@ describe('aller-retour complet', () => {
       'users',
       'views',
     ] as const) {
-      expect(apres[cle], `${cle} doit être identique après l'aller-retour`).toEqual(avant[cle])
+      expect(after[key], `${key} doit être identique après l'aller-retour`).toEqual(before[key])
     }
   })
 
   it('le jeton chiffré a SURVÉCU au vidage', async () => {
     // `secret` est volontairement absente du truncate : un import ne doit
-    // pas effacer les accès aux comptes tiers.
+    // pas effacer les accès aux accounts tiers.
     const [restant] = await db.select().from(secret)
     expect(restant?.ciphertext).toContain('jeton-chiffre-a-ne-jamais-exporter')
   })
 
   it('le site public répond toujours après l’aller-retour', async () => {
-    const liste = await $fetch('/api/articles')
-    expect(liste.total).toBeGreaterThan(0)
+    const list = await $fetch('/api/articles')
+    expect(list.total).toBeGreaterThan(0)
   })
 })

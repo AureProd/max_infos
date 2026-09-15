@@ -1,8 +1,8 @@
 <script setup lang="ts">
 const { data: site } = await useSite()
 
-/** Seuls les champs dont Max a activé la visibilité sont affichés. */
-const liens = computed(() => site.value?.contact.fields.filter((f) => f.visible) ?? [])
+/** Seuls les fields dont Max a activé la visibilité sont affichés. */
+const links = computed(() => site.value?.contact.fields.filter((f) => f.visible) ?? [])
 </script>
 
 <template>
@@ -13,13 +13,13 @@ const liens = computed(() => site.value?.contact.fields.filter((f) => f.visible)
       </span>
       <span>
         <a
-          v-for="lien in liens"
-          :key="lien.key"
-          :href="lien.href"
+          v-for="link in links"
+          :key="link.key"
+          :href="link.href"
           target="_blank"
           rel="noopener"
           style="margin-left: 16px"
-          >{{ lien.label }}</a
+          >{{ link.label }}</a
         >
       </span>
     </div>

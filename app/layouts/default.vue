@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// TheMasthead et TheFooter sont auto-importés depuis app/components/.
+// TheMasthead et TheFooter sont auto-importés since app/components/.
 </script>
 
 <template>

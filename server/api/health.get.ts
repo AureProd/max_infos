@@ -1,5 +1,5 @@
 /**
- * Sonde de vivacité. Aucune entrée-sortie : elle répond « le processus
+ * Sonde de vivacité. Aucune entrée-output : elle répond « le processus
  * tourne », rien de plus.
  *
  * C'est elle qu'interroge le HEALTHCHECK de l'image et, par voie de

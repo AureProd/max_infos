@@ -2,19 +2,19 @@ import { $fetch, fetch, setup } from '@nuxt/test-utils/e2e'
 import type postgres from 'postgres'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { article, setting } from '../../server/database/schema'
-import { type BaseDeTest, base, connexion, migrer } from '../setup/db'
+import { base, connection, migrate, type TestDatabase } from '../setup/db'
 
 /**
- * Le référencement. C'est le motif de la bascule vers Nuxt : ces balises
+ * Le référencement. C'est le pattern de la bascule vers Nuxt : ces tagNames
  * doivent être DANS LA RÉPONSE HTTP, sans exécution de JavaScript — les
  * robots de LinkedIn, WhatsApp et Slack n'en exécutent pas.
  */
 let sqlClient: postgres.Sql
-let db: BaseDeTest
+let db: TestDatabase
 
 beforeAll(async () => {
-  sqlClient = connexion()
-  await migrer(sqlClient)
+  sqlClient = connection()
+  await migrate(sqlClient)
   db = base(sqlClient)
   await db.insert(setting).values({
     key: 'identity',
@@ -60,7 +60,7 @@ describe('balises de partage, dans la réponse HTTP', () => {
   })
 
   it('le CORPS de l’article est dans la réponse, sans JavaScript', async () => {
-    // C'est tout l'enjeu : le module app/render/ du plan n'a jamais eu à
+    // C'est all l'enjeu : le module app/render/ du plan n'a jamais eu à
     // exister parce que Nuxt le fait nativement.
     const html = await $fetch<string>('/article/article-seo')
     expect(html).toContain('Du texte.')
@@ -78,8 +78,8 @@ describe('balises de partage, dans la réponse HTTP', () => {
 describe('codes de réponse', () => {
   it('un article inexistant répond 404, pas 200', async () => {
     // useFetch range le 404 de l'API dans `error` et rend quand même la
-    // page : sans propagation explicite, les robots indexeraient une page
-    // vide comme valide.
+    // page : sans propagation explicit, les robots indexeraient une page
+    // vide comme valid.
     expect((await fetch('/article/jamais-existe')).status).toBe(404)
   })
 

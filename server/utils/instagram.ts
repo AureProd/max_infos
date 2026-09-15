@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
-import { useBase } from '~~/server/database/client'
+import { useDatabase } from '~~/server/database/client'
 import { secret, socialAccount, socialPost } from '~~/server/database/schema'
-import { chiffrer, dechiffrer } from './crypto'
+import { decrypt, encrypt } from './crypto'
 
 /**
  * Intégration Instagram — LECTURE SEULE.
@@ -11,41 +11,41 @@ import { chiffrer, dechiffrer } from './crypto'
  * limite technique.
  *
  * Contraintes vérifiées, à ne pas réapprendre : l'API Basic Display est
- * fermée depuis fin 2024 ; la voie qui fonctionne est l'Instagram API with
- * Instagram Login, qui n'exige PAS de page Facebook depuis juillet 2024 ;
- * le jeton longue durée vaut 60 jours et se rafraîchit tant qu'il sert.
+ * fermée since fin 2024 ; la voie qui fonctionne est l'Instagram API with
+ * Instagram Login, qui n'exige PAS de page Facebook since juillet 2024 ;
+ * le token longue durée vaut 60 jours et se rafraîchit tant qu'il sert.
  */
 
 const BASE = 'https://graph.instagram.com'
 
 /**
- * La clé du jeton, DÉRIVÉE DU COMPTE.
+ * La clé du token, DÉRIVÉE DU COMPTE.
  *
- * Il n'y avait qu'une clé tant qu'il n'y avait qu'un compte. Avec plusieurs,
- * une clé unique ferait que le dernier compte connecté écraserait le jeton du
- * précédent — sans erreur, sans trace, et l'ancien compte cesserait de se
- * synchroniser.
+ * Il n'y avait qu'une clé tant qu'il n'y avait qu'un account. Avec plusieurs,
+ * une clé unique ferait que le dernier account connecté écraserait le token du
+ * précédent — sans error, sans trace, et l'ancien account cesserait de se
+ * syncPosts.
  */
-export const cleJeton = (compteId: number): string => `instagram_access_token:${compteId}`
+export const tokenKey = (compteId: number): string => `instagram_access_token:${compteId}`
 
 /**
  * Le client HTTP, injectable.
  *
  * Type étroit et non `typeof $fetch` : ce dernier porte l'inférence des
  * routes de Nitro, qui sature (« Excessive stack depth ») dès qu'on
- * l'emploie comme valeur par défaut d'un paramètre. Accessoirement, ce type
+ * l'emploie comme value par défaut d'un paramètre. Accessoirement, ce type
  * dit exactement ce dont ce module a besoin — et rend l'injection d'un
  * client simulé évidente dans les tests.
  */
-export type ClientHttp = <T>(
+export type HttpClient = <T>(
   url: string,
   options?: { query?: Record<string, string> },
 ) => Promise<T>
 
-const clientParDefaut: ClientHttp = (url, options) =>
+const defaultClient: HttpClient = (url, options) =>
   $fetch(url, options as Record<string, unknown>) as never
 
-export interface MediaInstagram {
+export interface InstagramMedia {
   id: string
   media_type: 'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM'
   media_product_type?: 'FEED' | 'REELS' | 'STORY'
@@ -56,12 +56,12 @@ export interface MediaInstagram {
   timestamp: string
 }
 
-interface PageMedias {
-  data: MediaInstagram[]
+interface MediaPage {
+  data: InstagramMedia[]
   paging?: { next?: string }
 }
 
-export interface ProfilInstagram {
+export interface InstagramProfile {
   id: string
   username: string
   name?: string
@@ -72,65 +72,65 @@ export interface ProfilInstagram {
 }
 
 /** Traduit le vocabulaire de Meta vers le nôtre. */
-export function typeDeMedia(m: MediaInstagram): 'reel' | 'carousel' | 'image' | 'post' {
+export function mediaType(m: InstagramMedia): 'reel' | 'carousel' | 'image' | 'post' {
   if (m.media_product_type === 'REELS') return 'reel'
   if (m.media_type === 'CAROUSEL_ALBUM') return 'carousel'
   if (m.media_type === 'IMAGE') return 'image'
   return 'post'
 }
 
-/** Le code court, extrait du permalien : instagram.com/p/ABC123/ → ABC123 */
-export function shortcodeDe(permalink: string): string | null {
+/** Le code short, extrait du permalien : instagram.com/p/ABC123/ → ABC123 */
+export function shortcodeOf(permalink: string): string | null {
   return permalink.match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/)?.[1] ?? null
 }
 
-export async function lireJeton(compteId: number): Promise<string | null> {
-  const [ligne] = await useBase()
+export async function readToken(compteId: number): Promise<string | null> {
+  const [ligne] = await useDatabase()
     .select({ ciphertext: secret.ciphertext })
     .from(secret)
-    .where(eq(secret.key, cleJeton(compteId)))
+    .where(eq(secret.key, tokenKey(compteId)))
     .limit(1)
-  return ligne ? dechiffrer(ligne.ciphertext) : null
+  return ligne ? decrypt(ligne.ciphertext) : null
 }
 
-export async function enregistrerJeton(compteId: number, jeton: string): Promise<void> {
-  const ciphertext = chiffrer(jeton)
-  await useBase()
+export async function saveToken(compteId: number, token: string): Promise<void> {
+  const ciphertext = encrypt(token)
+  await useDatabase()
     .insert(secret)
-    .values({ key: cleJeton(compteId), ciphertext })
+    .values({ key: tokenKey(compteId), ciphertext })
     .onConflictDoUpdate({ target: secret.key, set: { ciphertext, updatedAt: new Date() } })
 }
 
-/** Déconnecter un compte, c'est d'abord oublier son jeton. */
-export async function supprimerJeton(compteId: number): Promise<void> {
-  await useBase()
+/** Déconnecter un account, c'est d'abord oublier son token. */
+export async function removeToken(compteId: number): Promise<void> {
+  await useDatabase()
     .delete(secret)
-    .where(eq(secret.key, cleJeton(compteId)))
+    .where(eq(secret.key, tokenKey(compteId)))
 }
 
 /**
- * Rafraîchit le jeton longue durée.
+ * Rafraîchit le token longue durée.
  *
- * À faire AVANT l'expiration : un jeton périmé ne se rafraîchit plus, il
+ * À faire AVANT l'expiration : un token périmé ne se rafraîchit plus, il
  * faut refaire l'OAuth à la main. D'où la tâche quotidienne.
  */
-export async function rafraichirJeton(
-  jeton: string,
-  http: ClientHttp = clientParDefaut,
+export async function refreshToken(
+  token: string,
+  http: HttpClient = defaultClient,
 ): Promise<{ access_token: string; expires_in: number }> {
   return await http<{ access_token: string; expires_in: number }>(`${BASE}/refresh_access_token`, {
-    query: { grant_type: 'ig_refresh_token', access_token: jeton },
+    query: { grant_type: 'ig_refresh_token', access_token: token },
   })
 }
 
-export async function lireProfil(
-  jeton: string,
-  http: ClientHttp = clientParDefaut,
-): Promise<ProfilInstagram> {
-  return await http<ProfilInstagram>(`${BASE}/me`, {
+export async function readProfile(
+  token: string,
+  http: HttpClient = defaultClient,
+): Promise<InstagramProfile> {
+  return await http<InstagramProfile>(`${BASE}/me`, {
     query: {
       fields: 'id,username,name,biography,profile_picture_url,followers_count,media_count',
-      access_token: jeton,
+      access_token: token,
     },
   })
 }
@@ -138,59 +138,59 @@ export async function lireProfil(
 /**
  * Toutes les publications, en suivant la pagination.
  *
- * Bornée à 20 pages : sans cela, une pagination qui boucle — ou un compte
+ * Bornée à 20 pages : sans cela, une pagination qui boucle — ou un account
  * énorme — ferait tourner la synchronisation indéfiniment.
  */
-export async function lireMedias(
-  jeton: string,
-  http: ClientHttp = clientParDefaut,
+export async function readMedia(
+  token: string,
+  http: HttpClient = defaultClient,
   maxPages = 20,
-): Promise<MediaInstagram[]> {
-  const champs =
+): Promise<InstagramMedia[]> {
+  const fields =
     'id,media_type,media_product_type,media_url,thumbnail_url,permalink,caption,timestamp'
-  const tout: MediaInstagram[] = []
+  const all: InstagramMedia[] = []
 
   let url = `${BASE}/me/media`
   let query: Record<string, string> | undefined = {
-    fields: champs,
-    access_token: jeton,
+    fields: fields,
+    access_token: token,
     limit: '50',
   }
-  let encore = true
+  let again = true
 
-  for (let page = 0; page < maxPages && encore; page++) {
-    const reponse = await http<PageMedias>(url, { query })
-    tout.push(...(reponse.data ?? []))
-    const suivante = reponse.paging?.next
-    if (suivante) {
-      url = suivante
+  for (let page = 0; page < maxPages && again; page++) {
+    const response = await http<MediaPage>(url, { query })
+    all.push(...(response.data ?? []))
+    const next = response.paging?.next
+    if (next) {
+      url = next
       // L'URL « next » porte déjà ses paramètres.
       query = undefined
     } else {
-      encore = false
+      again = false
     }
   }
 
-  return tout
+  return all
 }
 
 /**
  * Écrit les publications en base, sans jamais dupliquer.
  *
  * L'idempotence tient à l'index unique (network, external_id) : rejouer une
- * synchronisation met à jour au lieu d'insérer. `hidden` et `position` ne
- * sont PAS touchés à la mise à jour — ce sont des décisions de Max, que la
+ * synchronisation met à day au lieu d'insérer. `hidden` et `position` ne
+ * sont PAS touchés à la mise à day — ce sont des décisions de Max, que la
  * synchronisation n'a pas à défaire.
  */
-export async function synchroniser(
-  medias: MediaInstagram[],
+export async function syncPosts(
+  mediaItems: InstagramMedia[],
   compteId: number,
-): Promise<{ vues: number; nouvelles: number }> {
-  const db = useBase()
-  let nouvelles = 0
+): Promise<{ views: number; fresh: number }> {
+  const db = useDatabase()
+  let fresh = 0
 
-  for (const m of medias) {
-    const [avant] = await db
+  for (const m of mediaItems) {
+    const [before] = await db
       .select({ id: socialPost.id })
       .from(socialPost)
       .where(eq(socialPost.externalId, m.id))
@@ -202,10 +202,10 @@ export async function synchroniser(
         network: 'instagram',
         accountId: compteId,
         externalId: m.id,
-        shortcode: shortcodeDe(m.permalink),
+        shortcode: shortcodeOf(m.permalink),
         url: m.permalink,
         permalink: m.permalink,
-        mediaType: typeDeMedia(m),
+        mediaType: mediaType(m),
         caption: m.caption ?? null,
         thumbnailUrl: m.thumbnail_url ?? m.media_url ?? null,
         postedAt: new Date(m.timestamp),
@@ -216,49 +216,49 @@ export async function synchroniser(
         target: [socialPost.network, socialPost.externalId],
         set: {
           // accountId est repris : une publication déjà connue qui
-          // réapparaît sous un autre compte se range là où elle est.
+          // réapparaît sous un autre account se range là où elle est.
           accountId: compteId,
           caption: m.caption ?? null,
           thumbnailUrl: m.thumbnail_url ?? m.media_url ?? null,
           permalink: m.permalink,
-          mediaType: typeDeMedia(m),
+          mediaType: mediaType(m),
           raw: m as unknown as Record<string, unknown>,
           updatedAt: new Date(),
         },
       })
 
-    if (!avant) nouvelles++
+    if (!before) fresh++
   }
 
-  return { vues: medias.length, nouvelles }
+  return { views: mediaItems.length, fresh }
 }
 
 /**
- * Enregistre le compte à partir du profil Meta, et renvoie son identifiant.
+ * Enregistre le account à partir du profile Meta, et renvoie son identifiant.
  *
- * L'identité affichée vient TOUJOURS d'ici : Max ne la saisit pas, et une
+ * L'identité affichée vient TOUJOURS d'here : Max ne la saisit pas, et une
  * correction faite sur Instagram remonte d'elle-même. En revanche `visible`,
  * `position` et `postsOnHome` ne sont PAS touchés — ce sont ses décisions, et
  * une synchronisation n'a pas à les défaire, exactement comme `hidden` et
  * `position` sur les publications.
  */
-export async function enregistrerCompte(profil: ProfilInstagram): Promise<number> {
-  const identite = {
-    username: profil.username,
-    displayName: profil.name ?? null,
-    biography: profil.biography ?? null,
-    avatarUrl: profil.profile_picture_url ?? null,
-    followers: profil.followers_count ?? null,
-    mediaCount: profil.media_count ?? null,
+export async function saveAccount(profile: InstagramProfile): Promise<number> {
+  const identity = {
+    username: profile.username,
+    displayName: profile.name ?? null,
+    biography: profile.biography ?? null,
+    avatarUrl: profile.profile_picture_url ?? null,
+    followers: profile.followers_count ?? null,
+    mediaCount: profile.media_count ?? null,
     lastSyncAt: new Date(),
   }
 
-  const [ligne] = await useBase()
+  const [ligne] = await useDatabase()
     .insert(socialAccount)
-    .values({ network: 'instagram', externalId: profil.id, ...identite })
+    .values({ network: 'instagram', externalId: profile.id, ...identity })
     .onConflictDoUpdate({
       target: [socialAccount.network, socialAccount.externalId],
-      set: { ...identite, updatedAt: new Date() },
+      set: { ...identity, updatedAt: new Date() },
     })
     .returning({ id: socialAccount.id })
 
@@ -267,14 +267,14 @@ export async function enregistrerCompte(profil: ProfilInstagram): Promise<number
 }
 
 /**
- * Les comptes à synchroniser — masqués COMPRIS.
+ * Les accounts à syncPosts — masqués COMPRIS.
  *
- * Masquer un compte est une décision d'affichage, pas une rupture de la
- * connexion : le réafficher doit montrer des publications à jour, pas un trou
+ * Masquer un account est une décision d'affichage, pas une rupture de la
+ * connection : le réafficher doit montrer des publications à day, pas un trou
  * correspondant à la durée du masquage.
  */
-export async function comptesInstagram() {
-  return await useBase()
+export async function instagramAccounts() {
+  return await useDatabase()
     .select({
       id: socialAccount.id,
       externalId: socialAccount.externalId,
@@ -286,31 +286,31 @@ export async function comptesInstagram() {
 }
 
 /**
- * L'échange OAuth, en deux temps imposés par Meta.
+ * L'échange OAuth, en two temps imposés par Meta.
  *
- * Le code d'autorisation donne un jeton COURT (une heure), inutilisable
- * tel quel : il faut immédiatement l'échanger contre un jeton long
+ * Le code d'autorisation donne un token COURT (une heure), inutilisable
+ * tel quel : il faut immédiatement l'échanger contre un token long
  * (60 jours), seul rafraîchissable. Oublier le second échange donne une
- * intégration qui marche une heure puis meurt sans message clair — c'est
+ * intégration qui marche une heure then meurt sans message clair — c'est
  * le piège classique de cette API.
  */
 const OAUTH_JETON = 'https://api.instagram.com/oauth/access_token'
 
 /** L'URL vers laquelle envoyer Max pour qu'il autorise l'application. */
-export function urlAutorisation(appId: string, redirection: string, etat: string): string {
+export function authorizationUrl(appId: string, redirection: string, state: string): string {
   const q = new URLSearchParams({
     client_id: appId,
     redirect_uri: redirection,
-    // Lecture seule : le site ne publie jamais, il ne demande donc jamais
+    // Lecture seule : le site ne publie jamais, il ne request donc jamais
     // la permission de publier.
     scope: 'instagram_business_basic',
     response_type: 'code',
-    state: etat,
+    state: state,
   })
   return `https://www.instagram.com/oauth/authorize?${q}`
 }
 
-export async function echangerCode(
+export async function exchangeCode(
   code: string,
   appId: string,
   appSecret: string,
@@ -319,25 +319,25 @@ export async function echangerCode(
 ): Promise<string> {
   // Formulaire et non JSON : cet unique point d'entrée de Meta refuse
   // l'application/json, sans le dire autrement que par un 400.
-  const corps = new URLSearchParams({
+  const body = new URLSearchParams({
     client_id: appId,
     client_secret: appSecret,
     grant_type: 'authorization_code',
     redirect_uri: redirection,
     code,
   })
-  const reponse = await http(OAUTH_JETON, { method: 'POST', body: corps })
-  if (!reponse.ok) throw new Error(`Instagram a refusé le code (${reponse.status})`)
-  const court = (await reponse.json()) as { access_token?: string }
-  if (!court.access_token) throw new Error("Instagram n'a pas renvoyé de jeton")
-  return court.access_token
+  const response = await http(OAUTH_JETON, { method: 'POST', body: body })
+  if (!response.ok) throw new Error(`Instagram a refusé le code (${response.status})`)
+  const short = (await response.json()) as { access_token?: string }
+  if (!short.access_token) throw new Error("Instagram n'a pas renvoyé de jeton")
+  return short.access_token
 }
 
-/** Le second échange : jeton court → jeton long, le seul qui vaille. */
-export async function allongerJeton(
+/** Le second échange : token short → token long, le seul qui vaille. */
+export async function extendToken(
   jetonCourt: string,
   appSecret: string,
-  http: ClientHttp = clientParDefaut,
+  http: HttpClient = defaultClient,
 ): Promise<string> {
   const long = await http<{ access_token: string }>(`${BASE}/access_token`, {
     query: {
@@ -357,6 +357,6 @@ export async function allongerJeton(
  * oblique finale de différence, et l'échange échoue sur un message qui ne
  * dit pas pourquoi.
  */
-export function urlDeRedirection(baseUrl: string): string {
+export function redirectUrl(baseUrl: string): string {
   return `${baseUrl.replace(/\/$/, '')}/api/admin/instagram/callback`
 }

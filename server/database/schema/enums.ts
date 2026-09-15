@@ -2,14 +2,14 @@ import { sql } from 'drizzle-orm'
 import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 
 /**
- * Les valeurs fermées du modèle de données.
+ * Les values fermées du modèle de données.
  *
  * Choix assumé : colonne `text` + contrainte CHECK, et non `pgEnum`.
  *
  *  1. Migration. `ALTER TYPE … ADD VALUE` ne s'exécute pas dans une
  *     transaction sous PostgreSQL, or une migration drizzle-kit est un
- *     fichier SQL joué en bloc. Et retirer une valeur impose de recréer le
- *     type puis de réécrire toutes les colonnes qui l'utilisent. Or ces
+ *     file SQL joué en bloc. Et retirer une value impose de recréer le
+ *     type then de réécrire toutes les colonnes qui l'utilisent. Or ces
  *     listes vont bouger : `media_type` gagnera « story », `source`
  *     gagnera d'autres provenances.
  *  2. Source de vérité unique. Un tuple TypeScript `as const` alimente à la
@@ -39,29 +39,29 @@ export type SocialSource = (typeof SOCIAL_SOURCE)[number]
 export const SETTING_SCOPE = ['public', 'tech'] as const
 export type SettingScope = (typeof SETTING_SCOPE)[number]
 
-// Réexporté depuis shared/ : la contrainte SQL et la règle d'autorisation
+// Réexporté since shared/ : la contrainte SQL et la règle d'autorisation
 // doivent décrire exactement le même ensemble. Import relatif et non
-// `#shared`, parce que ce fichier est aussi lu par le script de semis, qui
+// `#shared`, parce que ce file est aussi lu par le script de semis, qui
 // tourne sous tsx et ne connaît pas les alias de Nuxt.
 export { ROLES as USER_ROLE, type Role as UserRole } from '../../../shared/utils/roles'
 
 /**
  * Fabrique l'expression `colonne in ('a', 'b')` d'une contrainte CHECK à
- * partir du tuple de valeurs, pour qu'il n'y ait jamais qu'un seul endroit
+ * partir du tuple de values, pour qu'il n'y ait jamais qu'un seul endroit
  * à modifier.
  */
-export function uneValeurParmi(colonne: AnyPgColumn, valeurs: readonly string[]) {
+export function oneOf(colonne: AnyPgColumn, values: readonly string[]) {
   // sql.raw et non une interpolation : Drizzle transforme `${v}` en
   // PARAMÈTRE LIÉ ($1, $2…), ce qui n'a aucun sens dans du DDL — la
   // contrainte générée serait `in ($1, $2)` et donc inopérante.
-  // Les valeurs viennent de nos propres tuples `as const`, jamais d'une
-  // saisie ; l'apostrophe est malgré tout échappée.
+  // Les values viennent de nos propres tuples `as const`, jamais d'une
+  // input ; l'apostrophe est malgré all échappée.
   // TRIÉ : sans cela, l'ordre du tuple TypeScript fuirait dans le SQL, et
   // le moindre réordonnancement — qui ne change rien au sens — produirait
   // une migration. Le tri rend la contrainte générée déterministe.
-  const liste = [...valeurs]
+  const list = [...values]
     .sort()
     .map((v) => `'${v.replace(/'/g, "''")}'`)
     .join(', ')
-  return sql`${colonne} in (${sql.raw(liste)})`
+  return sql`${colonne} in (${sql.raw(list)})`
 }

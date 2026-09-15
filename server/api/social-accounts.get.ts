@@ -1,22 +1,22 @@
 import { and, asc, desc, eq, inArray } from 'drizzle-orm'
-import { useBase } from '~~/server/database/client'
+import { useDatabase } from '~~/server/database/client'
 import { socialAccount, socialPost } from '~~/server/database/schema'
 import { iso } from '~~/server/utils/serialize'
 
 /**
- * Les comptes affichés sur l'accueil, chacun avec ses dernières publications.
+ * Les accounts affichés sur l'accueil, chacun avec ses dernières publications.
  *
- * Une section par compte : c'est cette réponse qui la dessine. Le libellé, la
- * photo et les compteurs viennent du compte tel qu'Instagram le donne — rien
- * n'est saisi à la main, donc rien ne peut être faux longtemps.
+ * Une section par account : c'est cette réponse qui la dessine. Le libellé, la
+ * photo et les compteurs viennent du account tel qu'Instagram le donne — rien
+ * n'est saisi à la main, donc rien ne peut être falsy longtemps.
  *
- * Les colonnes sont énumérées une à une : ni le jeton, ni `raw`, la charge
+ * Les colonnes sont énumérées une à une : ni le token, ni `raw`, la charge
  * brute de Meta, ne doivent pouvoir sortir par inadvertance.
  */
 export default defineEventHandler(async () => {
-  const db = useBase()
+  const db = useDatabase()
 
-  const comptes = await db
+  const accounts = await db
     .select({
       id: socialAccount.id,
       username: socialAccount.username,
@@ -31,11 +31,11 @@ export default defineEventHandler(async () => {
     .where(and(eq(socialAccount.network, 'instagram'), eq(socialAccount.visible, true)))
     .orderBy(asc(socialAccount.position), asc(socialAccount.id))
 
-  if (comptes.length === 0) return []
+  if (accounts.length === 0) return []
 
   // Une seule requête pour toutes les sections, et le filtre des publications
   // masquées EN SQL. La troncature à `postsOnHome`, elle, se fait ensuite :
-  // c'est une décision d'affichage, sur quelques dizaines de lignes.
+  // c'est une décision d'affichage, sur quelques dizaines de lines.
   const publications = await db
     .select({
       id: socialPost.id,
@@ -55,17 +55,17 @@ export default defineEventHandler(async () => {
         eq(socialPost.hidden, false),
         inArray(
           socialPost.accountId,
-          comptes.map((c) => c.id),
+          accounts.map((c) => c.id),
         ),
       ),
     )
     .orderBy(desc(socialPost.postedAt))
 
-  return comptes.map(({ postsOnHome, ...compte }) => ({
-    ...compte,
-    url: compte.username ? `https://www.instagram.com/${compte.username}` : null,
+  return accounts.map(({ postsOnHome, ...account }) => ({
+    ...account,
+    url: account.username ? `https://www.instagram.com/${account.username}` : null,
     publications: publications
-      .filter((p) => p.accountId === compte.id)
+      .filter((p) => p.accountId === account.id)
       .slice(0, postsOnHome)
       .map(({ accountId: _compte, ...p }) => ({ ...p, postedAt: iso(p.postedAt) })),
   }))

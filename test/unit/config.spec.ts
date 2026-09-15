@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nomVariable, parseConfig, SECRETS_REQUIS_EN_PROD } from '#shared/schemas/config'
+import { parseConfig, SECRETS_REQUIRED_IN_PROD, variableName } from '#shared/schemas/config'
 
 /**
  * Transposition des tests de l'ancien backend/tests/test_config.py : la
@@ -7,7 +7,7 @@ import { nomVariable, parseConfig, SECRETS_REQUIS_EN_PROD } from '#shared/schema
  * est reprise telle quelle.
  */
 
-const CONFIG_MINIMALE = {
+const MINIMAL_CONFIG = {
   databaseUrl: '',
   secretEncryptionKey: '',
   session: { password: '', name: 'umdi_session' },
@@ -30,8 +30,8 @@ const CONFIG_MINIMALE = {
   },
 }
 
-// Valeurs factices : seule leur PRÉSENCE est testée, jamais leur contenu.
-const SECRETS_DE_PROD = {
+// Valeurs factices : seule leur PRÉSENCE est testée, jamais leur content.
+const PROD_SECRETS = {
   databaseUrl: 'postgres://u:p@db:5432/d',
   secretEncryptionKey: 'k'.repeat(44),
   session: { password: 's'.repeat(64), name: 'umdi_session' },
@@ -40,7 +40,7 @@ const SECRETS_DE_PROD = {
 
 describe('configuration', () => {
   it('accepte une configuration vide en développement', () => {
-    const c = parseConfig(CONFIG_MINIMALE)
+    const c = parseConfig(MINIMAL_CONFIG)
     expect(c.public.appEnv).toBe('dev')
     expect(c.secretEncryptionKey).toBe('')
     expect(c.session.password).toBe('')
@@ -48,13 +48,13 @@ describe('configuration', () => {
 
   it('accepte preview sans secret', () => {
     expect(() =>
-      parseConfig({ ...CONFIG_MINIMALE, public: { ...CONFIG_MINIMALE.public, appEnv: 'preview' } }),
+      parseConfig({ ...MINIMAL_CONFIG, public: { ...MINIMAL_CONFIG.public, appEnv: 'preview' } }),
     ).not.toThrow()
   })
 
   it('refuse de démarrer en production sans secret', () => {
     expect(() =>
-      parseConfig({ ...CONFIG_MINIMALE, public: { ...CONFIG_MINIMALE.public, appEnv: 'prod' } }),
+      parseConfig({ ...MINIMAL_CONFIG, public: { ...MINIMAL_CONFIG.public, appEnv: 'prod' } }),
     ).toThrow(/manquantes en production/)
   })
 
@@ -62,16 +62,16 @@ describe('configuration', () => {
     let message = ''
     try {
       parseConfig({
-        ...CONFIG_MINIMALE,
-        ...SECRETS_DE_PROD,
+        ...MINIMAL_CONFIG,
+        ...PROD_SECRETS,
         session: { password: '', name: 'umdi_session' },
         oauth: { google: { clientId: '', clientSecret: 'cs' } },
-        public: { ...CONFIG_MINIMALE.public, appEnv: 'prod' },
+        public: { ...MINIMAL_CONFIG.public, appEnv: 'prod' },
       })
     } catch (e) {
       message = (e as Error).message
     }
-    // L'opérateur lit un nom de variable d'environnement, pas une clé TypeScript.
+    // L'opérateur lit un name de variable d'environnement, pas une clé TypeScript.
     expect(message).toContain('NUXT_OAUTH_GOOGLE_CLIENT_ID')
     expect(message).toContain('NUXT_SESSION_PASSWORD')
     expect(message.indexOf('NUXT_OAUTH_GOOGLE_CLIENT_ID')).toBeLessThan(
@@ -82,31 +82,31 @@ describe('configuration', () => {
 
   it('démarre en production dès que tous les secrets sont présents', () => {
     const c = parseConfig({
-      ...CONFIG_MINIMALE,
-      ...SECRETS_DE_PROD,
-      public: { ...CONFIG_MINIMALE.public, appEnv: 'prod' },
+      ...MINIMAL_CONFIG,
+      ...PROD_SECRETS,
+      public: { ...MINIMAL_CONFIG.public, appEnv: 'prod' },
     })
     expect(c.public.appEnv).toBe('prod')
   })
 
   it('refuse un environnement inconnu', () => {
     expect(() =>
-      parseConfig({ ...CONFIG_MINIMALE, public: { ...CONFIG_MINIMALE.public, appEnv: 'staging' } }),
+      parseConfig({ ...MINIMAL_CONFIG, public: { ...MINIMAL_CONFIG.public, appEnv: 'staging' } }),
     ).toThrow()
   })
 
   it('traduit une clé de configuration en nom de variable d’environnement', () => {
-    // Les secrets connus ont un nom EXPLICITE, parce qu'il ne se déduit pas
-    // du chemin : nuxt-auth-utils impose session.password et oauth.google.*.
-    expect(nomVariable('sessionPassword')).toBe('NUXT_SESSION_PASSWORD')
-    expect(nomVariable('googleClientId')).toBe('NUXT_OAUTH_GOOGLE_CLIENT_ID')
+    // Les secrets connus ont un name EXPLICITE, parce qu'il ne se déduit pas
+    // du path : nuxt-auth-utils impose session.password et oauth.google.*.
+    expect(variableName('sessionPassword')).toBe('NUXT_SESSION_PASSWORD')
+    expect(variableName('googleClientId')).toBe('NUXT_OAUTH_GOOGLE_CLIENT_ID')
     // Les autres suivent la règle générale.
-    expect(nomVariable('r2AccessKeyId')).toBe('NUXT_R2_ACCESS_KEY_ID')
+    expect(variableName('r2AccessKeyId')).toBe('NUXT_R2_ACCESS_KEY_ID')
   })
 
   it('la liste des secrets obligatoires est celle du lot 1', () => {
-    // Même liste que refuse_to_start_in_prod_without_secrets côté Python.
-    expect([...SECRETS_REQUIS_EN_PROD].sort()).toEqual([
+    // Même list que refuse_to_start_in_prod_without_secrets côté Python.
+    expect([...SECRETS_REQUIRED_IN_PROD].sort()).toEqual([
       'databaseUrl',
       'googleClientId',
       'googleClientSecret',

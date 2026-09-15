@@ -5,15 +5,15 @@ definePageMeta({ middleware: 'admin' })
 
 const { data: articles, refresh } = await useFetch('/api/admin/articles', { key: 'admin-liste' })
 
-async function creer(): Promise<void> {
-  const cree = await $fetch<{ slug: string }>('/api/admin/articles', {
+async function create(): Promise<void> {
+  const created = await $fetch<{ slug: string }>('/api/admin/articles', {
     method: 'POST',
     body: { title: 'Nouvel article', bodyMd: '', tags: [] },
   })
-  await navigateTo(`/admin/${cree.slug}`)
+  await navigateTo(`/admin/${created.slug}`)
 }
 
-async function supprimer(slug: string, titre: string): Promise<void> {
+async function remove(slug: string, titre: string): Promise<void> {
   if (!confirm(`Supprimer « ${titre} » ? Cette action est définitive.`)) return
   await $fetch(`/api/admin/articles/${slug}`, { method: 'DELETE' })
   await refresh()
@@ -26,7 +26,7 @@ useSeoMeta({ title: 'Articles', robots: 'noindex, nofollow' })
   <div class="wrap">
     <section class="admin-page">
       <AdminNav>
-        <button class="btn btn-primary" type="button" @click="creer">Nouvel article</button>
+        <button class="btn btn-primary" type="button" @click="create">Nouvel article</button>
       </AdminNav>
 
       <h1>Articles</h1>
@@ -59,7 +59,7 @@ useSeoMeta({ title: 'Articles', robots: 'noindex, nofollow' })
               >
                 Voir ↗
               </NuxtLink>
-              <button class="btn" type="button" @click="supprimer(a.slug, a.title)">
+              <button class="btn" type="button" @click="remove(a.slug, a.title)">
                 Supprimer
               </button>
             </div>
