@@ -9,6 +9,6 @@
 export default defineNuxtRouteMiddleware(async (to) => {
   const { data } = await useFetch<{ user: unknown }>('/api/auth/me', { key: 'utilisateur' })
   if (!data.value?.user) {
-    return navigateTo(`/connexion?retour=${encodeURIComponent(to.fullPath)}`)
+    return navigateTo(`/login?retour=${encodeURIComponent(to.fullPath)}`)
   }
 })

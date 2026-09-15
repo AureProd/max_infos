@@ -323,7 +323,7 @@ curl -fsS https://unmaxdinfo.fr/api/health/ready  # → database: ok
 
 Puis, dans le navigateur :
 
-1. `https://unmaxdinfo.fr/connexion` → se connecter avec l'adresse de
+1. `https://unmaxdinfo.fr/login` → se connecter avec l'adresse de
    `NUXT_BOOTSTRAP_TECH_EMAIL`.
 2. **Réseaux** → *Connecter un compte*, puis *Tout synchroniser*.
 3. **Technique** → créer le compte de Max avec le rôle `editor`, et lui
@@ -344,7 +344,7 @@ Puis, dans le navigateur :
 | Symptôme | Cause presque toujours |
 |---|---|
 | Le conteneur `app` redémarre en boucle | Un secret obligatoire manque. `docker compose logs app` **nomme la variable**. |
-| Connexion Google → retour à `/connexion` | Adresse absente de la liste blanche, ou hors des *Test users*. |
+| Connexion Google → retour à `/login` | Adresse absente de la liste blanche, ou hors des *Test users*. |
 | `redirect_uri_mismatch` | L'URI déclarée chez Google diffère d'un caractère. Elle inclut le schéma, le port et le chemin. |
 | Téléversement refusé, erreur CORS | Le `PUT` depuis l'origine du site n'est pas autorisé sur le bucket R2. |
 | Instagram : « le jeton ne se rafraîchit plus » | Passé 60 jours, il est mort. Refaire *Connecter un compte* pour le même compte : il retombe sur sa ligne, ordre et réglages préservés. |

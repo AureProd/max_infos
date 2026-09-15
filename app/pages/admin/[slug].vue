@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'redaction' })
+definePageMeta({ middleware: 'admin' })
 
 const route = useRoute()
 const slug = ref<string | null>(String(route.params.slug))
@@ -40,7 +40,7 @@ useSeoMeta({ title: () => `${brouillon.value.title} — Rédaction`, robots: 'no
     <section class="admin-page">
       <div class="admin-bar">
         <h1>
-          <NuxtLink to="/redaction">←</NuxtLink>
+          <NuxtLink to="/admin">←</NuxtLink>
           {{ brouillon.title || 'Sans titre' }}
         </h1>
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
@@ -94,7 +94,7 @@ useSeoMeta({ title: () => `${brouillon.value.title} — Rédaction`, robots: 'no
           <!--
             Le HTML vient du SERVEUR, rendu et assaini par le même moteur que
             l'enregistrement. Ce que Max voit ici est exactement ce qui sera
-            publié. app/pages/redaction/[slug].vue est inscrit dans la liste
+            publié. app/pages/admin/[slug].vue est inscrit dans la liste
             autorisée de scripts/hooks/check-v-html.sh pour cette raison.
           -->
           <div class="prose" v-html="apercu.html" />

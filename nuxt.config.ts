@@ -67,14 +67,14 @@ export default defineNuxtConfig({
   routeRules: {
     '/': { swr: 300 },
     '/article/**': { swr: 600 },
-    '/a-propos': { swr: 3600 },
+    '/about': { swr: 3600 },
     '/publication/**': { swr: 600 },
     '/rss.xml': { swr: 900 },
     '/sitemap.xml': { swr: 3600 },
     // En-tête HTTP plutôt que balise : un robot qui n'exécute pas le
     // JavaScript, ou qui récupère une réponse non HTML, le voit quand même.
-    '/redaction/**': { swr: false, headers: { 'x-robots-tag': 'noindex, nofollow' } },
-    '/connexion': { swr: false, headers: { 'x-robots-tag': 'noindex, nofollow' } },
+    '/admin/**': { swr: false, headers: { 'x-robots-tag': 'noindex, nofollow' } },
+    '/login': { swr: false, headers: { 'x-robots-tag': 'noindex, nofollow' } },
     '/api/**': { swr: false },
   },
 

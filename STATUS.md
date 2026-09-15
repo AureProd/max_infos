@@ -48,7 +48,7 @@ une ligne par compte, un jeton par compte (`instagram_access_token:<id>`), et
 - **L'accueil affiche une section par compte**, dans l'ordre et au nombre de
   publications choisis. Le nom, la photo et la bio viennent du profil Meta à
   chaque synchronisation : rien ne se saisit à la main.
-- **`/redaction/reseaux`**, ouvert au rôle `editor` : connecter un compte,
+- **`/admin/social`**, ouvert au rôle `editor` : connecter un compte,
   l'ordonner, le masquer, le resynchroniser, le déconnecter. Instagram a
   quitté l'écran Technique — les secrets de l'application Meta, eux, ne
   quittent pas le serveur.

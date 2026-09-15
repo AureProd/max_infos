@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'redaction' })
+definePageMeta({ middleware: 'admin' })
 
 const { valeur: accueil, etat, charger, enregistrer } = useReglage('home')
 await charger()

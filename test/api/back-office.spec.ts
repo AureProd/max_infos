@@ -46,21 +46,21 @@ beforeAll(async () => {
 })
 
 const ECRANS_EDITEUR = [
-  '/redaction',
-  '/redaction/articles',
-  '/redaction/publications',
-  '/redaction/accueil',
-  '/redaction/apropos',
-  '/redaction/apparence',
+  '/admin',
+  '/admin/articles',
+  '/admin/publications',
+  '/admin/home',
+  '/admin/about',
+  '/admin/appearance',
 ]
 
 describe('accès', () => {
-  it.each([...ECRANS_EDITEUR, '/redaction/technique'])(
+  it.each([...ECRANS_EDITEUR, '/admin/tech'])(
     '%s redirige vers la connexion sans session',
     async (chemin) => {
       const r = await fetch(chemin, { redirect: 'manual' })
       expect(r.status).toBe(302)
-      expect(r.headers.get('location')).toContain('/connexion')
+      expect(r.headers.get('location')).toContain('/login')
     },
   )
 })
@@ -79,27 +79,27 @@ describe('affichage pour un editor', () => {
   it('le menu ne propose PAS l’écran technique', async () => {
     // Masquage de confort : la sécurité reste le refus du serveur, vérifié
     // par test/api/authorization.spec.ts.
-    const html = await (await fetch('/redaction', { headers: { cookie: cookies.editor } })).text()
-    expect(html).not.toContain('/redaction/technique')
+    const html = await (await fetch('/admin', { headers: { cookie: cookies.editor } })).text()
+    expect(html).not.toContain('/admin/tech')
   })
 })
 
 describe('affichage pour un tech', () => {
   it('l’écran technique s’affiche', async () => {
-    const r = await fetch('/redaction/technique', { headers: { cookie: cookies.tech } })
+    const r = await fetch('/admin/tech', { headers: { cookie: cookies.tech } })
     expect(r.status).toBe(200)
     expect(await r.text()).toContain('admin-page')
   })
 
   it('le menu propose l’écran technique', async () => {
-    const html = await (await fetch('/redaction', { headers: { cookie: cookies.tech } })).text()
-    expect(html).toContain('/redaction/technique')
+    const html = await (await fetch('/admin', { headers: { cookie: cookies.tech } })).text()
+    expect(html).toContain('/admin/tech')
   })
 })
 
 describe('éditeur d’article', () => {
   it('s’affiche sur un article existant', async () => {
-    const r = await fetch('/redaction/article-publie', { headers: { cookie: cookies.editor } })
+    const r = await fetch('/admin/article-publie', { headers: { cookie: cookies.editor } })
     expect(r.status).toBe(200)
     expect(await r.text()).toContain('Un article publié')
   })

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nb } from '#shared/utils/format'
 
-definePageMeta({ middleware: 'redaction' })
+definePageMeta({ middleware: 'admin' })
 
 /**
  * Les comptes de réseaux sociaux, réglés par Max.
@@ -127,7 +127,7 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
         Chaque compte affiché occupe sa propre section sur la page d'accueil, dans l'ordre
         ci-dessous. Le nom et la photo sont ceux du compte Instagram : ils se corrigent là-bas.
         Pour rattacher une publication à un article, voir
-        <NuxtLink to="/redaction/publications">Publications</NuxtLink>.
+        <NuxtLink to="/admin/publications">Publications</NuxtLink>.
       </p>
 
       <ul class="list">

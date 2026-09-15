@@ -7,7 +7,7 @@ const x = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 /**
  * Plan du site : les pages publiques et les articles publiés.
  *
- * /redaction et /connexion n'y figurent PAS — elles portent déjà
+ * /admin et /login n'y figurent PAS — elles portent déjà
  * `noindex`, et les lister reviendrait à indiquer où frapper.
  */
 export default defineEventHandler(async (event) => {
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
 
   const urls = [
     `  <url><loc>${x(base)}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
-    `  <url><loc>${x(base)}/a-propos</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`,
+    `  <url><loc>${x(base)}/about</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`,
     ...articles.map(
       (a) =>
         `  <url><loc>${x(base)}/article/${a.slug}</loc><lastmod>${jour(a.updatedAt)}</lastmod><priority>0.8</priority></url>`,

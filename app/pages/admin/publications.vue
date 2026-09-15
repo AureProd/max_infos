@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { frDate } from '#shared/utils/format'
 
-definePageMeta({ middleware: 'redaction' })
+definePageMeta({ middleware: 'admin' })
 
 const { data: publications, refresh } = await useFetch('/api/admin/social-posts', {
   key: 'admin-publications',

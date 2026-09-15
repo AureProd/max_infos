@@ -128,10 +128,10 @@ describe('plan du site', () => {
   })
 
   it('n’indique PAS où se trouve le back-office', async () => {
-    // Lister /redaction reviendrait à indiquer où frapper.
+    // Lister /admin reviendrait à indiquer où frapper.
     const xml = await (await fetch('/sitemap.xml')).text()
-    expect(xml).not.toContain('/redaction')
-    expect(xml).not.toContain('/connexion')
+    expect(xml).not.toContain('/admin')
+    expect(xml).not.toContain('/login')
   })
 })
 
@@ -145,7 +145,7 @@ describe('robots.txt', () => {
 
 describe('en-têtes', () => {
   it('le back-office porte x-robots-tag, même sans HTML lu', async () => {
-    const r = await fetch('/connexion')
+    const r = await fetch('/login')
     expect(r.headers.get('x-robots-tag')).toContain('noindex')
   })
 })

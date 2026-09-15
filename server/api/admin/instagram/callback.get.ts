@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   deleteCookie(event, 'ig_oauth_state')
 
   if (q.error) {
-    return sendRedirect(event, `/redaction/reseaux?instagram=refus`)
+    return sendRedirect(event, `/admin/social?instagram=refus`)
   }
   if (!attendu || q.state !== attendu) {
     throw createError({
@@ -51,5 +51,5 @@ export default defineEventHandler(async (event) => {
   const compte = await enregistrerCompte(await lireProfil(jeton))
   await enregistrerJeton(compte, jeton)
 
-  return sendRedirect(event, '/redaction/reseaux?instagram=ok')
+  return sendRedirect(event, '/admin/social?instagram=ok')
 })

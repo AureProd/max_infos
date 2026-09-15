@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { frDate } from '#shared/utils/format'
 
-definePageMeta({ middleware: 'redaction' })
+definePageMeta({ middleware: 'admin' })
 
 const { data: bord } = await useFetch('/api/admin/dashboard', { key: 'admin-bord' })
 
@@ -17,7 +17,7 @@ useSeoMeta({ title: 'Rédaction', robots: 'noindex, nofollow' })
   <div class="wrap">
     <section class="admin-page">
       <AdminNav>
-        <NuxtLink class="btn btn-primary" to="/redaction/articles">Écrire</NuxtLink>
+        <NuxtLink class="btn btn-primary" to="/admin/articles">Écrire</NuxtLink>
       </AdminNav>
 
       <h1>{{ prenom ? `Bonjour ${prenom}` : 'Tableau de bord' }}</h1>
@@ -51,7 +51,7 @@ useSeoMeta({ title: 'Rédaction', robots: 'noindex, nofollow' })
             <li v-for="b in bord.brouillons" :key="b.slug">
               <div class="entry">
                 <div>
-                  <h3><NuxtLink :to="`/redaction/${b.slug}`">{{ b.title }}</NuxtLink></h3>
+                  <h3><NuxtLink :to="`/admin/${b.slug}`">{{ b.title }}</NuxtLink></h3>
                   <div class="meta">
                     <span>modifié le {{ frDate(b.updatedAt.slice(0, 10)) }}</span>
                   </div>
@@ -96,7 +96,7 @@ useSeoMeta({ title: 'Rédaction', robots: 'noindex, nofollow' })
                   </time>
                 </div>
               </div>
-              <NuxtLink class="btn" to="/redaction/publications">Rattacher</NuxtLink>
+              <NuxtLink class="btn" to="/admin/publications">Rattacher</NuxtLink>
             </div>
           </li>
         </ul>

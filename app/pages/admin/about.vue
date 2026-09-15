@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'redaction' })
+definePageMeta({ middleware: 'admin' })
 
 const identite = useReglage('identity')
 const contact = useReglage('contact')

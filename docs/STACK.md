@@ -58,7 +58,7 @@ de fichier de routes à tenir :
 
 ```
 app/pages/index.vue            →  /
-app/pages/a-propos.vue         →  /a-propos
+app/pages/about.vue         →  /about
 app/pages/article/[slug].vue   →  /article/mon-article
 ```
 

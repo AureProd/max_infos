@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'redaction' })
+definePageMeta({ middleware: 'admin' })
 
 const { peut } = useUtilisateur()
 const voitLaTechnique = peut('tech')

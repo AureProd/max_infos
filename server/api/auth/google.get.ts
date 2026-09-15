@@ -27,7 +27,7 @@ export default defineOAuthGoogleEventHandler({
     // au bout des quatorze jours de la session.
     await setUserSession(event, { user: { id: connecte.id } })
 
-    return sendRedirect(event, '/redaction')
+    return sendRedirect(event, '/admin')
   },
 
   onError(event, erreur) {

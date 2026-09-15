@@ -11,8 +11,8 @@ const { data: site } = await useSite()
       </NuxtLink>
       <nav class="nav">
         <NuxtLink to="/">Accueil</NuxtLink>
-        <NuxtLink to="/a-propos">À propos</NuxtLink>
-        <NuxtLink to="/redaction">Rédaction</NuxtLink>
+        <NuxtLink to="/about">À propos</NuxtLink>
+        <NuxtLink to="/admin">Rédaction</NuxtLink>
       </nav>
     </div>
   </header>

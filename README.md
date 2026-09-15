@@ -135,7 +135,7 @@ Traefik, qui ne voit que ses propres conteneurs.
 
 ```
 app/                    ce qui est envoyé au navigateur
-  pages/                UNE PAGE = UN FICHIER. pages/a-propos.vue → /a-propos
+  pages/                UNE PAGE = UN FICHIER. pages/about.vue → /about
   components/           auto-importés : pas d'import à écrire
   composables/          fonctions réutilisables (useXxx)
   layouts/default.vue   l'entête et le pied de page communs

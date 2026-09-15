@@ -4,16 +4,16 @@ import { describe, expect, it } from 'vitest'
 import { SLUGS_RESERVES, slugify } from '#shared/utils/slug'
 
 /**
- * `/redaction/<slug>` est l'éditeur d'article, mais Nuxt fait passer les
+ * `/admin/<slug>` est l'éditeur d'article, mais Nuxt fait passer les
  * routes statiques avant les dynamiques. Un écran ajouté dans
- * `app/pages/redaction/` vole donc silencieusement son URL à tout article
+ * `app/pages/admin/` vole donc silencieusement son URL à tout article
  * portant le même slug, qui devient inaccessible.
  *
  * Ce test compare la liste tenue à la main au contenu RÉEL du dossier : un
  * écran ajouté demain sans être inscrit fait rougir la CI en le nommant.
  */
 describe('slugs réservés du back-office', () => {
-  const ecrans = readdirSync(join(process.cwd(), 'app/pages/redaction'))
+  const ecrans = readdirSync(join(process.cwd(), 'app/pages/admin'))
     .filter((f) => f.endsWith('.vue') && !f.startsWith('[') && f !== 'index.vue')
     .map((f) => f.replace(/\.vue$/, ''))
     .sort()

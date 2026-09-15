@@ -13,14 +13,14 @@ const voitLaTechnique = peut('tech')
 
 const ecrans = computed(() =>
   [
-    { to: '/redaction', libelle: 'Tableau de bord', tech: false },
-    { to: '/redaction/articles', libelle: 'Articles', tech: false },
-    { to: '/redaction/publications', libelle: 'Publications', tech: false },
-    { to: '/redaction/reseaux', libelle: 'Réseaux', tech: false },
-    { to: '/redaction/accueil', libelle: 'Accueil', tech: false },
-    { to: '/redaction/apropos', libelle: 'À propos', tech: false },
-    { to: '/redaction/apparence', libelle: 'Apparence', tech: false },
-    { to: '/redaction/technique', libelle: 'Technique', tech: true },
+    { to: '/admin', libelle: 'Tableau de bord', tech: false },
+    { to: '/admin/articles', libelle: 'Articles', tech: false },
+    { to: '/admin/publications', libelle: 'Publications', tech: false },
+    { to: '/admin/social', libelle: 'Réseaux', tech: false },
+    { to: '/admin/home', libelle: 'Accueil', tech: false },
+    { to: '/admin/about', libelle: 'À propos', tech: false },
+    { to: '/admin/appearance', libelle: 'Apparence', tech: false },
+    { to: '/admin/tech', libelle: 'Technique', tech: true },
   ].filter((e) => !e.tech || voitLaTechnique.value),
 )
 </script>

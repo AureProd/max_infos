@@ -103,21 +103,21 @@ export default defineEventHandler(async (event) => {
     alertes.push({
       niveau: 'attention',
       message: `${sansCouverture[0]?.n} article(s) publié(s) sans image de couverture`,
-      lien: '/redaction',
+      lien: '/admin',
     })
   }
   if ((sansResume[0]?.n ?? 0) > 0) {
     alertes.push({
       niveau: 'info',
       message: `${sansResume[0]?.n} article(s) publié(s) sans chapô`,
-      lien: '/redaction',
+      lien: '/admin',
     })
   }
   if (nonRattachees.length > 0) {
     alertes.push({
       niveau: 'info',
       message: `${nonRattachees.length} publication(s) sans article rattaché`,
-      lien: '/redaction/publications',
+      lien: '/admin/publications',
     })
   }
 

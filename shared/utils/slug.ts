@@ -27,21 +27,21 @@ export function slugify(texte: string): string {
 /**
  * Les slugs que le routage du back-office s'est déjà réservés.
  *
- * `/redaction/<slug>` est l'éditeur d'article, mais Nuxt fait passer les
+ * `/admin/<slug>` est l'éditeur d'article, mais Nuxt fait passer les
  * routes statiques avant les dynamiques : un article dont le slug serait
  * `publications` ouvrirait l'écran Publications et deviendrait
  * INACCESSIBLE, sans le moindre message. Le titre d'un article étant libre,
  * le cas n'a rien de théorique — « Accueil » suffit.
  *
- * Cette liste doit suivre `app/pages/redaction/`. Un test la compare au
+ * Cette liste doit suivre `app/pages/admin/`. Un test la compare au
  * contenu réel du dossier, pour qu'un écran ajouté demain n'y échappe pas.
  */
 export const SLUGS_RESERVES = [
-  'accueil',
-  'apparence',
-  'apropos',
+  'about',
+  'appearance',
   'articles',
+  'home',
   'publications',
-  'reseaux',
-  'technique',
+  'social',
+  'tech',
 ] as const

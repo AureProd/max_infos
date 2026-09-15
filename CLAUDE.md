@@ -35,7 +35,7 @@ migration appliquant un jeu périmé tout en répondant « applied successfully 
 | Nitro parcourt `shared/` avec rollup, qui ignore les imports `?raw` de Vite | Les données de maquette vivent dans `scripts/seed/` |
 | `toLocaleString` casse l'hydratation (U+202F ou U+00A0 selon l'ICU) | Formater à la main, sans `Intl` |
 | Biome lit le `<script>` des `.vue` **sans le `<template>`** | Deux règles désactivées sur les `.vue` ; `vue-tsc` prend le relais |
-| Les routes Nuxt **statiques passent avant les dynamiques** : un article au slug d'un écran devient inaccessible | `SLUGS_RESERVES`, tenu à jour par un test qui lit `app/pages/redaction/` |
+| Les routes Nuxt **statiques passent avant les dynamiques** : un article au slug d'un écran devient inaccessible | `SLUGS_RESERVES`, tenu à jour par un test qui lit `app/pages/admin/` |
 | Un `$fetch<T>` dont on écrit le type **annule l'inférence de Nitro** et accepte n'importe quel champ | Laisser Nitro déduire : un champ renommé côté serveur doit casser le typage côté page |
 | `onConflictDoUpdate` sur une colonne **sans contrainte d'unicité** échoue à l'exécution seulement | Vérifier l'index avant de viser une colonne |
 | Le code d'OAuth Instagram donne un jeton d'**une heure** | Le second échange (`ig_exchange_token`) est obligatoire, sinon l'intégration meurt au bout d'une heure |

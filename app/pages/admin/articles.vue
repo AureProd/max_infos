@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { frDate } from '#shared/utils/format'
 
-definePageMeta({ middleware: 'redaction' })
+definePageMeta({ middleware: 'admin' })
 
 const { data: articles, refresh } = await useFetch('/api/admin/articles', { key: 'admin-liste' })
 
@@ -10,7 +10,7 @@ async function creer(): Promise<void> {
     method: 'POST',
     body: { title: 'Nouvel article', bodyMd: '', tags: [] },
   })
-  await navigateTo(`/redaction/${cree.slug}`)
+  await navigateTo(`/admin/${cree.slug}`)
 }
 
 async function supprimer(slug: string, titre: string): Promise<void> {
@@ -40,7 +40,7 @@ useSeoMeta({ title: 'Articles', robots: 'noindex, nofollow' })
           <div class="entry">
             <div>
               <h3>
-                <NuxtLink :to="`/redaction/${a.slug}`">{{ a.title }}</NuxtLink>
+                <NuxtLink :to="`/admin/${a.slug}`">{{ a.title }}</NuxtLink>
               </h3>
               <div class="meta">
                 <span class="pill">{{ a.status === 'published' ? 'publié' : 'brouillon' }}</span>

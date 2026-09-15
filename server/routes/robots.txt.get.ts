@@ -18,8 +18,8 @@ export default defineEventHandler((event) => {
 
   return `User-agent: *
 Allow: /
-Disallow: /redaction
-Disallow: /connexion
+Disallow: /admin
+Disallow: /login
 Disallow: /api/
 
 Sitemap: ${base}/sitemap.xml
