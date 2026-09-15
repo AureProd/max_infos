@@ -8,7 +8,7 @@ import { oneOf, USER_ROLE, type UserRole } from './enums'
  * c'est JB qui inscrit une adresse.
  *
  * Deux rôles aux pouvoirs opposés : `tech` (JB) voit l'infrastructure,
- * `editor` (Max) ne doit JAMAIS voir un champ technique.
+ * `editor` (Max) ne doit JAMAIS voir un field technique.
  */
 export const appUser = pgTable(
   'app_user',

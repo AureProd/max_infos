@@ -17,7 +17,7 @@ describe('espaces en fin de ligne', () => {
   })
 
   // La typographie française des articles ne doit pas être retouchée : en
-  // Markdown, two espaces en fin de ligne sont un back à la ligne voulu.
+  // Markdown, two espaces en fin de row sont un back à la row voulu.
   it('les tolère en Markdown', () => {
     expect(rules('docs/x.md', 'une ligne  \nune autre\n')).not.toContain('espaces-en-fin-de-ligne')
   })

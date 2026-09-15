@@ -1,6 +1,6 @@
 import type { SettingKey, SettingValue } from '#shared/schemas/settings'
 
-/** Un média référencé par un réglage, déjà résolu en URL par le serveur. */
+/** A medium referenced by a setting, already resolved to a URL server-side. */
 export interface MediaPublic {
   id: number
   url: string
@@ -9,15 +9,15 @@ export interface MediaPublic {
 }
 
 /**
- * Ce que renvoie `GET /api/site` : les réglages de portée publique.
+ * What `GET /api/site` returns: the settings of public scope.
  *
- * Le type est DÉDUIT des schémas, il n'est pas recopié. Ajouter un réglage
- * public le rend disponible côté navigateur sans rien écrire de plus, et
- * renommer un champ fait échouer `pnpm typecheck` là où il est lu.
+ * The type is DERIVED from the schemas, not copied. Adding a public setting
+ * makes it available in the browser with nothing else to write, and
+ * renaming a field makes `pnpm typecheck` fail wherever it is read.
  *
- * `mediaItems` est la seule entrée qui ne vienne pas des réglages : les fields
- * `…MediaId` ne portent qu'un nombre, et une page ne sait pas afficher un
- * nombre. Le serveur les résout en une table indexée par identifiant.
+ * `mediaItems` is the only entry that does not come from the settings: the
+ * `…MediaId` fields carry only a number, and a page cannot display a
+ * number. The server resolves them into a table indexed by id.
  */
 export type SitePublic = {
   [K in SettingKey]: SettingValue<K>

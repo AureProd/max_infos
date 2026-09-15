@@ -9,7 +9,7 @@ describe('rôles', () => {
 
   it('editor ne peut PAS ce que peut tech', () => {
     // C'est l'invariant central du projet : Max ne doit jamais voir un
-    // champ technique.
+    // field technique.
     expect(isAllowed('editor', 'tech')).toBe(false)
   })
 

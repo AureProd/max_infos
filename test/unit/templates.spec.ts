@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_TEMPLATES, resolve, VARIABLES } from '../../server/utils/templates'
 
 const CONTEXT = {
-  titre: "Contrôler l'IA",
-  chapo: 'Un chapô.',
+  title: "Contrôler l'IA",
+  dek: 'Un chapô.',
   url: 'https://unmaxdinfo.fr/article/controler-lia',
   tags: 'geopolitique',
   minutes: 7,
-  caracteres: 10013,
+  characters: 10013,
 }
 
 describe('résolution des gabarits', () => {

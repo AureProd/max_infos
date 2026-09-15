@@ -102,7 +102,7 @@ describe('flux RSS', () => {
   })
 
   it('ÉCHAPPE les caractères qui casseraient le flux', async () => {
-    // Un titre contenant « & » produit du XML invalide sans échappement,
+    // Un title contenant « & » produit du XML invalide sans échappement,
     // et le validateur du W3C le refuse.
     const xml = await (await fetch('/rss.xml')).text()
     expect(xml).toContain('Un titre &amp; une esperluette')

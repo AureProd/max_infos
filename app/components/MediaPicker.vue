@@ -5,7 +5,7 @@
  * Le téléversement se fait EN DEUX TEMPS : le serveur enregistre le média
  * et renvoie une URL signée, then le navigateur envoie le file
  * directement à R2. Le file ne traverse jamais Nitro — la mémoire du
- * conteneur ne monte pas avec la taille des images, et le serveur ne
+ * conteneur ne monte pas avec la size des images, et le serveur ne
  * devient pas un relais ouvert.
  */
 interface Media {

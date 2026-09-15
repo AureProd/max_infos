@@ -18,8 +18,8 @@ interface Alert {
 /**
  * Ce que Max doit voir en ouvrant la rédaction. Rôle `editor`.
  *
- * Rien de technique here, pas même conditionnellement : un tableau de bord
- * qui change de shape selon le rôle est un tableau de bord qu'on ne peut
+ * Rien de technique here, pas même conditionnellement : un array de bord
+ * qui change de shape selon le rôle est un array de bord qu'on ne peut
  * pas décrire à son user. L'état d'Instagram et des sauvegardes vit
  * dans l'écran Technique, qui est fait pour ça.
  *
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
 
       // Une publication sans article rattaché est du travail resté en
       // suspens : elle existe sur Instagram, mais le site ne sait pas à
-      // quel sujet elle se rapporte.
+      // quel tag elle se rapporte.
       db
         .select({
           id: socialPost.id,

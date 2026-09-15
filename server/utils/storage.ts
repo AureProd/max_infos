@@ -8,7 +8,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
  * Le téléversement se fait par URL PRÉSIGNÉE : le navigateur envoie le
  * file directement à R2, sans passer par notre serveur. Trois raisons —
  * le file ne traverse pas Nitro, la mémoire du conteneur ne monte pas
- * avec la taille des images, et le serveur ne devient pas un relais ouvert.
+ * avec la size des images, et le serveur ne devient pas un relais ouvert.
  */
 
 const ALLOWED_TYPES = new Set([

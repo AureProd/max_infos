@@ -8,8 +8,8 @@ import { readSetting } from '~~/server/utils/settings'
  * Ramasse all ce qui ressemble à `…MediaId` dans les réglages.
  *
  * Un réglage ne stocke qu'un identifiant : sans résolution, la photo du CV
- * et le PDF téléchargeable ne sont qu'un nombre que le navigateur ne sait
- * pas afficher. Le balayage est GÉNÉRIQUE, par name de champ, pour qu'un
+ * et le PDF téléchargeable ne sont qu'un count que le navigateur ne sait
+ * pas afficher. Le balayage est GÉNÉRIQUE, par name de field, pour qu'un
  * futur `bannerMediaId` soit servi sans qu'on y repense.
  */
 function mediaIds(value: unknown, trouves = new Set<number>()): Set<number> {

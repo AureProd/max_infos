@@ -1,34 +1,34 @@
 import { z } from 'zod'
 
 /**
- * Validation des entrées HTTP publicOnes.
+ * Validation of public HTTP input.
  *
- * Le même schéma produit le type TypeScript : il n'y a pas two endroits à
- * tenir. C'est l'équivalent exact de ce que faisait Pydantic.
+ * The same schema produces the TypeScript type: there are not two places to
+ * keep in sync. This is the exact equivalent of what Pydantic used to do.
  */
 
 export const DEFAULT_PAGE_SIZE = 12
 
 export const listArticlesQuery = z.object({
-  /** Filtre sur le slug d'un sujet. */
+  /** Filter on a tag slug. */
   tag: z.string().trim().min(1).max(80).optional(),
-  /** Recherche libre dans le titre, le chapô et le body. */
+  /** Free-text search across title, dek and body. */
   q: z.string().trim().min(1).max(200).optional(),
   page: z.coerce.number().int().min(1).max(1000).default(1),
-  taille: z.coerce.number().int().min(1).max(50).default(DEFAULT_PAGE_SIZE),
+  size: z.coerce.number().int().min(1).max(50).default(DEFAULT_PAGE_SIZE),
 })
 
 export type ListArticlesQuery = z.infer<typeof listArticlesQuery>
 
 export const listSocialQuery = z.object({
   network: z.enum(['instagram', 'linkedin']).optional(),
-  /** Un article donné : ses déclinaisons. */
+  /** A given article: its variants. */
   article: z.string().trim().min(1).max(200).optional(),
 })
 
 export type ListSocialQuery = z.infer<typeof listSocialQuery>
 
-/** Le slug d'un article, tel qu'il apparaît dans l'URL. */
+/** An article slug, as it appears in the URL. */
 export const slugParam = z
   .string()
   .trim()
@@ -43,7 +43,7 @@ export const articleDraft = z.object({
   title: z.string().trim().min(1).max(300),
   dek: z.string().trim().max(600).nullable().optional(),
   bodyMd: z.string().max(500_000).default(''),
-  /** Slugs de tags. Les inconnus sont créés. */
+  /** Tag slugs. Unknown ones are created. */
   tags: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
   coverMediaId: z.number().int().positive().nullable().optional(),
   seoTitle: z.string().trim().max(300).nullable().optional(),
@@ -54,7 +54,7 @@ export const articleDraft = z.object({
 
 export type ArticleDraft = z.infer<typeof articleDraft>
 
-/** Création : le slug est proposé, ou déduit du titre. */
+/** Creation: the slug is supplied, or derived from the title. */
 export const articleCreation = articleDraft.extend({
   slug: z
     .string()
@@ -66,7 +66,7 @@ export const articleCreation = articleDraft.extend({
 
 export const statusChange = z.object({
   status: z.enum(['draft', 'published']),
-  /** Publication différée. Absent = maintenant. */
+  /** Deferred publication. Absent = now. */
   publishedAt: z.string().datetime().nullable().optional(),
 })
 
@@ -86,15 +86,15 @@ export const previewMarkdown = z.object({
 })
 
 // ---------------------------------------------------------------------------
-// Déclinaisons sociales (lot 7)
+// Social variants (lot 7)
 
 /**
- * Saisie manuelle d'une publication.
+ * Manual entry of a post.
  *
- * LinkedIn est saisi à la main par nécessité : le scope `r_member_social`
- * est fermé aux fresh applications, la découverte automatique est donc
- * hors de portée. Instagram peut l'être aussi, pour une publication qui
- * précéderait la connection de l'API.
+ * LinkedIn is entered by hand out of necessity: the `r_member_social` scope
+ * is closed to new applications, so automatic discovery is out of reach.
+ * Instagram may be entered by hand too, for a post that predates the API
+ * connection.
  */
 export const manualPost = z.object({
   network: z.enum(['instagram', 'linkedin']),
@@ -113,14 +113,14 @@ export const postVisibility = z.object({
 })
 
 /**
- * L'affichage d'un account sur l'accueil.
+ * How an account shows up on the home page.
  *
- * Tout est facultatif : l'écran envoie le seul champ qu'on vient de toucher
- * — une flèche ↑, un interrupteur — plutôt que de renvoyer l'état entier et
- * risquer d'écraser un réglage modifié entre-temps.
+ * Everything is optional: the screen sends only the field just touched — an
+ * ↑ arrow, a switch — rather than posting the whole state back and risking
+ * overwriting a setting changed in the meantime.
  *
- * L'identité du account (name, photo, bio) n'est PAS here : elle vient
- * d'Instagram et ne se saisit pas.
+ * The account identity (name, picture, bio) is NOT here: it comes from
+ * Instagram and is not entered by hand.
  */
 export const accountLabel = z.object({
   visible: z.boolean().optional(),
@@ -129,10 +129,10 @@ export const accountLabel = z.object({
 })
 
 /**
- * Gabarits de déclinaison, éditables par Max.
+ * Variant templates, editable by Max.
  *
- * Les variables sont résolues à partir de l'article : {{titre}}, {{chapo}},
- * {{url}}, {{tags}}, {{minutes}}.
+ * Variables are resolved from the article: {{title}}, {{dek}}, {{url}},
+ * {{tags}}, {{minutes}}. Their names stay French — Max writes them.
  */
 export const templates = z.object({
   linkedin: z.string().max(8000),

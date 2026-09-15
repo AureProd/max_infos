@@ -13,12 +13,12 @@ export default defineEventHandler(async (event) => {
   const body = await readValidatedBody(event, articleDraft.parse)
   const db = useDatabase()
 
-  const [existant] = await db
+  const [existing] = await db
     .select({ id: article.id })
     .from(article)
     .where(eq(article.slug, slug))
     .limit(1)
-  if (!existant) throw createError({ statusCode: 404, statusMessage: 'Article introuvable' })
+  if (!existing) throw createError({ statusCode: 404, statusMessage: 'Article introuvable' })
 
   const [update] = await db
     .update(article)
@@ -33,9 +33,9 @@ export default defineEventHandler(async (event) => {
       substackUrl: body.substackUrl ?? null,
       featured: body.featured,
     })
-    .where(eq(article.id, existant.id))
+    .where(eq(article.id, existing.id))
     .returning()
 
-  await replaceTags(existant.id, body.tags)
-  return { ...update, tags: await tagsOf(existant.id) }
+  await replaceTags(existing.id, body.tags)
+  return { ...update, tags: await tagsOf(existing.id) }
 })

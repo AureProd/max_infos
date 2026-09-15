@@ -1,3 +1,5 @@
+// Displayed to visitors: these month names are site content, so they stay
+// in French.
 const MONTHS = [
   'janvier',
   'février',
@@ -14,9 +16,9 @@ const MONTHS = [
 ] as const
 
 /**
- * Midi, et non minuit : une date nue interprétée à minuit UTC bascule la
- * veille dans les fuseaux à l'ouest, et le rendered serveur n'a pas le même
- * fuseau que le navigateur.
+ * Noon, not midnight: a bare date read as midnight UTC falls back to the
+ * previous day in western time zones, and the server render does not share
+ * the browser's zone.
  */
 const parse = (iso: string): Date => new Date(`${iso}T12:00:00`)
 
@@ -30,26 +32,30 @@ export const frShort = (iso: string): string => {
   return `${d.getDate()} ${MONTHS[d.getMonth()]?.slice(0, 4)}.`
 }
 
-/** Espace fine insécable, séparateur des milliers en typographie française. */
-const NARROW_NO_BREAK_SPACE = ' '
+/**
+ * Narrow no-break space (U+202F), the thousands separator in French
+ * typography. Written as an escape on purpose: as a literal character it is
+ * invisible, and any editor pass can silently turn it into a plain space.
+ */
+const NARROW_NO_BREAK_SPACE = '\u202f'
 
 /**
- * Groupe les milliers à la française.
+ * Groups thousands the French way.
  *
- * Écrit à la main, SANS `Intl`. `toLocaleString('fr-FR')` produit U+202F ou
- * U+00A0 selon la version d'ICU embarquée : le serveur et le navigateur ne
- * rendraient alors pas le même octet, et Vue signalerait un écart
- * d'hydratation sur chaque nombre affiché. Le même piège guette
- * `toLocaleDateString`, d'où la table de mois ci-dessus.
+ * Written by hand, WITHOUT `Intl`. `toLocaleString('fr-FR')` yields U+202F
+ * or U+00A0 depending on the bundled ICU version: server and browser would
+ * then not render the same byte, and Vue would report a hydration mismatch
+ * on every number shown. The same trap awaits `toLocaleDateString`, hence
+ * the month table above.
  */
 export const nb = (n: number): string =>
   String(n).replace(/\B(?=(\d{3})+(?!\d))/g, NARROW_NO_BREAK_SPACE)
 
 /**
- * Compte les caractères d'un text, espaces normalisées.
+ * Counts the characters of a text, with whitespace normalised.
  *
- * `\s` inclut U+00A0 et U+202F en JavaScript : les espaces insécables de la
- * typographie française sont donc traitées comme les autres, ce qui est le
- * comportement voulu.
+ * `\s` covers U+00A0 and U+202F in JavaScript: the no-break spaces of
+ * French typography are therefore treated like any other, which is the
+ * intended behaviour.
  */
 export const countChars = (text: string): number => text.replace(/\s+/g, ' ').length

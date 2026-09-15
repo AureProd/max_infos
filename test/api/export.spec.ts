@@ -150,7 +150,7 @@ describe('simulation d’import', () => {
   })
 })
 
-/** Reconstruit l'objet d'import à partir des files de l'archive. */
+/** Reconstruit l'object d'import à partir des files de l'archive. */
 async function archiveToObject(): Promise<Record<string, unknown>> {
   const f = await downloadArchive()
   const read = (n: string) => JSON.parse(f[n] ?? 'null')

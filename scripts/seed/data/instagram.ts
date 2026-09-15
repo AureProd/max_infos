@@ -10,7 +10,7 @@ import type { IgMedia } from '../../../shared/types/content'
  * La voie qui fonctionne sans token est l'EMBED OFFICIEL : la publication
  * est rendue par Instagram dans une iframe, avec son média, sa légende et
  * ses flèches de carrousel d'origine. Le content est monté en JavaScript
- * côté navigateur — il ne se voit donc pas en récupérant l'URL en ligne
+ * côté navigateur — il ne se voit donc pas en récupérant l'URL en row
  * de commande, seulement dans une vraie page.
  *
  * Pour add une publication : copied son adresse since Instagram et

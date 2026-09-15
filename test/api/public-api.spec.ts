@@ -54,7 +54,7 @@ describe('GET /api/articles', () => {
     expect(r.items[0]?.tags).toEqual([{ slug: 'geo', label: 'Géographie' }])
   })
 
-  it('filtre par sujet sans fausser le total', async () => {
+  it('filtre par tag sans fausser le total', async () => {
     const r = await $fetch('/api/articles', { query: { tag: 'geo' } })
     expect(r.total).toBe(1)
     expect(r.items[0]?.slug).toBe('article-publie')
@@ -66,8 +66,8 @@ describe('GET /api/articles', () => {
   })
 
   it('pagine', async () => {
-    const p1 = await $fetch('/api/articles', { query: { taille: 1, page: 1 } })
-    const p2 = await $fetch('/api/articles', { query: { taille: 1, page: 2 } })
+    const p1 = await $fetch('/api/articles', { query: { size: 1, page: 1 } })
+    const p2 = await $fetch('/api/articles', { query: { size: 1, page: 2 } })
     expect(p1.items).toHaveLength(1)
     expect(p2.items).toHaveLength(1)
     expect(p1.items[0]?.slug).not.toBe(p2.items[0]?.slug)
@@ -76,7 +76,7 @@ describe('GET /api/articles', () => {
   })
 
   it('refuse une requête hors bornes avec 400, pas 500', async () => {
-    for (const q of ['?taille=500', '?page=0', '?q=']) {
+    for (const q of ['?size=500', '?page=0', '?q=']) {
       expect((await fetch(`/api/articles${q}`)).status).toBe(400)
     }
   })

@@ -1,12 +1,12 @@
 import { z } from 'zod'
 
 /**
- * Tout ce que Max peut modifier sans coder.
+ * Everything Max can change without writing code.
  *
- * Le schéma est indexé PAR CLÉ, ce qui donne two choses d'un coup :
- * `getSetting('cv').education[0].org` est typé, et la portée
- * publique/technique est une donnée TypeScript — donc énumérable par les
- * tests, au lieu d'être recopiée à la main quelque part.
+ * The schema is indexed BY KEY, which buys two things at once:
+ * `getSetting('cv').education[0].org` is typed, and the public/technical
+ * scope is TypeScript data — so the tests can enumerate it, instead of it
+ * being copied by hand somewhere.
  */
 
 const entry = z.object({
@@ -33,12 +33,11 @@ export const identitySchema = z.object({
 })
 
 /**
- * Chaque champ de contact porte SON PROPRE interrupteur.
+ * Every contact field carries ITS OWN switch.
  *
- * Le CV comporte des données personnelles qui n'ont rien à faire sur une
- * page publique indexée. Réglage d'origine : téléphone, adresse et date de
- * naissance masqués. L'admin avertit explicitement au moment de rendre
- * l'un d'eux visible.
+ * The CV holds personal data that has no place on an indexed public page.
+ * Default setting: phone, address and date of birth hidden. The admin warns
+ * explicitly when one of them is about to be made visible.
  */
 export const contactSchema = z.object({
   fields: z
@@ -49,8 +48,8 @@ export const contactSchema = z.object({
         value: z.string().trim().max(600),
         href: z.string().trim().max(600).optional(),
         visible: z.boolean().default(false),
-        /** Signale un champ dont la publication mérite réflexion. */
-        sensible: z.boolean().default(false),
+        /** Flags a field whose publication deserves a second thought. */
+        sensitive: z.boolean().default(false),
       }),
     )
     .max(30)
@@ -83,7 +82,7 @@ export const homeSchema = z.object({
 })
 
 export const themeSchema = z.object({
-  /** Les variables CSS de base.css, surchargées à l'exécution. */
+  /** The CSS variables of base.css, overridden at runtime. */
   variables: z.record(z.string().max(60), z.string().max(200)).default({}),
 })
 
@@ -99,11 +98,11 @@ export const templatesSchema = z.object({
 })
 
 /**
- * Réglages TECHNIQUES d'Instagram : jamais renvoyés par /api/site.
+ * TECHNICAL Instagram settings: never returned by /api/site.
  *
- * Le profile public a quitté les réglages : il vit dans `social_account`,
- * une ligne par account, alimentée par la synchronisation. Un réglage unique
- * ne pouvait décrire qu'un seul account.
+ * The public profile has left the settings: it lives in `social_account`,
+ * one row per account, fed by the sync. A single setting could only ever
+ * describe a single account.
  */
 export const instagramSchema = z.object({
   syncIntervalMinutes: z.number().int().min(5).default(60),
@@ -131,9 +130,9 @@ export type SettingKey = keyof typeof SETTING_SCHEMAS
 export type SettingValue<K extends SettingKey> = z.infer<(typeof SETTING_SCHEMAS)[K]>
 
 /**
- * La portée de chaque réglage. C'est la frontière entre ce que Max règle et
- * ce que seul JB voit — et c'est une DONNÉE, que le test d'autorisations
- * énumère au lieu de la recopier.
+ * The scope of each setting. This is the border between what Max changes
+ * and what only JB sees — and it is DATA, which the authorization test
+ * enumerates instead of copying.
  */
 export const SETTING_SCOPE: Record<SettingKey, 'public' | 'tech'> = {
   identity: 'public',
@@ -150,15 +149,15 @@ export const SETTING_SCOPE: Record<SettingKey, 'public' | 'tech'> = {
 export const SETTING_KEYS = Object.keys(SETTING_SCHEMAS) as SettingKey[]
 
 /**
- * La value de départ de chaque réglage.
+ * The starting value of each setting.
  *
- * Explicite plutôt que déduite d'un `parse({})` : `identity` et `templates`
- * ont des fields obligatoires, et un repli qui échoue est pire que pas de
- * repli — il transforme un réglage non renseigné en error 500.
+ * Explicit rather than derived from a `parse({})`: `identity` and
+ * `templates` have required fields, and a fallback that throws is worse
+ * than no fallback — it turns an unset setting into a 500 error.
  *
- * Sert two fois : au démarrage sur une base vierge, et comme filet quand
- * une value stockée ne correspond plus au schéma. Un site dont le CV n'est
- * pas rempli doit s'afficher.
+ * Used twice: at startup on a blank database, and as a net when a stored
+ * value no longer matches the schema. A site whose CV is not filled in must
+ * still render.
  */
 export const SETTING_DEFAULTS: { [K in SettingKey]: SettingValue<K> } = {
   identity: {

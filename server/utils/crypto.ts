@@ -1,22 +1,22 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'
 
 /**
- * Chiffrement des tokens tiers stockés en base (table `secret`).
+ * Encryption of third-party tokens stored in the database (`secret` table).
  *
- * AES-256-GCM avec le `node:crypto` natif. Le plan parlait de Fernet, qui
- * n'existe pas en Node : plutôt que de le réimplémenter — la pire idée en
- * cryptographie — on utilise la primitive standard qui offre la même
- * garantie, un chiffrement AUTHENTIFIÉ. Toute altération du message est
- * détectée au déchiffrement, elle ne produit pas du bruit exploitable.
+ * AES-256-GCM with the native `node:crypto`. The plan mentioned Fernet,
+ * which does not exist in Node: rather than reimplementing it — the worst
+ * idea in cryptography — we use the standard primitive offering the same
+ * guarantee, AUTHENTICATED encryption. Any tampering with the message is
+ * caught on decryption; it does not yield usable noise.
  *
- * Format : v1.<iv base64>.<tag base64>.<chiffré base64>
- * La version en tête permettra de changer d'algorithme sans avoir à deviner
- * comment les anciennes values ont été produites.
+ * Format: v1.<iv base64>.<tag base64>.<ciphertext base64>
+ * The leading version will allow changing algorithm without having to guess
+ * how the older values were produced.
  */
 
 const VERSION = 'v1'
 const ALGO = 'aes-256-gcm'
-const IV_SIZE = 12 // recommandation pour GCM
+const IV_SIZE = 12 // recommended for GCM
 const KEY_SIZE = 32 // AES-256
 
 function key(): Buffer {
@@ -37,12 +37,12 @@ function key(): Buffer {
   return bytes
 }
 
-export function encrypt(clair: string): string {
-  // Un IV ALÉATOIRE par message : réutiliser un IV avec GCM est la faute
-  // qui casse la confidentialité ET l'authentification d'un coup.
+export function encrypt(plain: string): string {
+  // A RANDOM IV per message: reusing an IV with GCM is the mistake that
+  // breaks confidentiality AND authentication at once.
   const iv = randomBytes(IV_SIZE)
   const c = createCipheriv(ALGO, key(), iv)
-  const encrypted = Buffer.concat([c.update(clair, 'utf8'), c.final()])
+  const encrypted = Buffer.concat([c.update(plain, 'utf8'), c.final()])
   const tag = c.getAuthTag()
   return [
     VERSION,
@@ -54,16 +54,15 @@ export function encrypt(clair: string): string {
 
 export function decrypt(sealed: string): string {
   const parts = sealed.split('.')
-  const [version, ivB64, tagB64, chiffreB64] = parts
-  // On vérifie la STRUCTURE, pas la vacuité : encrypt une chaîne vide
-  // produit légitimement un text chiffré vide, et un test sur la value
-  // falsy le rejetait.
+  const [version, ivB64, tagB64, cipherB64] = parts
+  // We check the STRUCTURE, not emptiness: encrypting an empty string
+  // legitimately yields an empty ciphertext, and a falsy test rejected it.
   if (parts.length !== 4 || version !== VERSION || !ivB64 || !tagB64) {
     throw createError({ statusCode: 500, statusMessage: 'Format de secret non reconnu' })
   }
   const d = createDecipheriv(ALGO, key(), Buffer.from(ivB64, 'base64'))
   d.setAuthTag(Buffer.from(tagB64, 'base64'))
-  return Buffer.concat([d.update(Buffer.from(chiffreB64 ?? '', 'base64')), d.final()]).toString(
+  return Buffer.concat([d.update(Buffer.from(cipherB64 ?? '', 'base64')), d.final()]).toString(
     'utf8',
   )
 }

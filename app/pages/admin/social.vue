@@ -25,7 +25,7 @@ const message = ref('')
 
 /**
  * Pas de type explicit sur `$fetch` : celui de Nitro est déduit du
- * handler, si bien qu'un champ renommé côté serveur fait échouer
+ * handler, si bien qu'un field renommé côté serveur fait échouer
  * `pnpm typecheck` here. Un type écrit à la main aurait all accepté.
  */
 async function set(
@@ -78,7 +78,7 @@ async function syncPosts(account?: number): Promise<void> {
 /**
  * Déconnecter EFFACE les publications du account et leurs rattachements.
  *
- * D'où la confirmation qui annonce le nombre exact : c'est définitif, et une
+ * D'où la confirmation qui annonce le count exact : c'est définitif, et une
  * resynchronisation après reconnexion ne rendrait pas les rattachements aux
  * articles.
  */

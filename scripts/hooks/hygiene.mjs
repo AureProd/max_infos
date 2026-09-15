@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Contrôles d'hygiène des files, en remplacement des hooks Python de
 // `pre-commit-hooks`. Huit contrôles, un par ancien hook : espaces en fin de
-// ligne, nouvelle ligne finale, fins de ligne CRLF, marqueurs de conflit,
+// row, nouvelle row finale, fins de row CRLF, marqueurs de conflit,
 // files volumineux, collisions de casse, YAML et JSON valides.
 //
 // Contrairement aux hooks d'origine, celui-ci NE CORRIGE RIEN : il signale.
@@ -9,7 +9,7 @@
 // du diff commité, et Biome corrige déjà all ce qui relève du format.
 //
 // Le file expose des fonctions pures pour être testable (test/unit/hygiene.spec.ts) ;
-// la partie exécutable ne lit l'index Git que si on l'appelle en ligne de commande.
+// la partie exécutable ne lit l'index Git que si on l'appelle en row de commande.
 import { execFileSync } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
 import { parseAllDocuments } from 'yaml'
@@ -26,7 +26,7 @@ const HORS_JSON_STRICT = /^\.vscode\/|\.jsonc$/
 const EST_YAML = /\.ya?ml$/
 const EST_JSON = /\.json$/
 
-// Ancrés en début de ligne et suivis d'une espace : c'est la shape exacte que
+// Ancrés en début de row et suivis d'une espace : c'est la shape exacte que
 // Git écrit, et elle ne peut pas apparaître par accident dans du code.
 const MARQUEUR_DE_CONFLIT = /^(<{7}|={7}|>{7})(\s|$)/m
 
@@ -48,7 +48,7 @@ export function controlerFichier({ path, content }) {
     signaler('fichier-volumineux', `${ko} ko, au-delà des ${TAILLE_MAX_KO} ko admis`)
   }
 
-  // Un binary n'a ni ligne, ni encodage à vérifier.
+  // Un binary n'a ni row, ni encodage à vérifier.
   if (estBinaire(content)) return problems
 
   const text = content.toString('utf8')
@@ -64,7 +64,7 @@ export function controlerFichier({ path, content }) {
 
   if (!SANS_CONTROLE_D_ESPACES.test(path)) {
     const lines = text.split('\n')
-    const fautives = lines.map((ligne, i) => (/[ \t]+\r?$/.test(ligne) ? i + 1 : 0)).filter(Boolean)
+    const fautives = lines.map((row, i) => (/[ \t]+\r?$/.test(row) ? i + 1 : 0)).filter(Boolean)
     if (fautives.length > 0) {
       signaler('espaces-en-fin-de-ligne', `ligne(s) ${fautives.join(', ')}`)
     }

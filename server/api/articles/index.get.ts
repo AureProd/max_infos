@@ -8,23 +8,23 @@ import { day } from '~~/server/utils/serialize'
  * Liste paginée des articles publiés.
  *
  * Le filtrage se fait en SQL et non en mémoire : c'est le gain direct du
- * passage en base, et la seule façon que cela tienne quand le nombre
+ * passage en base, et la seule façon que cela tienne quand le count
  * d'articles grandira.
  */
 export default defineEventHandler(async (event) => {
-  const { tag: sujet, q, page, taille } = await getValidatedQuery(event, listArticlesQuery.parse)
+  const { tag: tagSlug, q, page, size } = await getValidatedQuery(event, listArticlesQuery.parse)
   const db = useDatabase()
 
   const conditions = [eq(article.status, 'published')]
 
-  if (sujet) {
+  if (tagSlug) {
     // Sous-requête plutôt que jointure : une jointure dupliquerait les
     // lines d'un article portant plusieurs tags, et fausserait le total.
     const ids = db
       .select({ id: articleTag.articleId })
       .from(articleTag)
       .innerJoin(tag, eq(tag.id, articleTag.tagId))
-      .where(eq(tag.slug, sujet))
+      .where(eq(tag.slug, tagSlug))
     conditions.push(inArray(article.id, ids))
   }
 
@@ -59,8 +59,8 @@ export default defineEventHandler(async (event) => {
     .leftJoin(media, eq(media.id, article.coverMediaId))
     .where(where)
     .orderBy(desc(article.publishedAt))
-    .limit(taille)
-    .offset((page - 1) * taille)
+    .limit(size)
+    .offset((page - 1) * size)
 
   const slugs = lines.map((l) => l.slug)
   const tags = slugs.length
@@ -80,6 +80,6 @@ export default defineEventHandler(async (event) => {
     })),
     total: total?.n ?? 0,
     page,
-    taille,
+    size,
   }
 })

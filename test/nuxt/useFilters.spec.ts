@@ -14,7 +14,7 @@ describe('useFilters', () => {
     expect(isActive.value).toBe(false)
   })
 
-  it('bascule un sujet dans les deux sens avec le même appel', () => {
+  it('bascule un tag dans les deux sens avec le même appel', () => {
     const { toggleTag, state, reset } = useFilters()
     reset()
     toggleTag('geopolitique')

@@ -55,7 +55,7 @@ describe('échange du code', () => {
 
 describe('allongement du jeton', () => {
   it('demande bien un jeton LONG', async () => {
-    // Oublier ce second échange donne une intégration qui marche une heure
+    // Oublier ce second échange donne une intégration qui marche une hour
     // then meurt : le token short n'est pas rafraîchissable.
     const http = vi.fn(async (_u: string, o?: { query?: Record<string, string> }) => {
       expect(o?.query?.grant_type).toBe('ig_exchange_token')

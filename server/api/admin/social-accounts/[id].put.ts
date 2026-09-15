@@ -7,7 +7,7 @@ import { requireRole } from '~~/server/utils/auth'
 /**
  * L'affichage d'un account sur l'accueil. Rôle `editor`.
  *
- * Ne touche QUE ce que Max décide : visibilité, ordre, nombre de
+ * Ne touche QUE ce que Max décide : visibilité, ordre, count de
  * publications. L'identité du account vient d'Instagram et n'est pas
  * modifiable here — c'est ce qui garantit qu'elle reste vraie.
  */
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
 
   const changes = await readValidatedBody(event, accountLabel.parse)
 
-  const [ligne] = await useDatabase()
+  const [row] = await useDatabase()
     .update(socialAccount)
     .set({ ...changes, updatedAt: new Date() })
     .where(eq(socialAccount.id, id))
@@ -32,6 +32,6 @@ export default defineEventHandler(async (event) => {
       postsOnHome: socialAccount.postsOnHome,
     })
 
-  if (!ligne) throw createError({ statusCode: 404, statusMessage: 'Compte introuvable' })
-  return ligne
+  if (!row) throw createError({ statusCode: 404, statusMessage: 'Compte introuvable' })
+  return row
 })

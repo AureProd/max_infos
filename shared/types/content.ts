@@ -1,16 +1,16 @@
 /**
- * Types du content d'origine, lu par le script de semis.
+ * Types of the original content, read by the seed script.
  *
- * Ils ne décrivent QUE ce que le script de migration consomme. Le reste du
- * code se sert des types que Drizzle déduit du schéma, ou de ceux que Nitro
- * infère des handlers.
+ * They describe ONLY what the migration script consumes. The rest of the
+ * code uses the types Drizzle derives from the schema, or those Nitro
+ * infers from the handlers.
  */
 
 export interface Article {
   id: string
   title: string
   dek: string
-  /** Date ISO nue, sans heure : `2026-09-11`. */
+  /** Bare ISO date, no time: `2026-09-11`. */
   date: string
   minutes: number
   chars: number

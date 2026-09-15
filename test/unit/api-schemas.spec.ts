@@ -3,19 +3,19 @@ import { listArticlesQuery, listSocialQuery, slugParam } from '#shared/schemas/a
 
 describe('listeArticlesQuery', () => {
   it('applique ses valeurs par défaut sur une requête nue', () => {
-    expect(listArticlesQuery.parse({})).toEqual({ page: 1, taille: 12 })
+    expect(listArticlesQuery.parse({})).toEqual({ page: 1, size: 12 })
   })
 
   it('convertit les nombres venus de l’URL, qui sont des chaînes', () => {
-    expect(listArticlesQuery.parse({ page: '3', taille: '5' })).toMatchObject({
+    expect(listArticlesQuery.parse({ page: '3', size: '5' })).toMatchObject({
       page: 3,
-      taille: 5,
+      size: 5,
     })
   })
 
-  it('borne la taille de page', () => {
-    // Sans borne, `?taille=100000` ferait all load en mémoire.
-    expect(() => listArticlesQuery.parse({ taille: '500' })).toThrow()
+  it('borne la size de page', () => {
+    // Sans borne, `?size=100000` ferait all load en mémoire.
+    expect(() => listArticlesQuery.parse({ size: '500' })).toThrow()
     expect(() => listArticlesQuery.parse({ page: '0' })).toThrow()
   })
 

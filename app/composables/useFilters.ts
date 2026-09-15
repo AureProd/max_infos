@@ -6,15 +6,15 @@ export interface FiltersState {
 }
 
 /**
- * Filtrage de la list d'articles : recherche libre et sujet.
+ * Filtrage de la list d'articles : recherche libre et tag.
  *
  * Le filtrage se fait désormais EN SQL, côté serveur : le navigateur ne
  * télécharge plus all les articles pour en cacher la plupart. C'est le
  * gain direct du passage en base.
  *
- * `useState` et NON un état au niveau du module : ce dernier serait
+ * `useState` et NON un état au niveau du module : ce last serait
  * instancié une seule fois par processus Node, et la recherche d'un
- * visiteur apparaîtrait chez le suivant.
+ * visiteur apparaîtrait chez le next.
  */
 export function useFilters() {
   const state = useState<FiltersState>('filtres', () => ({ q: '', tag: null }))

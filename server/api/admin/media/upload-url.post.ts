@@ -7,8 +7,8 @@ import { allowedType, keyOf, kindOf, publicUrl, uploadUrl } from '~~/server/util
 /**
  * Prépare un téléversement : enregistre le média et renvoie une URL signée.
  *
- * La ligne est créée AVANT le transfert. Un file téléversé sans ligne
- * serait invisible et impossible à nettoyer ; une ligne sans file se
+ * La row est créée AVANT le transfert. Un file téléversé sans row
+ * serait invisible et impossible à nettoyer ; une row sans file se
  * repère et se supprime. On préfère la seconde panne à la première.
  */
 export default defineEventHandler(async (event) => {

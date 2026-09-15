@@ -1,18 +1,18 @@
 /**
- * Sérialisation des dates à la frontière HTTP.
+ * Date serialisation at the HTTP boundary.
  *
- * Drizzle rend des `Date` ; `$fetch` les transporte en chaînes ISO. Laisser
- * la conversion implicite ferait diverger le type annoncé et la value
- * réellement reçue — et casserait `frDate()`, qui attend `YYYY-MM-DD`.
- * Toutes les dates d'API passent donc explicitement par here.
+ * Drizzle returns `Date`s; `$fetch` carries them as ISO strings. Leaving
+ * the conversion implicit would make the declared type and the value
+ * actually received drift apart — and would break `frDate()`, which expects
+ * `YYYY-MM-DD`. Every API date therefore goes through here explicitly.
  */
 
-/** Date complète, au format ISO 8601 avec fuseau. */
+/** Full date, ISO 8601 with time zone. */
 export const iso = (d: Date | null | undefined): string | null => d?.toISOString() ?? null
 
 /**
- * Jour seul, `YYYY-MM-DD`, sans heure ni fuseau.
- * C'est ce qu'attendent `frDate()` et l'attribute `datetime` du HTML.
+ * Day only, `YYYY-MM-DD`, without time or zone.
+ * That is what `frDate()` and the HTML `datetime` attribute expect.
  */
 export const day = (d: Date | null | undefined): string | null =>
   d ? (d.toISOString().slice(0, 10) as string) : null

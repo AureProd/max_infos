@@ -2,7 +2,7 @@
 import { frDate, frShort } from '#shared/utils/format'
 
 const { data: site } = await useSite()
-const { data: list } = await useFetch('/api/articles', { key: 'accueil', query: { taille: 20 } })
+const { data: list } = await useFetch('/api/articles', { key: 'accueil', query: { size: 20 } })
 const { articles, tags, state, isActive, total, toggleTag } = useFilters()
 
 const all = computed(() => list.value?.items ?? [])
@@ -130,7 +130,7 @@ useSeoMeta({
             aria-label="Chercher"
           />
         </label>
-        <div class="tags" role="group" aria-label="Filtrer par sujet">
+        <div class="tags" role="group" aria-label="Filtrer par tag">
           <button
             v-for="tag in tags"
             :key="tag.slug"

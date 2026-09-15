@@ -76,7 +76,7 @@ export const tag = pgTable(
     id: integer().generatedByDefaultAsIdentity().primaryKey(),
     slug: text().notNull(),
     label: text().notNull(),
-    // Une variable CSS du thème, pas une couleur en dur.
+    // Une variable CSS du thème, pas une color en dur.
     color: text(),
     ...timestamps,
   },

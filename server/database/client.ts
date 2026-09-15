@@ -44,7 +44,7 @@ export function useDatabase() {
  * n'a pas à se demander si la base est joignable, il échoue s'il le faut.
  */
 export async function checkDatabase(): Promise<{ ok: boolean; latenceMs: number }> {
-  const debut = performance.now()
+  const start = performance.now()
   await useDatabase().execute(sql`select 1`)
-  return { ok: true, latenceMs: Math.round(performance.now() - debut) }
+  return { ok: true, latenceMs: Math.round(performance.now() - start) }
 }

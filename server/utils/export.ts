@@ -177,8 +177,8 @@ export async function applyImport(
   ])
 
   const replay = <T>(lines: T[]): T[] =>
-    (lines ?? []).map((ligne) => {
-      const copied = { ...(ligne as Record<string, unknown>) }
+    (lines ?? []).map((row) => {
+      const copied = { ...(row as Record<string, unknown>) }
       for (const [key, value] of Object.entries(copied)) {
         if (DATE_FIELDS.has(key) && typeof value === 'string') copied[key] = new Date(value)
       }
@@ -216,7 +216,7 @@ export async function applyImport(
    * Remet les séquences au-delà du plus grand identifiant importé.
    *
    * Sans cela, la prochaine création repartirait de 1 et entrerait en
-   * collision avec une ligne restaurée — une panne qui n'apparaîtrait
+   * collision avec une row restaurée — une panne qui n'apparaîtrait
    * qu'au first article écrit APRÈS l'import, donc longtemps après qu'on
    * ait cru l'opération réussie.
    */

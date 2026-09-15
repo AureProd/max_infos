@@ -8,9 +8,9 @@ import { countCharacters, readingMinutes, renderMarkdown } from './markdown'
  * Rattache un article à une list de tags, en créant ceux qui manquent.
  *
  * Remplace l'ensemble plutôt que d'add : c'est ce qu'attend un
- * formulaire où l'on retire un sujet. Les tags devenus orphans ne sont
+ * formulaire où l'on retire un tag. Les tags devenus orphans ne sont
  * pas supprimés — ils resservent, et les effacer ferait disparaître une
- * couleur choisie à la main.
+ * color choisie à la main.
  */
 export async function replaceTags(articleId: number, labels: string[]): Promise<void> {
   const db = useDatabase()
@@ -23,12 +23,12 @@ export async function replaceTags(articleId: number, labels: string[]): Promise<
 
   const ids: number[] = []
   for (const label of wanted) {
-    const [ligne] = await db
+    const [row] = await db
       .insert(tag)
       .values({ slug: slugify(label), label: label })
       .onConflictDoUpdate({ target: tag.slug, set: { label: label } })
       .returning({ id: tag.id })
-    if (ligne) ids.push(ligne.id)
+    if (row) ids.push(row.id)
   }
 
   await db
@@ -55,14 +55,14 @@ export function derivedFields(bodyMd: string) {
 }
 
 /**
- * Trouve un slug libre à partir d'un titre : `mon-titre`, then `mon-titre-2`…
+ * Trouve un slug libre à partir d'un title : `mon-title`, then `mon-title-2`…
  *
- * Sans cela, publier two articles au titre proche renverrait une violation
+ * Sans cela, publier two articles au title proche renverrait une violation
  * de contrainte à la figure de Max, qui n'y peut rien.
  */
-export async function freeSlug(titre: string, sauf?: number): Promise<string> {
+export async function freeSlug(title: string, sauf?: number): Promise<string> {
   const db = useDatabase()
-  const raw = slugify(titre) || 'article'
+  const raw = slugify(title) || 'article'
   // Un slug réservé est décalé d'emblée : `accueil` devient `accueil-2`,
   // plutôt que d'être rendered inaccessible par le routage du back-office.
   const base = (RESERVED_SLUGS as readonly string[]).includes(raw) ? `${raw}-2` : raw

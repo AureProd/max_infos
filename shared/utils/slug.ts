@@ -1,21 +1,20 @@
 /**
- * Fabrique un identifiant d'URL à partir d'un libellé.
+ * Builds a URL identifier from a label.
  *
- * Servira au back-office (lot 5) pour proposer le slug d'un nouvel article,
- * et all de suite au script de migration du content, pour les tags.
+ * Used by the back-office to suggest the slug of a new article, and right
+ * away by the content migration script, for tags.
  *
- * `normalize('NFD')` sépare les lettres de leurs accents, ce qui permet de
- * retirer ces derniers sans table de correspondance : « géopolitique »
- * devient « geopolitique », et le résultat reste juste pour les langues
- * qu'on n'a pas prévues.
+ * `normalize('NFD')` splits letters from their accents, which strips the
+ * latter without a lookup table: « géopolitique » becomes « geopolitique »,
+ * and the result stays correct for languages we did not plan for.
  */
 export function slugify(text: string): string {
   return (
     text
       .normalize('NFD')
       .replace(/[̀-ͯ]/g, '')
-      // Les apostrophes typographiques françaises coupent les mots, elles ne
-      // les collent pas : « l'IA » doit donner « l-ia », pas « lia ».
+      // French typographic apostrophes split words, they do not glue them:
+      // « l'IA » must give « l-ia », not « lia ».
       .replace(/['’]/g, '-')
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -25,16 +24,16 @@ export function slugify(text: string): string {
 }
 
 /**
- * Les slugs que le routage du back-office s'est déjà réservés.
+ * The slugs the back-office routing has already claimed.
  *
- * `/admin/<slug>` est l'éditeur d'article, mais Nuxt fait passer les
- * routes statiques before les dynamiques : un article dont le slug serait
- * `publications` ouvrirait l'écran Publications et deviendrait
- * INACCESSIBLE, sans le moindre message. Le titre d'un article étant libre,
- * le cas n'a rien de théorique — « Accueil » suffit.
+ * `/admin/<slug>` is the article editor, but Nuxt puts static routes ahead
+ * of dynamic ones: an article whose slug was `publications` would open the
+ * Publications screen and become UNREACHABLE, without a single message. An
+ * article title being free text, the case is anything but theoretical —
+ * « Accueil » is enough.
  *
- * Cette list doit suivre `app/pages/admin/`. Un test la compare au
- * content réel du folder, pour qu'un écran ajouté demain n'y échappe pas.
+ * This list must follow `app/pages/admin/`. A test compares it to the real
+ * contents of the folder, so that a screen added tomorrow cannot slip past.
  */
 export const RESERVED_SLUGS = [
   'about',

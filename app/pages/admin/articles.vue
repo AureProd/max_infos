@@ -13,8 +13,8 @@ async function create(): Promise<void> {
   await navigateTo(`/admin/${created.slug}`)
 }
 
-async function remove(slug: string, titre: string): Promise<void> {
-  if (!confirm(`Supprimer « ${titre} » ? Cette action est définitive.`)) return
+async function remove(slug: string, title: string): Promise<void> {
+  if (!confirm(`Supprimer « ${title} » ? Cette action est définitive.`)) return
   await $fetch(`/api/admin/articles/${slug}`, { method: 'DELETE' })
   await refresh()
 }

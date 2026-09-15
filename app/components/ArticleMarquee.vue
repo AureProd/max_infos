@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** Bandeau défilant des titres — la signature visuelle du site. */
-const { data } = await useFetch('/api/articles', { key: 'marquee', query: { taille: 50 } })
+const { data } = await useFetch('/api/articles', { key: 'marquee', query: { size: 50 } })
 const run = computed(() => {
   const items = data.value?.items ?? []
   return [...items, ...items]

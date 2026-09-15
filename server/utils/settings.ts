@@ -21,13 +21,13 @@ import { setting } from '~~/server/database/schema'
  * again rempli doit s'afficher.
  */
 export async function readSetting<K extends SettingKey>(key: K): Promise<SettingValue<K>> {
-  const [ligne] = await useDatabase()
+  const [row] = await useDatabase()
     .select({ value: setting.value })
     .from(setting)
     .where(eq(setting.key, key))
     .limit(1)
 
-  const result = SETTING_SCHEMAS[key].safeParse(ligne?.value ?? {})
+  const result = SETTING_SCHEMAS[key].safeParse(row?.value ?? {})
   // Repli sur une value par défaut EXPLICITE : `parse({})` échouerait sur
   // les réglages à fields obligatoires, et transformerait un réglage non
   // renseigné en error 500.

@@ -89,8 +89,8 @@ describe('le jeton appartient au compte', () => {
 
   it('stocke le jeton CHIFFRÉ, jamais en clair', async () => {
     await saveToken(1, 'jeton-tres-secret')
-    const [ligne] = await db.select().from(s.secret)
-    expect(ligne?.ciphertext).not.toContain('jeton-tres-secret')
+    const [row] = await db.select().from(s.secret)
+    expect(row?.ciphertext).not.toContain('jeton-tres-secret')
   })
 })
 
@@ -161,10 +161,10 @@ describe('synchronisation, compte par compte', () => {
 
     await syncPosts([media('A', { caption: 'nouvelle légende' })], un)
 
-    const [ligne] = await db.select().from(s.socialPost)
-    expect(ligne?.caption).toBe('nouvelle légende')
-    expect(ligne?.hidden).toBe(true)
-    expect(ligne?.position).toBe(5)
+    const [row] = await db.select().from(s.socialPost)
+    expect(row?.caption).toBe('nouvelle légende')
+    expect(row?.hidden).toBe(true)
+    expect(row?.position).toBe(5)
   })
 })
 

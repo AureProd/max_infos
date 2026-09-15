@@ -15,7 +15,7 @@ import {
  * Un plugin conditionné par `schedulerEnabled`, et NON `nitro.scheduledTasks`.
  * La raison est concrète : le dédoublonnage des tâches Nitro se fait PAR
  * INSTANCE de serveur. Avec two répliques et des tâches activées au build,
- * Instagram serait synchronisé two fois par heure, et le quota Meta
+ * Instagram serait synchronisé two fois par hour, et le quota Meta
  * consommé pour rien.
  *
  * Ici l'interrupteur est une variable d'environnement : extraire un day un
@@ -50,7 +50,7 @@ export default defineNitroPlugin(() => {
         await saveAccount(await readProfile(token))
       } catch (e) {
         // Une synchronisation en échec ne doit pas arrêter le serveur : la
-        // next retentera dans une heure.
+        // next retentera dans une hour.
         console.error(`[instagram] @${account.username} en échec :`, (e as Error).message)
       }
     }

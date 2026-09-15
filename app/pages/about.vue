@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { data: site } = await useSite()
-const { data: list } = await useFetch('/api/articles', { key: 'a-propos', query: { taille: 1 } })
+const { data: list } = await useFetch('/api/articles', { key: 'a-propos', query: { size: 1 } })
 
 const links = computed(() => site.value?.contact.fields.filter((f) => f.visible) ?? [])
 
@@ -40,7 +40,7 @@ useSeoMeta({
             d'actualité n'a pas le temps d'expliquer.
           </p>
           <p>
-            Chaque sujet suit le même trajet : une enquête publiée en format long dans la
+            Chaque tag suit le même trajet : une enquête publiée en format long dans la
             newsletter, une version condensée sur LinkedIn pour celles et ceux qui lisent entre
             deux réunions, et un visuel sur Instagram pour donner envie d'ouvrir le texte entier.
             Ce site rassemble les trois au même endroit.

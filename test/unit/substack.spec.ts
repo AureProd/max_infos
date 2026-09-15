@@ -37,18 +37,18 @@ describe('flux Substack', () => {
   })
 
   it('sort les CDATA et les apostrophes intactes', () => {
-    expect(articles[0]?.titre).toBe("Ben M'hidi, l'homme qu'on n'a pas pu faire taire")
+    expect(articles[0]?.title).toBe("Ben M'hidi, l'homme qu'on n'a pas pu faire taire")
   })
 
   it('décode les entités sans les décoder deux fois', () => {
-    expect(articles[1]?.titre).toBe('FIFA & le pouvoir')
-    expect(articles[1]?.chapo).toBe("Sans couverture d'origine.")
+    expect(articles[1]?.title).toBe('FIFA & le pouvoir')
+    expect(articles[1]?.dek).toBe("Sans couverture d'origine.")
   })
 
   it('ne confond pas le chapô et le corps', () => {
     // `description` est tronquée par Substack : importer un body since
     // elle donnerait des articles amputés, sans que rien ne le signale.
-    expect(articles[0]?.chapo).toBe('Une enquête sur la mémoire.')
+    expect(articles[0]?.dek).toBe('Une enquête sur la mémoire.')
     expect(articles[0]?.bodyHtml).toBe('<p>Le corps complet.</p>')
   })
 

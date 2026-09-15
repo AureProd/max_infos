@@ -13,19 +13,19 @@ export interface SignedInUser {
 }
 
 /**
- * L'user de la session, ou null.
+ * The session user, or null.
  *
- * Relit le rôle EN BASE à chaque requête plutôt que de se fier à celui
- * scellé dans le cookie : retirer un rôle ou désactiver un account doit
- * prendre effet all de suite, pas à l'expiration de la session — qui dure
- * quatorze jours.
+ * Re-reads the role FROM THE DATABASE on every request rather than trusting
+ * the one sealed in the cookie: removing a role or disabling an account
+ * must take effect straight away, not when the session expires — which
+ * takes fourteen days.
  */
 export async function currentUser(event: H3Event): Promise<SignedInUser | null> {
   const session = await getUserSession(event)
   const id = (session.user as { id?: number } | undefined)?.id
   if (!id) return null
 
-  const [ligne] = await useDatabase()
+  const [row] = await useDatabase()
     .select({
       id: appUser.id,
       email: appUser.email,
@@ -38,21 +38,21 @@ export async function currentUser(event: H3Event): Promise<SignedInUser | null> 
     .where(eq(appUser.id, id))
     .limit(1)
 
-  if (!ligne || !ligne.active) return null
+  if (!row || !row.active) return null
   return {
-    id: ligne.id,
-    email: ligne.email,
-    name: ligne.name,
-    avatarUrl: ligne.avatarUrl,
-    role: ligne.role,
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    avatarUrl: row.avatarUrl,
+    role: row.role,
   }
 }
 
 /**
- * Exige une session valid. Répond 401 sinon.
+ * Requires a valid session. Answers 401 otherwise.
  *
- * 401 et non 403 : le client n'est pas identifié, il peut le devenir en se
- * connectant. Les two codes ne disent pas la même chose à un navigateur.
+ * 401 and not 403: the client is not identified, and can become so by
+ * signing in. The two codes do not say the same thing to a browser.
  */
 export async function requireSignIn(event: H3Event): Promise<SignedInUser> {
   const u = await currentUser(event)
@@ -61,11 +61,12 @@ export async function requireSignIn(event: H3Event): Promise<SignedInUser> {
 }
 
 /**
- * Exige un rôle au moins égal à celui demandé. Répond 403 sinon.
+ * Requires a role at least equal to the one asked for. Answers 403
+ * otherwise.
  *
- * C'est LA fonction du projet à ne pas contourner : toute route
- * `/api/admin/*` passe par elle. Le test paramétré de
- * test/api/authorization.spec.ts vérifie qu'aucune n'y échappe.
+ * This is THE function of the project not to bypass: every `/api/admin/*`
+ * route goes through it. The parameterised test in
+ * test/api/authorization.spec.ts checks that none escapes it.
  */
 export async function requireRole(event: H3Event, required: Role): Promise<SignedInUser> {
   const u = await requireSignIn(event)
@@ -76,11 +77,11 @@ export async function requireRole(event: H3Event, required: Role): Promise<Signe
 }
 
 /**
- * Trouve ou crée le account correspondant à une adresse Google.
+ * Finds or creates the account matching a Google address.
  *
- * LISTE BLANCHE : personne ne se crée de account. Une adresse inconnue est
- * refusée, sauf si elle est celle du account technique d'amorçage — le seul
- * moyen d'avoir un first user sur une base vierge.
+ * ALLOW LIST: nobody signs themselves up. An unknown address is refused,
+ * unless it is the bootstrap technical account's — the only way to get a
+ * first user on a blank database.
  */
 export async function signInOrReject(profile: {
   email: string
@@ -91,10 +92,9 @@ export async function signInOrReject(profile: {
   const email = profile.email.trim()
   const { bootstrapTechEmail } = useRuntimeConfig()
 
-  // Comparaison insensible à la casse : Google renvoie l'adresse avec une
-  // casse variable, et l'index unique de la table est lui aussi sur
-  // lower(email).
-  const [existant] = await db
+  // Case-insensitive comparison: Google returns the address with varying
+  // case, and the table's unique index is on lower(email) too.
+  const [existing] = await db
     .select({
       id: appUser.id,
       email: appUser.email,
@@ -107,20 +107,20 @@ export async function signInOrReject(profile: {
     .where(sql`lower(${appUser.email}) = lower(${email})`)
     .limit(1)
 
-  if (existant) {
-    if (!existant.active) {
+  if (existing) {
+    if (!existing.active) {
       throw createError({ statusCode: 403, statusMessage: 'Compte désactivé' })
     }
     await db
       .update(appUser)
-      .set({ lastLoginAt: new Date(), name: profile.name ?? existant.name })
-      .where(eq(appUser.id, existant.id))
+      .set({ lastLoginAt: new Date(), name: profile.name ?? existing.name })
+      .where(eq(appUser.id, existing.id))
     return {
-      id: existant.id,
-      email: existant.email,
-      name: profile.name ?? existant.name,
-      avatarUrl: profile.avatarUrl ?? existant.avatarUrl,
-      role: existant.role,
+      id: existing.id,
+      email: existing.email,
+      name: profile.name ?? existing.name,
+      avatarUrl: profile.avatarUrl ?? existing.avatarUrl,
+      role: existing.role,
     }
   }
 

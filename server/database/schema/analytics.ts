@@ -14,7 +14,7 @@ export const articleView = pgTable(
     articleId: integer()
       .notNull()
       .references(() => article.id, { onDelete: 'cascade' }),
-    // mode 'string' : une date sans heure ne doit pas devenir un Date
+    // mode 'string' : une date sans hour ne doit pas devenir un Date
     // JavaScript, qui y ajouterait un fuseau et donc un décalage.
     day: date({ mode: 'string' }).notNull(),
     count: integer().notNull().default(0),

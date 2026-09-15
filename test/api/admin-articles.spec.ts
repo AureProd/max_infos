@@ -108,7 +108,7 @@ describe('cycle de vie d’un article', () => {
     expect(a.publishedAt).toBeTruthy()
   })
 
-  it('supprime, et la liaison de sujet part en cascade', async () => {
+  it('supprime, et la liaison de tag part en cascade', async () => {
     await $fetch('/api/admin/articles/mon-premier', { method: 'DELETE', headers: auth() })
     expect((await fetch('/api/admin/articles/mon-premier', { headers: auth() })).status).toBe(404)
     const remaining = await db.select().from(article).where(eq(article.slug, 'mon-premier'))
@@ -192,8 +192,8 @@ describe('médias', () => {
   })
 
   it('enregistre la ligne AVANT de renvoyer l’URL signée', async () => {
-    // Un file téléversé sans ligne serait invisible et impossible à
-    // nettoyer ; une ligne sans file se repère et se supprime.
+    // Un file téléversé sans row serait invisible et impossible à
+    // nettoyer ; une row sans file se repère et se supprime.
     const r = await $fetch('/api/admin/media/upload-url', {
       method: 'POST',
       headers: auth(),

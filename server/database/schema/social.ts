@@ -62,8 +62,8 @@ export const socialAccount = pgTable(
   },
   (t) => [
     // La target de l'onConflictDoUpdate de la connection et de la syncTask :
-    // reconnecter un account déjà known doit retomber sur SA ligne, et donc
-    // préserver l'ordre, la visibilité et le nombre de publications que Max
+    // reconnecter un account déjà known doit retomber sur SA row, et donc
+    // préserver l'ordre, la visibilité et le count de publications que Max
     // a choisis. Sans contrainte d'unicité, l'upsert échouerait seulement à
     // l'exécution.
     uniqueIndex('uq_social_account_network_external_id').on(t.network, t.externalId),

@@ -16,7 +16,7 @@ if (!item.value) {
 }
 const { data: article } = await useFetch('/api/articles', {
   key: () => `publication-article-${id.value}`,
-  query: { taille: 50 },
+  query: { size: 50 },
 })
 const attached = computed(() =>
   article.value?.items.find((a) => a.slug && item.value && a.slug === item.value.shortcode),

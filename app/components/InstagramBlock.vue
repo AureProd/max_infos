@@ -5,7 +5,7 @@ import { nb } from '#shared/utils/format'
  * Les accounts Instagram, une section chacun.
  *
  * Tout vient d'une seule réponse : les accounts que Max a chosen d'afficher,
- * dans l'ordre qu'il a fixé, chacun tronqué au nombre de publications qu'il
+ * dans l'ordre qu'il a fixé, chacun tronqué au count de publications qu'il
  * a chosen. Le name, la photo et la bio sont ceux du account tel qu'Instagram
  * les donne — plus rien n'est écrit à la main, donc plus rien ne peut être
  * falsy.

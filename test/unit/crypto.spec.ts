@@ -31,7 +31,7 @@ describe('chiffrement des secrets', () => {
 
   it('produit un texte chiffré DIFFÉRENT à chaque fois', () => {
     // Un IV réutilisé avec GCM casse la confidentialité ET
-    // l'authentification d'un coup. Deux chiffrements du même clair
+    // l'authentification d'un coup. Deux chiffrements du même plain
     // doivent donc différer.
     const a = encrypt('même valeur')
     const b = encrypt('même valeur')
@@ -66,7 +66,7 @@ describe('chiffrement des secrets', () => {
     }
   })
 
-  it('refuse une clé de mauvaise taille, plutôt que de chiffrer faiblement', () => {
+  it('refuse une clé de mauvaise size, plutôt que de chiffrer faiblement', () => {
     currentKey = randomBytes(16).toString('base64')
     expect(() => encrypt('x')).toThrow(/32 octets/)
   })

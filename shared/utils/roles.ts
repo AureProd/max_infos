@@ -1,26 +1,25 @@
 /**
- * Les two rôles du projet, et ce qu'ils autorisent.
+ * The project's two roles, and what they allow.
  *
- * Ils vivent dans shared/ parce que la règle doit être la MÊME des two
- * côtés : le serveur refuse, et le navigateur masque. Deux implémentations
- * finiraient par diverger, et c'est toujours celle du serveur qu'on
- * oublierait.
+ * They live in shared/ because the rule must be the SAME on both sides: the
+ * server refuses, the browser hides. Two implementations would drift apart
+ * eventually, and it is always the server one that would be forgotten.
  *
- * Le masquage côté navigateur n'est PAS une sécurité : c'est du confort,
- * pour que Max ne voie pas des écrans qui ne le concernent pas. La sécurité
- * est le refus côté serveur, et elle seule.
+ * Hiding things in the browser is NOT a security measure: it is comfort, so
+ * that Max is not shown screens that do not concern him. Security is the
+ * refusal on the server, and nothing else.
  */
 
-/** Par pouvoir croissant. L'ordre porte la règle : voir isAllowed(). */
+/** By increasing power. The order carries the rule: see isAllowed(). */
 export const ROLES = ['editor', 'tech'] as const
 export type Role = (typeof ROLES)[number]
 
 /**
- * `tech` peut all ce que peut `editor`, et davantage.
+ * `tech` can do everything `editor` can, and more.
  *
- * JB est `tech` : il gère l'infrastructure, les accounts tiers et les clés.
- * Max est `editor` : il écrit et règle le site, et ne doit JAMAIS voir un
- * champ technique.
+ * JB is `tech`: he runs the infrastructure, the third-party accounts and
+ * the keys. Max is `editor`: he writes and configures the site, and must
+ * NEVER see a technical field.
  */
 export function isAllowed(role: Role | null | undefined, required: Role): boolean {
   if (!role) return false

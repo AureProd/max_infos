@@ -7,10 +7,10 @@ import { removeToken } from '~~/server/utils/instagram'
 /**
  * Déconnecte un account. Rôle `editor`.
  *
- * DÉFINITIF : le token est oublié, la ligne supprimée, et ses publications
+ * DÉFINITIF : le token est oublié, la row supprimée, et ses publications
  * partent avec elle par la cascade de la clé étrangère — leurs rattachements
  * aux articles compris. C'est la décision prise ; l'écran prévient en
- * annonçant le nombre de publications concernées.
+ * annonçant le count de publications concernées.
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')
@@ -20,16 +20,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Identifiant de compte invalide' })
   }
 
-  // Le token d'abord : si la suppression de la ligne échouait ensuite, mieux
+  // Le token d'abord : si la suppression de la row échouait ensuite, mieux
   // vaut un account sans token — reconnectable — qu'un token orphelin que
   // plus rien ne attached à un account.
   await removeToken(id)
 
-  const [ligne] = await useDatabase()
+  const [row] = await useDatabase()
     .delete(socialAccount)
     .where(eq(socialAccount.id, id))
     .returning({ id: socialAccount.id })
 
-  if (!ligne) throw createError({ statusCode: 404, statusMessage: 'Compte introuvable' })
-  return { supprime: ligne.id }
+  if (!row) throw createError({ statusCode: 404, statusMessage: 'Compte introuvable' })
+  return { supprime: row.id }
 })

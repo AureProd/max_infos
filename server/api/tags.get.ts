@@ -3,7 +3,7 @@ import { useDatabase } from '~~/server/database/client'
 import { article, articleTag, tag } from '~~/server/database/schema'
 
 /**
- * Les tags, avec le nombre d'articles publiés qui les portent.
+ * Les tags, avec le count d'articles publiés qui les portent.
  *
  * Le tri se fait ICI, en JavaScript, et non par un ORDER BY : les images
  * alpine de PostgreSQL n'embarquent pas les locales ICU complètes, et

@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
       accountAvatarUrl: socialAccount.avatarUrl,
       // L'article rattaché, en SOUS-REQUÊTE et non en jointure : la table de
       // liaison autorise plusieurs articles par publication, et une jointure
-      // dupliquerait alors la ligne. L'écran n'en attached qu'un.
+      // dupliquerait alors la row. L'écran n'en attached qu'un.
       articleSlug: sql<string | null>`(
         select a.slug
         from article_social_post asp

@@ -1,7 +1,7 @@
 /**
  * Migration one-shot du content de la maquette vers la base.
  *
- *   pnpm seed              écrit par-dessus l'existant (idempotent)
+ *   pnpm seed              écrit par-dessus l'existing (idempotent)
  *   pnpm seed --reset      vide les tables de content d'abord
  *
  * Idempotent par construction : chaque écriture passe par un
@@ -51,12 +51,12 @@ async function main(): Promise<void> {
   const labels = [...new Set(ARTICLES.flatMap((a) => a.tags))]
   const tags = new Map<string, number>()
   for (const label of labels) {
-    const [ligne] = await db
+    const [row] = await db
       .insert(schema.tag)
       .values({ slug: slugify(label), label })
       .onConflictDoUpdate({ target: schema.tag.slug, set: { label } })
       .returning({ id: schema.tag.id, slug: schema.tag.slug })
-    if (ligne) tags.set(label, ligne.id)
+    if (row) tags.set(label, row.id)
   }
   console.log(`▸ ${tags.size} sujets`)
 
@@ -204,7 +204,7 @@ async function main(): Promise<void> {
       pitch: SITE.pitch,
     },
     contact: {
-      // Chaque champ porte SON PROPRE interrupteur de visibilité. Ceux qui
+      // Chaque field porte SON PROPRE interrupteur de visibilité. Ceux qui
       // viennent de la maquette sont des links publics par nature ; les
       // données personnelles du CV (téléphone, adresse, date de naissance)
       // arriveront masquées, comme le prévoit le plan.
@@ -214,7 +214,7 @@ async function main(): Promise<void> {
         value: l.value,
         href: l.href,
         visible: true,
-        sensible: false,
+        sensitive: false,
       })),
     },
     cv: { skills: SITE.skills, interests: [], languages: [], certifications: [] },

@@ -1,42 +1,44 @@
 /**
- * Résolution des variables d'un gabarit de déclinaison.
+ * Resolves the variables of a variant template.
  *
- * Le but est que Max parte d'un squelette au lieu d'une page blanche. Les
- * variables sont volontairement peu nombreuses et nommées en français : un
- * template doit rester lisible par quelqu'un qui n'écrit pas de code.
+ * The point is that Max starts from a skeleton instead of a blank page. The
+ * variables are deliberately few, and NAMED IN FRENCH: a template has to
+ * stay readable by someone who does not write code. Their names are
+ * content, not identifiers — which is why the keys below are French while
+ * everything around them is English.
  */
 
 export interface ArticleContext {
-  titre: string
-  chapo: string
+  title: string
+  dek: string
   url: string
   tags: string
   minutes: number
-  caracteres: number
+  characters: number
 }
 
 const PATTERN = /\{\{\s*([a-zA-Zà-ÿ]+)\s*\}\}/g
 
 /**
- * Remplace les variables connues. Une variable INCONNUE est laissée telle
- * quelle, et non effacée : Max voit alors qu'il s'est trompé de name, au
- * lieu de découvrir un trou dans son text.
+ * Replaces the known variables. An UNKNOWN variable is left as it is rather
+ * than wiped: Max then sees he got a name wrong, instead of discovering a
+ * hole in his text.
  */
 export function resolve(template: string, context: ArticleContext): string {
+  // The KEYS are the variable names Max writes in his template: they are
+  // content, and stay French.
   const values: Record<string, string> = {
-    titre: context.titre,
-    chapo: context.chapo,
+    titre: context.title,
+    chapo: context.dek,
     url: context.url,
-    // La CLÉ est le nom de variable écrit par Max dans son gabarit : elle
-    // relève du contenu, et reste donc en français.
     sujets: context.tags,
     minutes: String(context.minutes),
-    caracteres: String(context.caracteres),
+    caracteres: String(context.characters),
   }
   return template.replace(PATTERN, (all, name: string) => values[name.toLowerCase()] ?? all)
 }
 
-/** Les noms de variables reconnus, pour l'aide affichée dans l'admin. */
+/** The recognised variable names, for the help shown in the admin. */
 export const VARIABLES = ['titre', 'chapo', 'url', 'sujets', 'minutes', 'caracteres'] as const
 
 export const DEFAULT_TEMPLATES = {

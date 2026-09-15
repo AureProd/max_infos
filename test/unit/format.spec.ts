@@ -31,10 +31,10 @@ describe('nb', () => {
   })
 
   it('produit TOUJOURS le même octet, quelle que soit la version d’ICU', () => {
-    // C'est le cœur du sujet : `toLocaleString('fr-FR')` renvoie U+202F ou
+    // C'est le cœur du tag : `toLocaleString('fr-FR')` renvoie U+202F ou
     // U+00A0 selon l'ICU embarquée. Le serveur et le navigateur rendraient
     // alors two bytes différents, et Vue signalerait un écart
-    // d'hydratation sur chaque nombre affiché.
+    // d'hydratation sur chaque count affiché.
     const rendered = nb(10013)
     expect(rendered).not.toContain(' ')
     expect(rendered).not.toContain(' ') // espace ordinaire

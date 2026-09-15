@@ -44,12 +44,12 @@ export default defineEventHandler(async (event) => {
 
   const { public: pub } = useRuntimeConfig()
   const context = {
-    titre: a.title,
-    chapo: a.dek ?? '',
+    title: a.title,
+    dek: a.dek ?? '',
     url: `${pub.baseUrl.replace(/\/+$/, '')}/article/${a.slug}`,
     tags: '',
     minutes: a.readingMinutes,
-    caracteres: a.charCount,
+    characters: a.charCount,
   }
 
   return {

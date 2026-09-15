@@ -4,7 +4,7 @@ import { type Archive, applyImport, buildExport } from '~~/server/utils/export'
 
 const importBody = z.object({
   archive: z.record(z.string(), z.unknown()),
-  /** Vide les tables before d'écrire. Sans cela, on complète l'existant. */
+  /** Vide les tables before d'écrire. Sans cela, on complète l'existing. */
   vider: z.boolean().default(false),
   /** N'écrit rien : renvoie ce qui SERAIT fait. */
   simulation: z.boolean().default(false),
@@ -14,7 +14,7 @@ const importBody = z.object({
  * Réimporte une archive. Rôle `tech`.
  *
  * `simulation` affiche le différentiel before d'écrire. C'est le mode par
- * défaut de la commande en ligne : réimporter est une opération qu'on ne
+ * défaut de la commande en row : réimporter est une opération qu'on ne
  * lance pas two fois par curiosité.
  */
 export default defineEventHandler(async (event) => {

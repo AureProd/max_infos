@@ -47,8 +47,8 @@ function removeEntry(section: 'education' | 'experience' | 'engagements', i: num
  */
 const SENSITIVE = /t[ée]l[ée]phone|adresse|naissance|portable|mobile|domicile/i
 
-function isSensitive(champ: { key: string; label: string; sensible?: boolean }): boolean {
-  return champ.sensible === true || SENSITIVE.test(`${champ.key} ${champ.label}`)
+function isSensitive(field: { key: string; label: string; sensitive?: boolean }): boolean {
+  return field.sensitive === true || SENSITIVE.test(`${field.key} ${field.label}`)
 }
 
 function addContact(): void {
@@ -56,10 +56,10 @@ function addContact(): void {
     key: '',
     label: '',
     value: '',
-    // Par défaut MASQUÉ : un champ ajouté ne doit pas devenir public par
+    // Par défaut MASQUÉ : un field ajouté ne doit pas devenir public par
     // inadvertance.
     visible: false,
-    sensible: false,
+    sensitive: false,
   })
 }
 
@@ -106,22 +106,22 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
         Chaque champ a son propre interrupteur. Un champ ajouté est masqué par défaut.
       </p>
       <ul v-if="contact.value.value" class="list">
-        <li v-for="(champ, i) in contact.value.value.fields" :key="i">
+        <li v-for="(field, i) in contact.value.value.fields" :key="i">
           <div class="entry">
             <div style="flex: 1">
               <div class="cluster">
-                <input v-model="champ.label" type="text" placeholder="Libellé" />
-                <input v-model="champ.value" type="text" placeholder="Valeur" />
-                <input v-model="champ.href" type="text" placeholder="Lien (facultatif)" />
+                <input v-model="field.label" type="text" placeholder="Libellé" />
+                <input v-model="field.value" type="text" placeholder="Valeur" />
+                <input v-model="field.href" type="text" placeholder="Lien (facultatif)" />
               </div>
-              <p v-if="isSensitive(champ) && champ.visible" class="err">
+              <p v-if="isSensitive(field) && field.visible" class="err">
                 ⚠ Cette donnée personnelle sera publique et indexée par les moteurs de
                 recherche. Elle restera consultable même après l'avoir retirée.
               </p>
             </div>
             <div class="cluster">
               <label class="pill">
-                <input v-model="champ.visible" type="checkbox" />
+                <input v-model="field.visible" type="checkbox" />
                 visible
               </label>
               <button

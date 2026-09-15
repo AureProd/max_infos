@@ -4,38 +4,37 @@ import { secret, socialAccount, socialPost } from '~~/server/database/schema'
 import { decrypt, encrypt } from './crypto'
 
 /**
- * Intégration Instagram — LECTURE SEULE.
+ * Instagram integration — READ ONLY.
  *
- * Le site ne publie jamais. Il découvre les publications de Max, les
- * affiche, et l'aide à rédiger. C'est une décision du projet, pas une
- * limite technique.
+ * The site never publishes. It discovers Max's posts, displays them, and
+ * helps him write. That is a project decision, not a technical limit.
  *
- * Contraintes vérifiées, à ne pas réapprendre : l'API Basic Display est
- * fermée since fin 2024 ; la voie qui fonctionne est l'Instagram API with
- * Instagram Login, qui n'exige PAS de page Facebook since juillet 2024 ;
- * le token longue durée vaut 60 jours et se rafraîchit tant qu'il sert.
+ * Constraints already verified, not to be learnt twice: the Basic Display
+ * API has been closed since late 2024; the path that works is the Instagram
+ * API with Instagram Login, which does NOT require a Facebook page since
+ * July 2024; the long-lived token lasts 60 days and refreshes as long as it
+ * is used.
  */
 
 const BASE = 'https://graph.instagram.com'
 
 /**
- * La clé du token, DÉRIVÉE DU COMPTE.
+ * The token key, DERIVED FROM THE ACCOUNT.
  *
- * Il n'y avait qu'une clé tant qu'il n'y avait qu'un account. Avec plusieurs,
- * une clé unique ferait que le dernier account connecté écraserait le token du
- * précédent — sans error, sans trace, et l'ancien account cesserait de se
- * syncPosts.
+ * There was a single key as long as there was a single account. With
+ * several, one shared key would mean the last account connected overwrites
+ * the previous one's token — no error, no trace, and the older account
+ * would simply stop syncing.
  */
-export const tokenKey = (compteId: number): string => `instagram_access_token:${compteId}`
+export const tokenKey = (accountId: number): string => `instagram_access_token:${accountId}`
 
 /**
- * Le client HTTP, injectable.
+ * The HTTP client, injectable.
  *
- * Type étroit et non `typeof $fetch` : ce dernier porte l'inférence des
- * routes de Nitro, qui sature (« Excessive stack depth ») dès qu'on
- * l'emploie comme value par défaut d'un paramètre. Accessoirement, ce type
- * dit exactement ce dont ce module a besoin — et rend l'injection d'un
- * client simulé évidente dans les tests.
+ * A narrow type rather than `typeof $fetch`: the latter carries Nitro's
+ * route inference, which blows up (« Excessive stack depth ») as soon as it
+ * is used as a parameter default. Incidentally, this type says exactly what
+ * this module needs — and makes injecting a stub client obvious in tests.
  */
 export type HttpClient = <T>(
   url: string,
@@ -71,7 +70,7 @@ export interface InstagramProfile {
   media_count?: number
 }
 
-/** Traduit le vocabulaire de Meta vers le nôtre. */
+/** Translates Meta's vocabulary into ours. */
 export function mediaType(m: InstagramMedia): 'reel' | 'carousel' | 'image' | 'post' {
   if (m.media_product_type === 'REELS') return 'reel'
   if (m.media_type === 'CAROUSEL_ALBUM') return 'carousel'
@@ -79,40 +78,40 @@ export function mediaType(m: InstagramMedia): 'reel' | 'carousel' | 'image' | 'p
   return 'post'
 }
 
-/** Le code short, extrait du permalien : instagram.com/p/ABC123/ → ABC123 */
+/** The shortcode, taken from the permalink: instagram.com/p/ABC123/ → ABC123 */
 export function shortcodeOf(permalink: string): string | null {
   return permalink.match(/instagram\.com\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/)?.[1] ?? null
 }
 
-export async function readToken(compteId: number): Promise<string | null> {
-  const [ligne] = await useDatabase()
+export async function readToken(accountId: number): Promise<string | null> {
+  const [row] = await useDatabase()
     .select({ ciphertext: secret.ciphertext })
     .from(secret)
-    .where(eq(secret.key, tokenKey(compteId)))
+    .where(eq(secret.key, tokenKey(accountId)))
     .limit(1)
-  return ligne ? decrypt(ligne.ciphertext) : null
+  return row ? decrypt(row.ciphertext) : null
 }
 
-export async function saveToken(compteId: number, token: string): Promise<void> {
+export async function saveToken(accountId: number, token: string): Promise<void> {
   const ciphertext = encrypt(token)
   await useDatabase()
     .insert(secret)
-    .values({ key: tokenKey(compteId), ciphertext })
+    .values({ key: tokenKey(accountId), ciphertext })
     .onConflictDoUpdate({ target: secret.key, set: { ciphertext, updatedAt: new Date() } })
 }
 
-/** Déconnecter un account, c'est d'abord oublier son token. */
-export async function removeToken(compteId: number): Promise<void> {
+/** Disconnecting an account means forgetting its token first. */
+export async function removeToken(accountId: number): Promise<void> {
   await useDatabase()
     .delete(secret)
-    .where(eq(secret.key, tokenKey(compteId)))
+    .where(eq(secret.key, tokenKey(accountId)))
 }
 
 /**
- * Rafraîchit le token longue durée.
+ * Refreshes the long-lived token.
  *
- * À faire AVANT l'expiration : un token périmé ne se rafraîchit plus, il
- * faut refaire l'OAuth à la main. D'où la tâche quotidienne.
+ * To be done BEFORE expiry: an expired token cannot be refreshed any more,
+ * the OAuth dance has to be redone by hand. Hence the daily task.
  */
 export async function refreshToken(
   token: string,
@@ -136,10 +135,10 @@ export async function readProfile(
 }
 
 /**
- * Toutes les publications, en suivant la pagination.
+ * Every post, following the pagination.
  *
- * Bornée à 20 pages : sans cela, une pagination qui boucle — ou un account
- * énorme — ferait tourner la synchronisation indéfiniment.
+ * Capped at 20 pages: without that, a pagination that loops — or a huge
+ * account — would keep the sync running forever.
  */
 export async function readMedia(
   token: string,
@@ -164,7 +163,7 @@ export async function readMedia(
     const next = response.paging?.next
     if (next) {
       url = next
-      // L'URL « next » porte déjà ses paramètres.
+      // The « next » URL already carries its parameters.
       query = undefined
     } else {
       again = false
@@ -175,16 +174,16 @@ export async function readMedia(
 }
 
 /**
- * Écrit les publications en base, sans jamais dupliquer.
+ * Writes the posts to the database, never duplicating.
  *
- * L'idempotence tient à l'index unique (network, external_id) : rejouer une
- * synchronisation met à day au lieu d'insérer. `hidden` et `position` ne
- * sont PAS touchés à la mise à day — ce sont des décisions de Max, que la
- * synchronisation n'a pas à défaire.
+ * Idempotence rests on the unique index (network, external_id): replaying a
+ * sync updates instead of inserting. `hidden` and `position` are NOT
+ * touched on update — they are Max's decisions, and a sync has no business
+ * undoing them.
  */
 export async function syncPosts(
   mediaItems: InstagramMedia[],
-  compteId: number,
+  accountId: number,
 ): Promise<{ views: number; fresh: number }> {
   const db = useDatabase()
   let fresh = 0
@@ -200,7 +199,7 @@ export async function syncPosts(
       .insert(socialPost)
       .values({
         network: 'instagram',
-        accountId: compteId,
+        accountId: accountId,
         externalId: m.id,
         shortcode: shortcodeOf(m.permalink),
         url: m.permalink,
@@ -215,9 +214,9 @@ export async function syncPosts(
       .onConflictDoUpdate({
         target: [socialPost.network, socialPost.externalId],
         set: {
-          // accountId est repris : une publication déjà connue qui
-          // réapparaît sous un autre account se range là où elle est.
-          accountId: compteId,
+          // accountId is carried over: an already known post reappearing
+          // under another account files itself where it now belongs.
+          accountId: accountId,
           caption: m.caption ?? null,
           thumbnailUrl: m.thumbnail_url ?? m.media_url ?? null,
           permalink: m.permalink,
@@ -234,13 +233,13 @@ export async function syncPosts(
 }
 
 /**
- * Enregistre le account à partir du profile Meta, et renvoie son identifiant.
+ * Saves the account from the Meta profile, and returns its id.
  *
- * L'identité affichée vient TOUJOURS d'here : Max ne la saisit pas, et une
- * correction faite sur Instagram remonte d'elle-même. En revanche `visible`,
- * `position` et `postsOnHome` ne sont PAS touchés — ce sont ses décisions, et
- * une synchronisation n'a pas à les défaire, exactement comme `hidden` et
- * `position` sur les publications.
+ * The displayed identity ALWAYS comes from here: Max does not type it in,
+ * and a correction made on Instagram flows back on its own. `visible`,
+ * `position` and `postsOnHome`, on the other hand, are NOT touched — they
+ * are his decisions, and a sync has no business undoing them, exactly like
+ * `hidden` and `position` on posts.
  */
 export async function saveAccount(profile: InstagramProfile): Promise<number> {
   const identity = {
@@ -253,7 +252,7 @@ export async function saveAccount(profile: InstagramProfile): Promise<number> {
     lastSyncAt: new Date(),
   }
 
-  const [ligne] = await useDatabase()
+  const [row] = await useDatabase()
     .insert(socialAccount)
     .values({ network: 'instagram', externalId: profile.id, ...identity })
     .onConflictDoUpdate({
@@ -262,16 +261,16 @@ export async function saveAccount(profile: InstagramProfile): Promise<number> {
     })
     .returning({ id: socialAccount.id })
 
-  if (!ligne) throw new Error("Le compte Instagram n'a pas pu être enregistré")
-  return ligne.id
+  if (!row) throw new Error("Le compte Instagram n'a pas pu être enregistré")
+  return row.id
 }
 
 /**
- * Les accounts à syncPosts — masqués COMPRIS.
+ * The accounts to sync — hidden ones INCLUDED.
  *
- * Masquer un account est une décision d'affichage, pas une rupture de la
- * connection : le réafficher doit montrer des publications à day, pas un trou
- * correspondant à la durée du masquage.
+ * Hiding an account is a display decision, not a broken connection: showing
+ * it again must reveal up-to-date posts, not a gap the size of how long it
+ * stayed hidden.
  */
 export async function instagramAccounts() {
   return await useDatabase()
@@ -286,23 +285,23 @@ export async function instagramAccounts() {
 }
 
 /**
- * L'échange OAuth, en two temps imposés par Meta.
+ * The OAuth exchange, in two steps imposed by Meta.
  *
- * Le code d'autorisation donne un token COURT (une heure), inutilisable
- * tel quel : il faut immédiatement l'échanger contre un token long
- * (60 jours), seul rafraîchissable. Oublier le second échange donne une
- * intégration qui marche une heure then meurt sans message clair — c'est
- * le piège classique de cette API.
+ * The authorization code yields a SHORT-lived token (one hour), unusable as
+ * is: it must be exchanged immediately for a long-lived one (60 days), the
+ * only refreshable kind. Forgetting the second exchange gives an
+ * integration that works for an hour then dies without a clear message —
+ * the classic trap of this API.
  */
-const OAUTH_JETON = 'https://api.instagram.com/oauth/access_token'
+const OAUTH_TOKEN_URL = 'https://api.instagram.com/oauth/access_token'
 
-/** L'URL vers laquelle envoyer Max pour qu'il autorise l'application. */
-export function authorizationUrl(appId: string, redirection: string, state: string): string {
+/** The URL to send Max to so he can authorize the application. */
+export function authorizationUrl(appId: string, redirectUri: string, state: string): string {
   const q = new URLSearchParams({
     client_id: appId,
-    redirect_uri: redirection,
-    // Lecture seule : le site ne publie jamais, il ne request donc jamais
-    // la permission de publier.
+    redirect_uri: redirectUri,
+    // Read only: the site never publishes, so it never asks for the
+    // permission to publish.
     scope: 'instagram_business_basic',
     response_type: 'code',
     state: state,
@@ -314,28 +313,28 @@ export async function exchangeCode(
   code: string,
   appId: string,
   appSecret: string,
-  redirection: string,
+  redirectUri: string,
   http: typeof globalThis.fetch = globalThis.fetch,
 ): Promise<string> {
-  // Formulaire et non JSON : cet unique point d'entrée de Meta refuse
-  // l'application/json, sans le dire autrement que par un 400.
+  // Form and not JSON: this one Meta endpoint refuses application/json,
+  // and says so only through a 400.
   const body = new URLSearchParams({
     client_id: appId,
     client_secret: appSecret,
     grant_type: 'authorization_code',
-    redirect_uri: redirection,
+    redirect_uri: redirectUri,
     code,
   })
-  const response = await http(OAUTH_JETON, { method: 'POST', body: body })
+  const response = await http(OAUTH_TOKEN_URL, { method: 'POST', body: body })
   if (!response.ok) throw new Error(`Instagram a refusé le code (${response.status})`)
   const short = (await response.json()) as { access_token?: string }
   if (!short.access_token) throw new Error("Instagram n'a pas renvoyé de jeton")
   return short.access_token
 }
 
-/** Le second échange : token short → token long, le seul qui vaille. */
+/** The second exchange: short-lived token → long-lived one, the only one that counts. */
 export async function extendToken(
-  jetonCourt: string,
+  shortToken: string,
   appSecret: string,
   http: HttpClient = defaultClient,
 ): Promise<string> {
@@ -343,19 +342,19 @@ export async function extendToken(
     query: {
       grant_type: 'ig_exchange_token',
       client_secret: appSecret,
-      access_token: jetonCourt,
+      access_token: shortToken,
     },
   })
   return long.access_token
 }
 
 /**
- * L'URI de redirection, DÉDUITE de l'URL publique.
+ * The redirect URI, DERIVED from the public URL.
  *
- * Elle doit correspondre au caractère près à celle déclarée chez Meta. La
- * déduire d'une seule source évite l'écart le plus fréquent — une barre
- * oblique finale de différence, et l'échange échoue sur un message qui ne
- * dit pas pourquoi.
+ * It must match the one declared at Meta character for character. Deriving
+ * it from a single source avoids the most common mismatch — one trailing
+ * slash of difference, and the exchange fails on a message that does not
+ * say why.
  */
 export function redirectUrl(baseUrl: string): string {
   return `${baseUrl.replace(/\/$/, '')}/api/admin/instagram/callback`

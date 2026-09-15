@@ -7,7 +7,7 @@ const { data: bord } = await useFetch('/api/admin/dashboard', { key: 'admin-bord
 
 const { user } = useUser()
 
-/** « Bonjour Max » plutôt qu'un titre d'écran : c'est sa page d'accueil. */
+/** « Bonjour Max » plutôt qu'un title d'écran : c'est sa page d'accueil. */
 const firstName = computed(() => user.value?.name?.split(' ')[0] ?? '')
 
 useSeoMeta({ title: 'Rédaction', robots: 'noindex, nofollow' })

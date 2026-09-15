@@ -3,7 +3,7 @@ import { useDatabase } from '~~/server/database/client'
 import { article, articleTag, tag } from '~~/server/database/schema'
 import { requireRole } from '~~/server/utils/auth'
 
-/** Tous les tags, avec le nombre d'articles — brouillons compris. */
+/** Tous les tags, avec le count d'articles — brouillons compris. */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')
 

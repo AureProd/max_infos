@@ -3,7 +3,7 @@ import { useDatabase } from '~~/server/database/client'
 import { article, media } from '~~/server/database/schema'
 import { readSetting } from '~~/server/utils/settings'
 
-/** Échappement XML. Un titre contenant « & » casserait le feed sans cela. */
+/** Échappement XML. Un title contenant « & » casserait le feed sans cela. */
 const x = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 

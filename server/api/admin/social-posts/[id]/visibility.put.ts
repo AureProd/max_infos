@@ -8,7 +8,7 @@ import { requireRole } from '~~/server/utils/auth'
 /**
  * Masque ou réaffiche une publication.
  *
- * La synchronisation Instagram ne touche JAMAIS ce champ : c'est une
+ * La synchronisation Instagram ne touche JAMAIS ce field : c'est une
  * décision de Max, qu'un passage automatique n'a pas à défaire.
  */
 export default defineEventHandler(async (event) => {

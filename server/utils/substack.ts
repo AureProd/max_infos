@@ -2,7 +2,7 @@
  * Lecture du feed RSS Substack, pour la migration initiale.
  *
  * Substack n'expose aucune API. Son feed RSS est la seule source
- * exploitable, et il suffit : titre, link, date, chapô, body en HTML et
+ * exploitable, et il suffit : title, link, date, chapô, body en HTML et
  * surtout l'URL de l'image de couverture, que personne n'a envie de
  * réenregistrer à la main pour chaque article déjà publié.
  *
@@ -15,10 +15,10 @@
  */
 
 export interface ArticleSubstack {
-  titre: string
+  title: string
   link: string
   publieLe: string | null
-  chapo: string
+  dek: string
   bodyHtml: string
   couverture: string | null
 }
@@ -33,7 +33,7 @@ function decode(text: string): string {
       .replace(/&quot;/g, '"')
       .replace(/&#0?39;|&apos;/g, "'")
       .replace(/&nbsp;/g, ' ')
-      // En dernier, sans quoi « &amp;lt; » deviendrait « < » au lieu de « &lt; ».
+      // En last, sans quoi « &amp;lt; » deviendrait « < » au lieu de « &lt; ».
       .replace(/&amp;/g, '&')
       .trim()
   )
@@ -81,15 +81,15 @@ export function parseSubstackFeed(xml: string): ArticleSubstack[] {
       // chapô. Les confondre importerait des articles tronqués.
       const bodyHtml = tagName(item, 'content:encoded')
       return {
-        titre: tagName(item, 'title'),
+        title: tagName(item, 'title'),
         link: tagName(item, 'link'),
         publieLe: dateIso(tagName(item, 'pubDate')),
-        chapo: tagName(item, 'description')
+        dek: tagName(item, 'description')
           .replace(/<[^>]+>/g, '')
           .trim(),
         bodyHtml,
         couverture: coverOf(item, bodyHtml),
       }
     })
-    .filter((a) => a.titre !== '' && a.link !== '')
+    .filter((a) => a.title !== '' && a.link !== '')
 }

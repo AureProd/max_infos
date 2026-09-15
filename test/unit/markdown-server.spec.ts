@@ -19,7 +19,7 @@ describe('rendu Markdown de référence', () => {
   })
 
   it('accepte les blocs de code délimités par ~~~', () => {
-    // Convention retenue pour rester lisible dans un champ de input.
+    // Convention retenue pour rester lisible dans un field de input.
     expect(renderMarkdown('~~~\nconst a = 1\n~~~')).toContain('<pre>')
   })
 })
@@ -126,7 +126,7 @@ describe('les cinq articles réels', () => {
     // Inventaire RÉEL des cinq articles, relevé et non supposé : ni gras ni
     // citation n'y figurent aujourd'hui. Fixé volontairement — si le rendered
     // se met à produire une tagName que `.prose` ne style pas, ce test le dit
-    // before que ça se voie en ligne.
+    // before que ça se voie en row.
     expect([...tagNames].sort()).toEqual(['a', 'em', 'h2', 'li', 'p', 'ul'])
   })
 })
