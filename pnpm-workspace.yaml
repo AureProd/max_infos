@@ -13,3 +13,10 @@ allowBuilds:
 # against registry compromises). The accepted exceptions are listed here.
 minimumReleaseAgeExclude:
   - zod@4.6.5
+
+# drizzle-kit still drags in the deprecated @esbuild-kit/esm-loader, which
+# pins esbuild 0.18.20 -- GHSA-67mh-4wv8-2f99. drizzle-kit itself already
+# depends on esbuild ^0.25.4: the override merely aligns the loader on the
+# version already installed, rather than keeping a second, vulnerable copy.
+overrides:
+  esbuild: ^0.25.4
