@@ -18,7 +18,7 @@ import * as schema from '../../server/database/schema'
 // Repli sur la base db-test du compose de développement : éphémère, en
 // mémoire, liée à 127.0.0.1.
 const URL_TEST =
-  process.env.TEST_DATABASE_URL ?? 'postgres://unmaxdinfo:test@127.0.0.1:15000/unmaxdinfo_test' // pragma: allowlist secret
+  process.env.TEST_DATABASE_URL ?? 'postgres://unmaxdinfo:test@127.0.0.1:15000/unmaxdinfo_test'
 
 export type BaseDeTest = ReturnType<typeof drizzle<typeof schema>>
 
@@ -173,7 +173,7 @@ export async function semerJeuDeTest(db: BaseDeTest): Promise<void> {
       source: 'api',
       // Sert à vérifier que la charge brute de Meta ne sort JAMAIS d'une
       // réponse d'API. Valeur factice.
-      raw: { secret_meta: 'ne doit jamais sortir' }, // pragma: allowlist secret
+      raw: { secret_meta: 'ne doit jamais sortir' },
     })
     .returning()
 

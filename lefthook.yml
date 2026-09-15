@@ -1,0 +1,48 @@
+# Les vérifications posées devant le commit. Remplace pre-commit, qui
+# imposait Python et uv dans un dépôt par ailleurs 100 % TypeScript.
+#
+# L'installation se fait toute seule : le script `prepare` de package.json
+# lance `lefthook install` à chaque `pnpm install`. Auparavant rien ne
+# garantissait qu'un clone ait ses hooks posés.
+#
+# Pour tout passer sans commiter : `pnpm hooks`.
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: hygiene
+      # Espaces en fin de ligne, newline finale, CRLF, marqueurs de conflit,
+      # fichiers volumineux, collisions de casse, YAML et JSON valides.
+      run: node scripts/hooks/hygiene.mjs {staged_files}
+
+    - name: secrets
+      # Le garde-fou qui compte, et il compte davantage depuis que le dépôt
+      # est public : une clé poussée sur un dépôt public est compromise
+      # immédiatement et irréversiblement, les forks et les caches GitHub la
+      # conservant malgré toute réécriture d'historique.
+      run: pnpm exec secretlint --maskSecrets {staged_files}
+
+    - name: biome
+      glob: "*.{js,mjs,cjs,ts,mts,cts,vue,css,json,jsonc}"
+      exclude:
+        - "app/assets/css/base.css"
+      run: pnpm exec biome check --write --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+
+    - name: typage
+      # L'équivalent de `mypy --strict`. Contrairement à Biome, il lit les
+      # templates : c'est lui qui voit un composant mal typé. Il travaille
+      # sur le projet entier, pas sur les fichiers indexés.
+      glob: "*.{ts,vue}"
+      exclude:
+        - "frontend/**"
+      run: pnpm typecheck
+
+    - name: v-html
+      glob: "*.vue"
+      run: scripts/hooks/check-v-html.sh
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}

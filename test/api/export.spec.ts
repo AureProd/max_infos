@@ -25,7 +25,7 @@ beforeAll(async () => {
   // Un jeton chiffré, pour vérifier qu'il ne sort JAMAIS.
   await db.insert(secret).values({
     key: 'instagram_access_token',
-    ciphertext: 'v1.aaa.bbb.jeton-chiffre-a-ne-jamais-exporter', // pragma: allowlist secret
+    ciphertext: 'v1.aaa.bbb.jeton-chiffre-a-ne-jamais-exporter',
   })
 }, 60_000)
 

@@ -9,7 +9,9 @@
       "Bash(git diff*)",
       "Bash(git log*)",
       "Bash(git show*)",
-      "Bash(pre-commit run*)",
+      "Bash(pnpm hooks*)",
+      "Bash(pnpm secrets*)",
+      "Bash(lefthook run*)",
       "Read"
     ],
     "deny": ["Bash(git push --force*)", "Bash(git push -f*)", "Bash(docker compose down -v*)"]

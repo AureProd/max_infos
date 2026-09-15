@@ -90,7 +90,7 @@ services:
       POSTGRES_DB: unmaxdinfo_test
       POSTGRES_USER: unmaxdinfo
       # Base éphémère, en mémoire, liée à 127.0.0.1 : rien à protéger.
-      POSTGRES_PASSWORD: test # pragma: allowlist secret
+      POSTGRES_PASSWORD: test
       # Sans durabilité : une base de test qui perd tout au redémarrage est
       # sans conséquence, et c'est deux à trois fois plus rapide.
       POSTGRES_INITDB_ARGS: "--nosync"

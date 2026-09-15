@@ -48,14 +48,14 @@ export default defineConfig(async () => ({
             // téléversement sans bucket, et sans que la matrice
             // d'autorisations dépende de la configuration du stockage.
             NUXT_R2_ENDPOINT: 'https://exemple.r2.cloudflarestorage.com',
-            NUXT_R2_ACCESS_KEY_ID: 'cle-de-test', // pragma: allowlist secret
-            NUXT_R2_SECRET_ACCESS_KEY: 'secret-de-test', // pragma: allowlist secret
+            NUXT_R2_ACCESS_KEY_ID: 'cle-de-test',
+            NUXT_R2_SECRET_ACCESS_KEY: 'secret-de-test',
             NUXT_R2_BUCKET: 'unmaxdinfo-test',
             NUXT_PUBLIC_R2_BASE_URL: 'https://media.exemple.test',
-            NUXT_SESSION_PASSWORD: 'mot-de-passe-de-session-pour-les-tests-32c', // pragma: allowlist secret
+            NUXT_SESSION_PASSWORD: 'mot-de-passe-de-session-pour-les-tests-32c',
             NUXT_DATABASE_URL:
               process.env.TEST_DATABASE_URL ??
-              'postgres://unmaxdinfo:test@127.0.0.1:15000/unmaxdinfo_test', // pragma: allowlist secret
+              'postgres://unmaxdinfo:test@127.0.0.1:15000/unmaxdinfo_test',
           },
           // La base est partagée : on évite la contention tant que la suite
           // est petite.

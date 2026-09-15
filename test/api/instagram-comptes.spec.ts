@@ -16,7 +16,7 @@ import { type BaseDeTest, base, connexion, migrer } from '../setup/db'
  * de `databaseUrl`, et `chiffrer` que de la clé.
  */
 const URL_TEST =
-  process.env.TEST_DATABASE_URL ?? 'postgres://unmaxdinfo:test@127.0.0.1:15000/unmaxdinfo_test' // pragma: allowlist secret
+  process.env.TEST_DATABASE_URL ?? 'postgres://unmaxdinfo:test@127.0.0.1:15000/unmaxdinfo_test'
 
 // Une clé TIRÉE UNE FOIS : la régénérer à chaque appel rendrait tout
 // déchiffrement impossible, ce que le test a d'abord démontré.

@@ -71,5 +71,5 @@ quand le nouveau schéma est appliqué.
 
 ```bash
 pnpm verify              # lint + typage + tests + build
-pre-commit run --all-files
+pnpm hooks               # les cinq contrôles de commit, sur tout le dépôt
 ```

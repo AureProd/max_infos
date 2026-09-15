@@ -188,17 +188,18 @@ sinon. Préfixes admis : `feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
 `test`, `build`, `ci`, `chore`, `revert`. Un `!` signale une rupture
 (`chore!: …`).
 
-**Les vérifications tournent avant chaque commit.** À installer une fois :
+**Les vérifications tournent avant chaque commit.** Rien à installer :
+`pnpm install` pose les hooks lui-même, par le script `prepare`. Tout le
+dépôt tient désormais sur Node et pnpm — ni Python, ni uv.
 
 ```bash
-uv tool install pre-commit     # ou : pipx install pre-commit
-pre-commit install --install-hooks -t pre-commit -t commit-msg
+pnpm hooks       # tout passer sans commiter
+pnpm secrets     # seulement la recherche de secrets
 ```
 
-C'est le seul outil Python qui subsiste, et c'est délibéré : le hook qui
-compte le plus est `detect-secrets`, avec une liste de faux positifs déjà
-auditée, et il est écrit en Python. Changer d'ordonnanceur pour retirer
-Python tout en gardant un hook Python n'enlèverait rien.
+Cinq contrôles : hygiène des fichiers, recherche de secrets (secretlint),
+Biome, typage, et l'interdiction de `v-html`. Le message de commit est
+vérifié à part, par commitlint.
 
 **Le développement se fait en TDD** : le test d'abord, rouge, puis le code.
 

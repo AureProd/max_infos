@@ -31,7 +31,7 @@
 | 10 — Export / import avec aller-retour vérifié | ✅ |
 | 11 — CI, compose de production, déploiement | ✅ écrit, **pas encore exécuté** |
 
-**337 tests.** `pnpm verify` et `pre-commit run --all-files` passent.
+**352 tests.** `pnpm verify` et `pnpm hooks` passent.
 
 Le back-office est complet : tableau de bord, articles avec couverture et
 panneau Décliner, publications, **Réseaux**, accueil, CV illustré (photo +

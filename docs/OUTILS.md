@@ -236,25 +236,48 @@ lignes seules se contourne trivialement.
 
 ---
 
-## pre-commit — les vérifications avant commit
+## lefthook — les vérifications avant commit
 
-Le seul outil Python restant, et c'est délibéré : le hook qui compte le plus
-est `detect-secrets`, avec sa liste de faux positifs déjà auditée, et il est
-écrit en Python.
+L'ordonnanceur des hooks Git. Il a remplacé `pre-commit`, qui imposait
+Python et `uv` dans un dépôt par ailleurs entièrement TypeScript : tout
+tient maintenant sur Node et pnpm.
+
+**Rien à installer.** Le script `prepare` de `package.json` lance
+`lefthook install` à chaque `pnpm install`. Auparavant, rien ne garantissait
+qu'un clone ait ses hooks posés.
 
 ```bash
-uv tool install pre-commit    # ou : pipx install pre-commit
-pre-commit install --install-hooks -t pre-commit -t commit-msg
-
-pre-commit run --all-files    # tout vérifier sans commiter
+pnpm hooks       # les cinq contrôles, sur tout le dépôt, sans commiter
+pnpm secrets     # seulement la recherche de secrets
 ```
 
-Si `detect-secrets` signale une valeur qui n'est pas un secret (une chaîne
-de test, par exemple), ajouter en fin de ligne :
+| Contrôle | Ce qu'il fait |
+|---|---|
+| `hygiene` | `scripts/hooks/hygiene.mjs` : espaces en fin de ligne, newline finale, CRLF, marqueurs de conflit, fichiers de plus de 512 ko, collisions de casse, YAML et JSON valides |
+| `secrets` | **secretlint** — voir ci-dessous |
+| `biome` | lint et format, avec correction automatique et réindexation du fichier corrigé |
+| `typage` | `vue-tsc` sur le projet entier : c'est lui qui lit les templates |
+| `v-html` | `scripts/hooks/check-v-html.sh` |
 
-```ts
-const motDePasse = 'test' // pragma: allowlist secret
-```
+Le message de commit est vérifié à part, par **commitlint**, qui applique
+exactement la liste de préfixes d'avant.
+
+### secretlint — aucun secret en clair
+
+Le garde-fou qui compte, et il compte davantage depuis que le dépôt est
+public. Il a remplacé `detect-secrets` (Python) ; sa `.secrets.baseline` ne
+contenait que deux faux positifs, il n'y avait pas d'acquis à perdre.
+
+Sa détection par motifs est en revanche plus étroite que l'analyse par
+entropie de `detect-secrets` : le preset recommandé laisse passer un
+identifiant AWS isolé ou un bloc de clé privée. `.secretlintrc.json` ajoute
+donc trois motifs maison — clé privée PEM, identifiant `AKIA`/`ASIA`, et
+toute valeur un peu longue affectée à un nom contenant `SECRET`, `PASSWORD`,
+`TOKEN`, `API_KEY` ou `ACCESS_KEY`.
+
+Les `// pragma: allowlist secret` d'avant ont disparu : une valeur de test
+légitime s'inscrit maintenant dans le tableau `allows` de
+`.secretlintrc.json`, à un seul endroit plutôt que dispersée dans le code.
 
 ---
 

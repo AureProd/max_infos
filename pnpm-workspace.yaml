@@ -5,6 +5,9 @@ allowBuilds:
   # esbuild récupère son binaire natif dans son script postinstall. Sans lui,
   # Vite (donc Nuxt) ne peut pas compiler. Dépendance transitive de Vite.
   esbuild: true
+  # lefthook place le binaire Go livré par npm dans .bin depuis son script
+  # d'installation. Sans lui, aucun hook Git n'est posé.
+  lefthook: true
 
 # pnpm 12 refuse aussi les versions publiées trop récemment (fenêtre de
 # quarantaine contre les compromissions de registre). Les exceptions

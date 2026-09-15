@@ -32,10 +32,10 @@ const CONFIG_MINIMALE = {
 
 // Valeurs factices : seule leur PRÉSENCE est testée, jamais leur contenu.
 const SECRETS_DE_PROD = {
-  databaseUrl: 'postgres://u:p@db:5432/d', // pragma: allowlist secret
+  databaseUrl: 'postgres://u:p@db:5432/d',
   secretEncryptionKey: 'k'.repeat(44),
   session: { password: 's'.repeat(64), name: 'umdi_session' },
-  oauth: { google: { clientId: 'id', clientSecret: 'cs' } }, // pragma: allowlist secret
+  oauth: { google: { clientId: 'id', clientSecret: 'cs' } },
 }
 
 describe('configuration', () => {
@@ -65,7 +65,7 @@ describe('configuration', () => {
         ...CONFIG_MINIMALE,
         ...SECRETS_DE_PROD,
         session: { password: '', name: 'umdi_session' },
-        oauth: { google: { clientId: '', clientSecret: 'cs' } }, // pragma: allowlist secret
+        oauth: { google: { clientId: '', clientSecret: 'cs' } },
         public: { ...CONFIG_MINIMALE.public, appEnv: 'prod' },
       })
     } catch (e) {

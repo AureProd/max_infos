@@ -22,8 +22,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # pre-commit en différentiel a besoin de l'historique
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -34,17 +32,12 @@ jobs:
         run: pnpm exec biome ci .
       - name: Typage
         run: pnpm typecheck
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: pre-commit (différentiel sur la PR, complet sur main)
-        run: |
-          pipx install pre-commit
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            pre-commit run --from-ref origin/${{ github.base_ref }} --to-ref HEAD --show-diff-on-failure
-          else
-            pre-commit run --all-files --show-diff-on-failure
-          fi
+      - name: Aucun secret en clair
+        run: pnpm secrets
+      - name: Hygiène des fichiers
+        run: node scripts/hooks/hygiene.mjs $(git ls-files)
+      - name: Aucun v-html non autorisé
+        run: scripts/hooks/check-v-html.sh
 
   test:
     name: Tests
