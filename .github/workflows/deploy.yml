@@ -133,6 +133,14 @@ jobs:
         #
         # The values travel through the step's environment, never the
         # command line: `ps` would show it to every process on the runner.
+        #
+        # And the file itself is NEVER WRITTEN ON THE RUNNER. It travels as a
+        # single base64 line and is rebuilt on the server, under `umask 077`.
+        # Copying it would have meant opening it to every user first — the
+        # copy action runs in a container under another identity, and `tar`
+        # answered « Permission denied » on a 0600 file. base64 also settles
+        # the quoting question for good: its alphabet holds no quote, no
+        # space and no `$`, so no password can break out of the transport.
         env:
           # --- Secrets ---------------------------------------------------
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -192,7 +200,7 @@ jobs:
           # apart make a failure whose cause does not show.
           database_url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST}:${DB_PORT}/${POSTGRES_DB}"
 
-          {
+          content=$(
             echo "# Built by GitHub Actions, overwritten on every deployment."
             echo "# Do not edit here: the source of truth is"
             echo "# Settings -> Secrets and variables -> Actions -> production."
@@ -224,9 +232,10 @@ jobs:
             echo "NUXT_PUBLIC_APP_ENV=prod"
             echo "NUXT_PUBLIC_BASE_URL=https://${URL_HOST}"
             echo "NUXT_PUBLIC_R2_BASE_URL=${NUXT_PUBLIC_R2_BASE_URL}"
-          } > .env
+          )
 
-          echo "$(wc -l < .env) variables written."
+          printf 'ENV_B64=%s\n' "$(printf '%s\n' "$content" | base64 -w0)" >> "$GITHUB_ENV"
+          echo "$(printf '%s\n' "$content" | wc -l) variables prepared."
 
       - name: Copier sur le serveur
         uses: appleboy/scp-action@v0.1.7
@@ -235,7 +244,10 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
-          source: docker-compose.yml,.env
+          # The .env is NOT here: it is rebuilt on the server, in the next
+          # step. The rendered compose carries no secret — the previous step
+          # checks that rather than assuming it.
+          source: docker-compose.yml
           target: ${{ secrets.DEPLOY_PATH }}
 
       - name: Migrer PUIS basculer
@@ -245,11 +257,14 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
+          envs: ENV_B64
           script: |
             set -euo pipefail
             cd "${{ secrets.DEPLOY_PATH }}"
-            # scp does not guarantee the permissions: the .env must only be
-            # readable by its owner.
+            # Born 0600, and never anything else: the file does not exist
+            # before this line, on the runner or on the server.
+            umask 077
+            printf '%s' "$ENV_B64" | base64 -d > .env
             chmod 600 .env
             docker compose pull
             # The && is the whole guarantee: a failed migration means no
