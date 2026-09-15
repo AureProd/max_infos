@@ -143,21 +143,31 @@ jobs:
           NUXT_R2_ACCESS_KEY_ID: ${{ secrets.NUXT_R2_ACCESS_KEY_ID }}
           NUXT_R2_SECRET_ACCESS_KEY: ${{ secrets.NUXT_R2_SECRET_ACCESS_KEY }}
           NUXT_INSTAGRAM_APP_SECRET: ${{ secrets.NUXT_INSTAGRAM_APP_SECRET }}
-          # --- Variables (lisibles : rien de confidentiel) ----------------
-          URL_HOST: ${{ vars.URL_HOST || 'unmaxdinfo.fr' }}
-          POSTGRES_DB: ${{ vars.POSTGRES_DB || 'unmaxdinfo' }}
-          POSTGRES_USER: ${{ vars.POSTGRES_USER || 'unmaxdinfo' }}
-          DB_HOST: ${{ vars.DB_HOST || 'db' }}
-          DB_PORT: ${{ vars.DB_PORT || '5432' }}
-          NUXT_OAUTH_GOOGLE_CLIENT_ID: ${{ vars.NUXT_OAUTH_GOOGLE_CLIENT_ID }}
-          NUXT_OAUTH_GOOGLE_REDIRECT_URL: ${{ vars.NUXT_OAUTH_GOOGLE_REDIRECT_URL }}
-          NUXT_BOOTSTRAP_TECH_EMAIL: ${{ vars.NUXT_BOOTSTRAP_TECH_EMAIL }}
-          NUXT_R2_BUCKET: ${{ vars.NUXT_R2_BUCKET }}
-          NUXT_R2_ENDPOINT: ${{ vars.NUXT_R2_ENDPOINT }}
-          NUXT_INSTAGRAM_APP_ID: ${{ vars.NUXT_INSTAGRAM_APP_ID }}
-          NUXT_INSTAGRAM_SYNC_INTERVAL_MINUTES: ${{ vars.NUXT_INSTAGRAM_SYNC_INTERVAL_MINUTES || '60' }}
-          NUXT_SCHEDULER_ENABLED: ${{ vars.NUXT_SCHEDULER_ENABLED || 'true' }}
-          NUXT_PUBLIC_R2_BASE_URL: ${{ vars.NUXT_PUBLIC_R2_BASE_URL }}
+          # --- Réglages, lus des DEUX côtés -------------------------------
+          #
+          # `vars.X || secrets.X`. Ces valeurs n'ont rien de confidentiel — un
+          # identifiant client, un nom de bucket, une adresse de redirection —
+          # et leur place est dans Variables. Mais rien n'empêche de les saisir
+          # dans Secrets, et `vars.` renvoie alors une chaîne vide.
+          #
+          # Les deux sont donc acceptés, et ce n'est pas du confort : celles
+          # qui ont une valeur par défaut basculeraient dessus SANS RIEN DIRE.
+          # Un déploiement réussi en apparence, sur le mauvais hôte ou avec
+          # l'ordonnanceur qu'on croyait avoir coupé.
+          URL_HOST: ${{ vars.URL_HOST || secrets.URL_HOST || 'unmaxdinfo.fr' }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB || secrets.POSTGRES_DB || 'unmaxdinfo' }}
+          POSTGRES_USER: ${{ vars.POSTGRES_USER || secrets.POSTGRES_USER || 'unmaxdinfo' }}
+          DB_HOST: ${{ vars.DB_HOST || secrets.DB_HOST || 'db' }}
+          DB_PORT: ${{ vars.DB_PORT || secrets.DB_PORT || '5432' }}
+          NUXT_OAUTH_GOOGLE_CLIENT_ID: ${{ vars.NUXT_OAUTH_GOOGLE_CLIENT_ID || secrets.NUXT_OAUTH_GOOGLE_CLIENT_ID }}
+          NUXT_OAUTH_GOOGLE_REDIRECT_URL: ${{ vars.NUXT_OAUTH_GOOGLE_REDIRECT_URL || secrets.NUXT_OAUTH_GOOGLE_REDIRECT_URL }}
+          NUXT_BOOTSTRAP_TECH_EMAIL: ${{ vars.NUXT_BOOTSTRAP_TECH_EMAIL || secrets.NUXT_BOOTSTRAP_TECH_EMAIL }}
+          NUXT_R2_BUCKET: ${{ vars.NUXT_R2_BUCKET || secrets.NUXT_R2_BUCKET }}
+          NUXT_R2_ENDPOINT: ${{ vars.NUXT_R2_ENDPOINT || secrets.NUXT_R2_ENDPOINT }}
+          NUXT_INSTAGRAM_APP_ID: ${{ vars.NUXT_INSTAGRAM_APP_ID || secrets.NUXT_INSTAGRAM_APP_ID }}
+          NUXT_INSTAGRAM_SYNC_INTERVAL_MINUTES: ${{ vars.NUXT_INSTAGRAM_SYNC_INTERVAL_MINUTES || secrets.NUXT_INSTAGRAM_SYNC_INTERVAL_MINUTES || '60' }}
+          NUXT_SCHEDULER_ENABLED: ${{ vars.NUXT_SCHEDULER_ENABLED || secrets.NUXT_SCHEDULER_ENABLED || 'true' }}
+          NUXT_PUBLIC_R2_BASE_URL: ${{ vars.NUXT_PUBLIC_R2_BASE_URL || secrets.NUXT_PUBLIC_R2_BASE_URL }}
         run: |
           set -euo pipefail
           umask 077
@@ -224,7 +234,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ vars.DEPLOY_SSH_PORT || '22' }}
+          port: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
           source: docker-compose.yml,.env
           target: ${{ secrets.DEPLOY_PATH }}
 
@@ -234,7 +244,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ vars.DEPLOY_SSH_PORT || '22' }}
+          port: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
           script: |
             set -euo pipefail
             cd "${{ secrets.DEPLOY_PATH }}"
