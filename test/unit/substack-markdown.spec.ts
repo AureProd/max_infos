@@ -122,3 +122,56 @@ describe('what comes out is what the site accepts', () => {
     expect(htmlToMarkdown('<p>Un.</p><p></p><p></p><p>Deux.</p>')).toBe('Un.\n\nDeux.')
   })
 })
+
+describe('the shapes that are rarer, and break in silence', () => {
+  it('keeps inline code', () => {
+    expect(htmlToMarkdown('<p>La variable <code>slug</code> ici.</p>')).toBe(
+      'La variable `slug` ici.',
+    )
+  })
+
+  it('turns a rule into a rule', () => {
+    expect(htmlToMarkdown('<p>Avant</p><hr><p>Après</p>')).toBe('Avant\n\n---\n\nAprès')
+  })
+
+  it('keeps the text of a link that goes nowhere', () => {
+    // A Substack anchor without href — a footnote marker, a broken block.
+    // Losing its text would silently amputate a sentence.
+    expect(htmlToMarkdown('<p>Voir <a>cette note</a> ici.</p>')).toBe('Voir cette note ici.')
+  })
+
+  it('emits nothing for an emphasis with nothing inside', () => {
+    // `__` or `****` in a body is noise a human then has to hunt down.
+    expect(htmlToMarkdown('<p>Un<em></em><strong> </strong><code></code> mot.</p>')).toBe('Un mot.')
+  })
+
+  it('survives an image without a source', () => {
+    expect(htmlToMarkdown('<figure><img alt="Sans source"/></figure>')).toBe('![Sans source]()')
+  })
+
+  it('drops an empty quote and an empty list rather than their marker', () => {
+    // `>` or `-` alone on a line is a paragraph the reader cannot explain.
+    expect(htmlToMarkdown('<blockquote></blockquote><ul><li></li></ul><p>Le texte.</p>')).toBe(
+      'Le texte.',
+    )
+  })
+
+  it('keeps the text of an inline tag it has never met', () => {
+    // The converter is allowed to be imperfect. It is not allowed to lose a
+    // sentence because Substack invented a wrapper.
+    expect(htmlToMarkdown('<p>Un <mark>surlignage</mark> ici.</p>')).toBe('Un surlignage ici.')
+  })
+
+  it('follows HTML when a tag closes the paragraph on its own', () => {
+    // `<aside>` implicitly closes a `<p>`: that is the HTML parsing rule, and
+    // htmlparser2 applies it faithfully. The text is not lost, it changes
+    // block — which is the honest rendering of what the markup says.
+    expect(htmlToMarkdown('<p>Un texte <aside>un aparté</aside></p>')).toBe('Un texte\n\nun aparté')
+  })
+
+  it('keeps a quote of several paragraphs readable', () => {
+    expect(htmlToMarkdown('<blockquote><p>Un.</p><p>Deux.</p></blockquote>')).toBe(
+      '> Un.\n>\n> Deux.',
+    )
+  })
+})

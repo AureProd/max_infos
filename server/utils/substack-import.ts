@@ -154,10 +154,14 @@ export async function importSubstack(
   for (const post of posts) {
     // Three matching keys, from the safest to the loosest: the link already
     // recorded, the Substack slug, then the slugified title.
+    //
+    // The last one ignores an article ALREADY tied to another post: two
+    // distinct posts can share a title, and merging them would lose one of
+    // the two without a word. The looser the key, the more it has to earn.
     const target =
       existing.find((a) => a.substackUrl === post.link) ??
       existing.find((a) => a.slug === substackSlug(post.link)) ??
-      existing.find((a) => slugify(a.title) === slugify(post.title))
+      existing.find((a) => !a.substackUrl && slugify(a.title) === slugify(post.title))
 
     if (target) {
       let touched = false

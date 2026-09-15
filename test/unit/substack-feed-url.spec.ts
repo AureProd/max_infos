@@ -60,3 +60,12 @@ describe('the address the server agrees to fetch', () => {
     )
   })
 })
+
+describe('an address that is not even a string', () => {
+  it('is treated as an absent one', () => {
+    // The setting has never been written: the field comes back undefined.
+    expect(() => checkedFeedUrl(undefined as never)).toThrowError(
+      expect.objectContaining({ statusCode: 409 }),
+    )
+  })
+})

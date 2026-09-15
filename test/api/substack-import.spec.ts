@@ -182,6 +182,73 @@ describe('the dry run', () => {
   })
 })
 
+describe('the dry run, on a post the site already has', () => {
+  it('counts the link and the cover it would add, and adds neither', async () => {
+    // The branch that matters most in a dry run: the one that decides to
+    // write. Counting without writing is the whole contract.
+    const cover = 'https://substackcdn.com/image/fetch/cover.jpg'
+    await db.insert(article).values({ slug: 'ben-mhidi', title: 'Ben Mhidi' })
+
+    const report = await importSubstack(
+      feed(item({ title: 'Ben Mhidi', slug: 'ben-mhidi', cover })),
+      { dryRun: true },
+    )
+
+    expect(report).toMatchObject({ linked: 1, covers: 1, untouched: 0 })
+    const [row] = await db.select().from(article)
+    expect(row?.substackUrl).toBeNull()
+    expect(row?.coverMediaId).toBeNull()
+    expect(await db.select().from(media)).toHaveLength(0)
+  })
+
+  it('counts a post that has nothing left to gain as untouched', async () => {
+    await db.insert(article).values({
+      slug: 'ben-mhidi',
+      title: 'Ben Mhidi',
+      substackUrl: 'https://unmaxdinfo.substack.com/p/ben-mhidi',
+    })
+
+    const report = await importSubstack(feed(item({ title: 'Ben Mhidi', slug: 'ben-mhidi' })), {
+      dryRun: true,
+    })
+    expect(report).toMatchObject({ linked: 0, covers: 0, untouched: 1 })
+  })
+})
+
+describe('a post that says little', () => {
+  it('arrives without a dek and without a date rather than with placeholders', async () => {
+    // A draft whose dek is the string « undefined » is worse than one with
+    // no dek at all: it has to be spotted before being removed.
+    const xml = feed(
+      `<item>
+         <title>Sans chapô</title>
+         <link>https://unmaxdinfo.substack.com/p/sans-chapo</link>
+         <content:encoded><![CDATA[<p>Le corps.</p>]]></content:encoded>
+       </item>`,
+    )
+    await importSubstack(xml, { dryRun: false })
+
+    const [row] = await db.select().from(article)
+    expect(row?.dek).toBeNull()
+    expect(row?.publishedAt).toBeNull()
+    expect(row?.status).toBe('draft')
+  })
+
+  it('imports two posts of the same title without merging them', async () => {
+    // The second must not be matched to the first, just created.
+    const xml = feed(
+      item({ title: 'Même titre', slug: 'un' }) + item({ title: 'Même titre', slug: 'deux' }),
+    )
+    const report = await importSubstack(xml, { dryRun: false })
+
+    expect(report.created).toHaveLength(2)
+    expect((await db.select().from(article)).map((a) => a.slug).sort()).toEqual([
+      'meme-titre',
+      'meme-titre-2',
+    ])
+  })
+})
+
 describe('a feed that does not say what it should', () => {
   it('ignores an entry without a title or a link', async () => {
     const xml = feed('<item><title>Sans lien</title></item>')
