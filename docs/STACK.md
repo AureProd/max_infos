@@ -234,6 +234,35 @@ Le seuil de 80 % porte sur **quatre** métriques (lignes, instructions,
 fonctions, branches) et pas seulement sur les lignes : un seuil sur les
 lignes seules se contourne trivialement.
 
+### Ce que la couverture mesure, et pourquoi pas le reste
+
+Le périmètre se limite à `shared/`, `server/utils/`, `app/composables/` et
+`app/utils/`. Ce n'est pas un aveu, c'est une question d'instrument : **v8
+n'instrumente que le processus vitest**. Or la suite `api` lance un vrai
+serveur Nitro dans un processus séparé, donc `server/api/` et les pages Vue
+ressortiraient à 0 % alors qu'ils sont exercés de bout en bout, matrice
+d'autorisation comprise. Un seuil braqué sur eux mesurerait l'angle mort de
+l'outil, pas un trou dans les tests — et c'est précisément ce qu'il a fait
+pendant des mois, en bloquant la CI.
+
+Élargir ce périmètre n'aura de sens que le jour où la couverture du
+processus enfant sera fusionnée.
+
+### Un test lié à la base n'a pas besoin d'un serveur
+
+`test/api/` contient deux familles. Celles qui appellent `setup()` lancent
+Nitro : elles coûtent une vingtaine de secondes chacune. Celles qui ne
+l'appellent pas — `schema.spec.ts`, `*-utils.spec.ts` — parlent à PostgreSQL
+depuis le processus de test, via :
+
+```ts
+vi.mock('~~/server/database/client', () => ({ useDatabase: () => db }))
+```
+
+Elles tournent en une à deux secondes, **et leur couverture compte**. Quand
+ce qu'on veut prouver est une requête et non une route, c'est cette
+famille-là qu'il faut écrire.
+
 ---
 
 ## lefthook — les vérifications avant commit
