@@ -55,7 +55,41 @@ migration appliquant un jeu périmé tout en répondant « applied successfully 
 | `onConflictDoUpdate` sur une colonne **sans contrainte d'unicité** échoue à l'exécution seulement | Vérifier l'index avant de viser une colonne |
 | Le code d'OAuth Instagram donne un jeton d'**une heure** | Le second échange (`ig_exchange_token`) est obligatoire, sinon l'intégration meurt au bout d'une heure |
 | Un `sed` sur du code touche aussi les **chaînes** et le `<template>` | Renommer par un lexeur : apostrophes de commentaires, gabarits imbriqués et littéraux regex cassent toute regex |
+| Entre Biome (qui lit le `<script>` sans le `<template>`) et `vue-tsc` (pour qui un composant auto-importé inconnu n'est pas une erreur), un `<Foo>` inexistant ou une prop non déclarée **partent en production sans un mot** | `scripts/hooks/vue-templates.mjs`, dans `pnpm hooks` |
 | Deux suites `pnpm test` en parallèle partagent la **même base de test** | Elles se truncatent mutuellement : lancer une seule suite à la fois |
+| Un nom absent de **toute règle de routeur** Traefik est absent de la demande ACME : il sert le `TRAEFIK DEFAULT CERT`, et le navigateur avertit avant même le 404 | Élargir la `rule`, pas seulement le DNS. Tenu par `test/unit/deploy-labels.spec.ts` |
+| `traefik.…routers.X.middlewares=` est **UNE valeur** séparée par des virgules : réécrire la clé ne garde que la dernière | Tenu par `test/unit/deploy-labels.spec.ts`, qui exige que tout middleware déclaré soit chaîné |
+| Le défi ACME **TLS-ALPN-01 ne traverse pas un proxy** : derrière le nuage orange de Cloudflare, aucun certificat n'est jamais émis | `@` et `www` en *DNS only*. Voir « Décisions arrêtées » |
+| `docker compose config` **déplie `env_file` en clair même avec `--no-env-resolution`** — mesuré, sortie identique au bit près | Les quatre options du rendu, tenues par `scripts/hooks/compose-artifact.mjs` |
+| `docker compose config` grave le **nom de projet du rendu** dans `name:` et dans les volumes : `up -d` fabrique alors un nouveau `db_data` et orpheline la base pendant que le site répond | `--no-normalize` et `sed '/^name:/d'`. Tenu par le même garde-fou |
+| `social_post.source` a pour défaut **`'manual'`** : il dit la PROVENANCE, pas le placement. Filtrer dessus affiche deux fois le même billet sur l'accueil | Pour « quel billet n'a pas de section », filtrer sur `account_id IS NULL` |
+
+## Décisions arrêtées
+
+Elles ne se rediscutent pas à chaque séance. Chacune dit *pourquoi*, et ce qui
+la tient.
+
+**En production, HTTPS et rien d'autre.** Le port 80 du VPS reste fermé, et
+c'est voulu : ce n'est pas une panne à réparer. Le HTTP en clair n'existe qu'en
+développement local, où `./setup` pose `URL_SCHEME=http`. Corollaire : ne jamais
+ajouter au déploiement un contrôle qui exige une redirection depuis `http://` —
+il échouerait sur un port délibérément clos.
+
+**`@` et `www` sont en *DNS only* chez Cloudflare ; `media` reste proxifié.**
+Le proxy empêchait le défi ACME TLS-ALPN-01 d'aboutir : l'origine n'a servi
+qu'un certificat auto-signé jusqu'au 16/09/2026. `media` est le domaine
+personnalisé du bucket R2, qui lui ne fonctionne QUE proxifié — et c'est aussi
+pourquoi la zone reste chez Cloudflare. Conséquence à retenir : les réglages de
+bord de Cloudflare (*Always Use HTTPS*, *Redirect Rules*, HSTS) ne s'exécutent
+plus. Ils vivent désormais dans les labels Traefik du dépôt, donc versionnés.
+
+**Le serveur ne reçoit qu'un seul `docker-compose.yml`**, rendu par la CI. Aucun
+`-f` à recombiner : la commande tapée sur le VPS en dépannage est exactement
+celle qui tourne.
+
+**Le back-office ne règle pas l'apparence.** Max y choisit les articles, les
+publications et les informations d'à propos — jamais le visuel ni l'agencement
+des sections. Le rendu est fixé dans le code (décision de JB, 16/09/2026).
 
 ## Frontières à ne jamais franchir
 
