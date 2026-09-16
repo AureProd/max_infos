@@ -227,6 +227,47 @@ jobs:
           printf 'ENV_B64=%s\n' "$(printf '%s\n' "$content" | base64 -w0)" >> "$GITHUB_ENV"
           echo "$(printf '%s\n' "$content" | wc -l) variables prepared."
 
+      - name: Render the single compose artefact
+        # ONE file on the server, not a base plus an override. Combining them
+        # by hand at every command is where a forgotten `-f` silently changes
+        # the configuration.
+        #
+        # The four flags are not taste — each one answers a measured
+        # behaviour of `docker compose config`, and scripts/hooks/
+        # compose-artifact.mjs proves on the OUTPUT that they were used:
+        #
+        #   --no-interpolate       keeps env_file instead of UNFOLDING it into
+        #                          environment:, in the clear. Without it the
+        #                          artefact carries every password. The .env
+        #                          is absent from the runner anyway — that
+        #                          ORDER remains the second line of defence.
+        #   --no-path-resolution   keeps `${ENV_FILE:-.env}` relative. Resolved
+        #                          here, the path points at the runner and the
+        #                          containers start with NO secret at all.
+        #   --no-normalize         stops the render-time project name being
+        #                          baked into the db_data volume.
+        #   sed '/^name:/d'        same reason, for the top-level name. The
+        #                          project name must keep coming from the
+        #                          directory, as it does today, or `up -d`
+        #                          builds a new volume and orphans the
+        #                          database while the site answers.
+        #
+        # Nothing is interpolated here on purpose: the .env written on the
+        # server below already carries APP_IMAGE, MIGRATE_IMAGE, INSTANCE_NAME
+        # and URL_HOST, and Compose reads it from the project directory. The
+        # artefact is resolved where it runs.
+        run: |
+          mkdir -p rendered
+          docker compose \
+            -f deploy/docker-compose.yml \
+            -f deploy/docker-compose-prod-override.yml \
+            --profile migrate \
+            config --no-interpolate --no-path-resolution --no-normalize \
+            | sed '/^name:/d' > rendered/docker-compose.yml
+          node scripts/hooks/compose-artifact.mjs rendered/docker-compose.yml
+          echo "Artefact rendered and checked:"
+          wc -l rendered/docker-compose.yml
+
       - name: Copier sur le serveur
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -234,10 +275,9 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ vars.DEPLOY_SSH_PORT || secrets.DEPLOY_SSH_PORT || '22' }}
-          # The compose files AS THEY ARE IN THE REPOSITORY, not a rendered
-          # version. They hold no secret by construction — they are tracked
-          # in a public repository, and the `secrets` hook checks them.
-          source: deploy/docker-compose.yml,deploy/docker-compose-prod-override.yml
+          # The rendered artefact, and it alone. It holds no secret — the
+          # step above refuses to continue otherwise.
+          source: rendered/docker-compose.yml
           strip_components: 1
           target: ${{ secrets.DEPLOY_PATH }}
 
@@ -258,13 +298,18 @@ jobs:
             printf '%s' "$ENV_B64" | base64 -d > .env
             chmod 600 .env
 
-            # No --env-file, no exported variable: the .env just written
-            # carries BOTH what the containers read through env_file and what
-            # Compose interpolates. So the command below is exactly the one to
-            # type on the server to read the logs — nothing to reconstruct at
-            # the worst possible moment.
-            compose="docker compose \
-              -f docker-compose.yml -f docker-compose-prod-override.yml"
+            # The override from before the single artefact. Left in place it
+            # would be picked up by nothing, but it would invite the next
+            # person to pass it with -f and silently deploy the old shape.
+            rm -f docker-compose-prod-override.yml
+
+            # No --env-file, no exported variable, and no -f: the .env just
+            # written carries BOTH what the containers read through env_file
+            # and what Compose interpolates, and docker-compose.yml is the
+            # only file here. So `docker compose logs -f app` typed on the
+            # server is exactly the command that runs — nothing to
+            # reconstruct at the worst possible moment.
+            compose="docker compose"
 
             $compose pull
             # The order is the whole guarantee: a failed migration means no
@@ -274,13 +319,46 @@ jobs:
             docker image prune -f
 
       - name: Check that the site answers
+        env:
+          HOST: ${{ vars.URL_HOST || secrets.URL_HOST || 'unmaxdinfo.fr' }}
         run: |
+          set -uo pipefail
+
+          ready=""
           for _ in $(seq 1 20); do
-            if curl -fsS https://unmaxdinfo.fr/api/health > /dev/null; then
-              echo "The site answers."
-              exit 0
+            if curl -fsS "https://$HOST/api/health" > /dev/null; then
+              ready=yes
+              break
             fi
             sleep 10
           done
-          echo "::error::The site does not answer after the deployment"
-          exit 1
+          if [ -z "$ready" ]; then
+            echo "::error::The site does not answer after the deployment"
+            exit 1
+          fi
+          echo "The site answers."
+
+          # The checks that were missing, and that let the outage of 15/09/2026
+          # through: the probe only ever spoke HTTPS to the apex, while www
+          # served a self-signed certificate behind a 404.
+          #
+          # Clear-text HTTP is NOT checked, and its absence is not a gap.
+          # Production is HTTPS only, port 80 stays shut, and plain HTTP
+          # exists in local development alone. Demanding a redirect here would
+          # fail every deployment over a port deliberately closed.
+          fail=0
+
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 "https://www.$HOST/" || echo 000)
+          case "$code" in
+            3*) echo "www redirects ($code)." ;;
+            *)  echo "::error::https://www.$HOST/ answers $code, expected a redirect"; fail=1 ;;
+          esac
+
+          if curl -sSI --max-time 15 "https://$HOST/" | grep -qi '^strict-transport-security:'; then
+            echo "HSTS is served."
+          else
+            echo "::error::no strict-transport-security header on https://$HOST/"
+            fail=1
+          fi
+
+          exit $fail
