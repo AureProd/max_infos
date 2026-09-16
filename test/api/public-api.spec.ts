@@ -65,6 +65,33 @@ describe('GET /api/articles', () => {
     expect(r.items.map((i) => i.slug)).toEqual(['article-publie'])
   })
 
+  it('finds an accented word typed without accents', async () => {
+    // « Un article publié ». A French-speaking visitor types « publie »:
+    // ILIKE folds case but NOT diacritics, so the search returned nothing.
+    const r = await $fetch('/api/articles', { query: { q: 'publie' } })
+    expect(r.items.map((i) => i.slug)).toContain('article-publie')
+  })
+
+  it('finds an unaccented word typed with accents', async () => {
+    // The other direction matters too: the query is normalised, not the
+    // stored text alone.
+    const r = await $fetch('/api/articles', { query: { q: 'zzyzx' } })
+    expect(r.items.map((i) => i.slug)).toContain('article-publie')
+  })
+
+  it('treats a LIKE wildcard as an ordinary character', async () => {
+    // `%` went straight into the pattern: the search returned EVERY
+    // published article, presented as results.
+    const r = await $fetch('/api/articles', { query: { q: '%' } })
+    expect(r.items).toEqual([])
+    expect(r.total).toBe(0)
+  })
+
+  it('treats an underscore as an ordinary character', async () => {
+    const r = await $fetch('/api/articles', { query: { q: '_' } })
+    expect(r.items).toEqual([])
+  })
+
   it('paginates', async () => {
     const p1 = await $fetch('/api/articles', { query: { size: 1, page: 1 } })
     const p2 = await $fetch('/api/articles', { query: { size: 1, page: 2 } })

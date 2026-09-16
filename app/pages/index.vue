@@ -8,7 +8,6 @@ const { articles, tags, state, isActive, total, toggleTag } = useFilters()
 const all = computed(() => list.value?.items ?? [])
 const feature = computed(() => all.value[0])
 const rail = computed(() => all.value.slice(1, 4))
-const rest = computed(() => all.value.slice(1))
 
 useSeoMeta({
   title: () => site.value?.identity.name,
@@ -88,26 +87,15 @@ useSeoMeta({
   <ArticleMarquee />
 
   <div class="wrap">
-    <section class="section" style="border-top: none">
-      <div class="section-head">
-        <h2>Les articles</h2>
-        <span class="rule" />
-        <span class="note">{{ list?.total ?? 0 }} publiés</span>
-      </div>
-      <ul class="cards">
-        <li v-for="article in rest" :key="article.slug">
-          <ArticleCard :article="article" :byline="site?.identity.byline" />
-        </li>
-      </ul>
-    </section>
-
     <InstagramBlock />
 
     <section class="section">
       <div class="section-head">
-        <h2>Tout parcourir</h2>
+        <h2>Les articles</h2>
         <span class="rule" />
-        <span v-if="isActive" class="note">{{ total }} résultat(s)</span>
+        <span class="note">
+          {{ isActive ? `${total} résultat(s)` : `${list?.total ?? 0} publiés` }}
+        </span>
       </div>
 
       <section class="filters">
@@ -126,7 +114,7 @@ useSeoMeta({
             id="q"
             v-model="state.q"
             type="search"
-            placeholder="Chercher dans les articles et les notes"
+            placeholder="Chercher un article"
             aria-label="Chercher"
           />
         </label>
@@ -144,27 +132,9 @@ useSeoMeta({
       </section>
 
       <p v-if="articles.length === 0" class="empty">Aucun article ne correspond.</p>
-      <ul v-else class="list">
+      <ul v-else class="cards">
         <li v-for="article in articles" :key="article.slug">
-          <NuxtLink class="entry" :to="`/article/${article.slug}`">
-            <div>
-              <h3>{{ article.title }}</h3>
-              <p class="dek">{{ article.dek }}</p>
-              <div class="meta">
-                <time v-if="article.publishedAt" :datetime="article.publishedAt">
-                  {{ frDate(article.publishedAt) }}
-                </time>
-                <span>{{ article.readingMinutes }} min</span>
-                <span>{{ article.tags.map((t) => t.label).join(', ') }}</span>
-              </div>
-            </div>
-            <CoverImage
-              :src="article.coverUrl"
-              :seed="article.charCount % 97"
-              ratio="1 / 1"
-              :alt="article.title"
-            />
-          </NuxtLink>
+          <ArticleCard :article="article" :byline="site?.identity.byline" />
         </li>
       </ul>
     </section>

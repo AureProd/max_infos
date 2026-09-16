@@ -30,10 +30,30 @@ const { data: loose } = await useFetch('/api/social-posts', {
   key: 'publications-sans-compte',
   query: { account: 'none' },
 })
+
+/**
+ * Only accounts that have something to show.
+ *
+ * The seed creates a mock-up account with no avatar, no bio and posts
+ * without thumbnails: the home page displayed an empty profile header above
+ * abstract plates. No connected account, no section.
+ */
+const shown = computed(() => (accounts.value ?? []).filter((a) => a.publications.length > 0))
+
+/**
+ * Posts added by hand stay visible, even with no account connected: they
+ * are what Max published, and their permalink works.
+ */
+const looseShown = computed(() => loose.value ?? [])
 </script>
 
 <template>
-  <section v-for="account in accounts ?? []" :key="account.id" class="section">
+  <!--
+    Un compte sans publication n'affiche plus son en-tête de profil seule :
+    tant qu'aucun compte n'est connecté, la section disparaît au lieu de
+    montrer un avatar vide au-dessus d'une grille vide.
+  -->
+  <section v-for="account in shown" :key="account.id" class="section">
     <div class="igp-head">
       <div class="igp-avatar">
         <div class="in">
@@ -73,18 +93,18 @@ const { data: loose } = await useFetch('/api/social-posts', {
     -->
     <ul class="pubs">
       <li v-for="item in account.publications" :key="item.id">
-        <PublicationCard :publication="item" />
+        <PublicationCard :publication="item" :handle="account.username" />
       </li>
     </ul>
   </section>
 
-  <section v-if="(loose ?? []).length" class="section">
+  <section v-if="looseShown.length" class="section">
     <div class="section-head">
       <h2>Sur les réseaux</h2>
       <span class="rule" />
     </div>
     <ul class="pubs">
-      <li v-for="item in loose ?? []" :key="item.id">
+      <li v-for="item in looseShown" :key="item.id">
         <PublicationCard :publication="item" />
       </li>
     </ul>

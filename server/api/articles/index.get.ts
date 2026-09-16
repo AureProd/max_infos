@@ -1,7 +1,8 @@
-import { and, count, desc, eq, ilike, inArray, or } from 'drizzle-orm'
+import { and, count, desc, eq, inArray, like, or } from 'drizzle-orm'
 import { listArticlesQuery } from '#shared/schemas/api'
 import { useDatabase } from '~~/server/database/client'
 import { article, articleTag, media, tag } from '~~/server/database/schema'
+import { folded, likePattern } from '~~/server/utils/search'
 import { day } from '~~/server/utils/serialize'
 
 /**
@@ -29,12 +30,21 @@ export default defineEventHandler(async (event) => {
   }
 
   if (q) {
-    const pattern = `%${q}%`
+    /*
+     * Both sides are folded the same way: lower-cased and stripped of their
+     * accents. ILIKE folded the case only, so « Algerie » found nothing
+     * while « Algérie » found two articles — on a site whose own slugs are
+     * written without accents.
+     *
+     * The pattern is escaped as well: `%` used to go straight through and
+     * return every published article as a « result ».
+     */
+    const pattern = likePattern(q)
     conditions.push(
       or(
-        ilike(article.title, pattern),
-        ilike(article.dek, pattern),
-        ilike(article.bodyMd, pattern),
+        like(folded(article.title), pattern),
+        like(folded(article.dek), pattern),
+        like(folded(article.bodyMd), pattern),
       ) ?? eq(article.id, article.id),
     )
   }

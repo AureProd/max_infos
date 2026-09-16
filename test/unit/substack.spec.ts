@@ -167,3 +167,31 @@ describe('the entities Substack really produces', () => {
     expect(out).toContain('Le vrai chapô.')
   })
 })
+
+describe('categories', () => {
+  it('reads the <category> tags Substack publishes', () => {
+    // Substack files its posts under categories. They were ignored, so an
+    // imported article arrived with no subject at all and Max had to retype
+    // them one by one.
+    const xml = `<rss><channel><item>
+      <title>Un titre</title>
+      <link>https://exemple.substack.com/p/un-titre</link>
+      <category><![CDATA[Géopolitique]]></category>
+      <category><![CDATA[Europe]]></category>
+      <content:encoded><![CDATA[<p>Le corps.</p>]]></content:encoded>
+    </item></channel></rss>`
+
+    const [post] = parseSubstackFeed(xml)
+    expect(post?.categories).toEqual(['Géopolitique', 'Europe'])
+  })
+
+  it('yields an empty list when the post has none', () => {
+    const xml = `<rss><channel><item>
+      <title>Un titre</title>
+      <link>https://exemple.substack.com/p/un-titre</link>
+      <content:encoded><![CDATA[<p>Le corps.</p>]]></content:encoded>
+    </item></channel></rss>`
+
+    expect(parseSubstackFeed(xml)[0]?.categories).toEqual([])
+  })
+})

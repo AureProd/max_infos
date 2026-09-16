@@ -45,7 +45,16 @@ async function run(dryRun: boolean): Promise<void> {
     if (!dryRun) emit('imported')
   } catch (e) {
     report.value = null
-    failure.value = (e as { statusMessage?: string }).statusMessage ?? 'Le rapatriement a échoué'
+    /*
+     * Read from `data`, the JSON body of the error.
+     *
+     * ofetch maps `statusMessage` onto `statusText`, which HTTP/2 does not
+     * carry: behind Traefik the panel showed « Le rapatriement a échoué »
+     * whatever the real cause — wrong address, feed answering 404, HTML
+     * instead of RSS.
+     */
+    const err = e as { data?: { message?: string; statusMessage?: string }; message?: string }
+    failure.value = err.data?.message ?? err.data?.statusMessage ?? 'Le rapatriement a échoué'
   } finally {
     busy.value = false
   }

@@ -19,8 +19,36 @@ export interface FiltersState {
 export function useFilters() {
   const state = useState<FiltersState>('filtres', () => ({ q: '', tag: null }))
 
+  /**
+   * The typed text, settled.
+   *
+   * Without this, every keystroke fired a request: typing « géopolitique »
+   * sent thirteen, each scanning the body of every article, and their
+   * answers could arrive out of order. Same 300 ms as the draft preview.
+   */
+  const settledQ = ref(state.value.q)
+  let timer: ReturnType<typeof setTimeout> | undefined
+  watch(
+    () => state.value.q,
+    (value) => {
+      clearTimeout(timer)
+      // Clearing the field must answer at once: the visitor is waiting for
+      // the full list to come back, not for a delay.
+      if (!value) {
+        settledQ.value = ''
+        return
+      }
+      timer = setTimeout(() => {
+        settledQ.value = value
+      }, 300)
+    },
+  )
+
   const query = computed<Partial<ListArticlesQuery>>(() => ({
-    ...(state.value.q ? { q: state.value.q } : {}),
+    // Trimmed here: a lone space used to travel to the server, fail its
+    // `min(1)` validation and come back as a 400 that the page rendered
+    // as « Aucun article ne correspond ».
+    ...(settledQ.value.trim() ? { q: settledQ.value.trim() } : {}),
     ...(state.value.tag ? { tag: state.value.tag } : {}),
   }))
 

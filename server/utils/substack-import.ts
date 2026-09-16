@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { slugify } from '#shared/utils/slug'
 import { useDatabase } from '~~/server/database/client'
 import { article, media } from '~~/server/database/schema'
-import { derivedFields, freeSlug } from './articles'
+import { derivedFields, freeSlug, replaceTags } from './articles'
 import { parseSubstackFeed } from './substack'
 import { htmlToMarkdown } from './substack-markdown'
 
@@ -58,6 +58,11 @@ export function checkedFeedUrl(raw: string): string {
     throw createError({
       statusCode: 409,
       statusMessage: 'Aucun flux Substack enregistré : renseigne son adresse.',
+      // `message` and not `statusMessage` alone: h3 strips every non-ASCII
+      // character from the status line, and in HTTP/2 there is no status line
+      // at all — the accented French text reached the browser mangled, or
+      // empty.
+      message: 'Aucun flux Substack enregistré : renseigne son adresse.',
     })
   }
 
@@ -73,6 +78,11 @@ export function checkedFeedUrl(raw: string): string {
     throw createError({
       statusCode: 422,
       statusMessage: 'Seule une adresse https d’un domaine substack.com est acceptée',
+      // `message` and not `statusMessage` alone: h3 strips every non-ASCII
+      // character from the status line, and in HTTP/2 there is no status line
+      // at all — the accented French text reached the browser mangled, or
+      // empty.
+      message: 'Seule une adresse https d’un domaine substack.com est acceptée',
     })
   }
 
@@ -127,6 +137,11 @@ export async function importSubstack(
     throw createError({
       statusCode: 422,
       statusMessage: "Ce n'est pas un flux RSS Substack",
+      // `message` and not `statusMessage` alone: h3 strips every non-ASCII
+      // character from the status line, and in HTTP/2 there is no status line
+      // at all — the accented French text reached the browser mangled, or
+      // empty.
+      message: "Ce n'est pas un flux RSS Substack",
     })
   }
 
@@ -214,8 +229,18 @@ export async function importSubstack(
         publishedAt: post.publishedAt ? new Date(post.publishedAt) : null,
         substackUrl: post.link,
         coverMediaId,
+        // The column and its CHECK constraint existed, and nothing ever
+        // wrote this value: every repatriated draft was filed as written on
+        // the site, so nothing distinguished the two any more.
+        source: 'substack_import',
       })
       .returning({ id: article.id, slug: article.slug, title: article.title })
+
+    // The subjects Substack filed the post under. Without this an imported
+    // article arrived with no tag, and Max retyped them one by one.
+    if (created && post.categories.length > 0) {
+      await replaceTags(created.id, post.categories)
+    }
 
     // Kept in the working set: a second post of the same title must not be
     // matched to the one just created, nor take its slug.

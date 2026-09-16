@@ -8,15 +8,45 @@ const { draft, preview, status, record, modified, load, save, changeStatus } = u
 
 await load()
 
-const tags = computed({
-  get: () => draft.value.tags.join(', '),
-  set: (v: string) => {
-    draft.value.tags = v
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
+/**
+ * The tags already in use.
+ *
+ * `/api/admin/tags` existed and NOTHING called it: the only way to tag an
+ * article was to retype it from memory, and each variant of spelling
+ * created one more tag. Reusing an existing one is now a click.
+ */
+const { data: known } = await useFetch('/api/admin/tags', { key: 'tags-connus' })
+
+const unused = computed(() =>
+  (known.value ?? []).filter((t) => !draft.value.tags.includes(t.label)),
+)
+
+function addTag(label: string): void {
+  if (!draft.value.tags.includes(label)) draft.value.tags = [...draft.value.tags, label]
+}
+
+function removeTag(label: string): void {
+  draft.value.tags = draft.value.tags.filter((t) => t !== label)
+}
+
+/**
+ * The free-text field, kept alongside: a brand-new subject must not require
+ * an existing tag. It is only reformatted when it loses focus — reformatting
+ * on every keystroke made the caret jump over the typed comma.
+ */
+const tagsInput = ref(draft.value.tags.join(', '))
+watch(
+  () => draft.value.tags,
+  (list) => {
+    tagsInput.value = list.join(', ')
   },
-})
+)
+function commitTags(): void {
+  draft.value.tags = tagsInput.value
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
 
 // Automatic saving: Max writes, he does not have to think about saving.
 let timer: ReturnType<typeof setTimeout> | undefined
@@ -75,7 +105,38 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
           </div>
           <div class="field">
             <label for="a-tags">Sujets, séparés par des virgules</label>
-            <input id="a-tags" v-model="tags" type="text" />
+            <input
+              id="a-tags"
+              v-model="tagsInput"
+              type="text"
+              @change="commitTags"
+              @blur="commitTags"
+            />
+
+            <div v-if="draft.tags.length" class="a-chosen">
+              <button
+                v-for="t in draft.tags"
+                :key="t"
+                class="a-chip is-on"
+                type="button"
+                @click="removeTag(t)"
+              >
+                {{ t }} ×
+              </button>
+            </div>
+
+            <div v-if="unused.length" class="a-known">
+              <span class="a-known-label">Déjà utilisés :</span>
+              <button
+                v-for="t in unused"
+                :key="t.slug"
+                class="a-chip"
+                type="button"
+                @click="addTag(t.label)"
+              >
+                {{ t.label }}
+              </button>
+            </div>
           </div>
           <MediaPicker v-model="draft.coverMediaId" label="Image de couverture" />
           <div class="field">

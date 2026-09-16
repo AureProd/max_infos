@@ -34,5 +34,13 @@ defineProps<{ article: ArticleList; byline?: string }>()
       </time>
       <span>{{ article.readingMinutes }} min</span>
     </div>
+    <!--
+      Les tags étaient renvoyés par l'API et affichés nulle part sur cette
+      carte : le même article montrait ses tags dans la une et pas dans la
+      grille, sur la même page.
+    -->
+    <div v-if="article.tags.length" class="card-tags">
+      <span v-for="t in article.tags" :key="t.slug">{{ t.label }}</span>
+    </div>
   </NuxtLink>
 </template>

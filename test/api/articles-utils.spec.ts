@@ -58,6 +58,25 @@ describe('replaceTags', () => {
     expect(await tagsOf(id)).toHaveLength(1)
   })
 
+  it('never renames a tag shared with another article', async () => {
+    // The `tag` row is SHARED. Saving one article with a different spelling
+    // used to rename the tag EVERYWHERE — in the other articles and in the
+    // filter buttons of the home page.
+    const a = await newArticle('a')
+    const b = await newArticle('b')
+    await replaceTags(a, ['Géopolitique'])
+    await replaceTags(b, ['geopolitique'])
+
+    expect(await labelsOf(a)).toEqual(['Géopolitique'])
+    expect(await labelsOf(b)).toEqual(['Géopolitique'])
+  })
+
+  it('treats two spellings of one tag as a single tag', async () => {
+    const id = await newArticle('a')
+    await replaceTags(id, ['Géopolitique', 'geopolitique', 'GÉOPOLITIQUE'])
+    expect(await tagsOf(id)).toHaveLength(1)
+  })
+
   it('replaces the whole set rather than adding to it', async () => {
     // That is what a form where you REMOVE a tag expects.
     const id = await newArticle('a')
@@ -122,9 +141,9 @@ describe('freeSlug', () => {
   })
 
   it('shifts a reserved slug without even asking the database', async () => {
-    // `home` is a back-office screen: an article on that slug would be
+    // `articles` is a back-office screen: an article on that slug would be
     // unreachable, since static routes win over dynamic ones.
-    expect(await freeSlug('Home')).toBe('home-2')
+    expect(await freeSlug('Articles')).toBe('articles-2')
     expect(await db.select().from(article)).toHaveLength(0)
   })
 

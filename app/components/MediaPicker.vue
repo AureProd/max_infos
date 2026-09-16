@@ -32,6 +32,13 @@ const chosen = computed(() => available.value.find((m) => m.id === model.value) 
 const state = ref<'repos' | 'envoi' | 'échec'>('repos')
 const error = ref('')
 
+/** The file name, which says more than a MIME type when checking an upload. */
+const fileName = computed(() => {
+  const c = chosen.value
+  if (!c) return ''
+  return c.alt || decodeURIComponent(c.url.split('/').pop() ?? '') || c.mime
+})
+
 async function upload(evenement: Event): Promise<void> {
   const file = (evenement.target as HTMLInputElement).files?.[0]
   if (!file) return
@@ -85,15 +92,32 @@ async function upload(evenement: Event): Promise<void> {
       Le stockage n'est pas configuré : renseigner les variables NUXT_R2_* pour téléverser.
     </p>
 
-    <div v-if="chosen" class="cluster" style="margin-bottom: 10px">
+    <div v-if="chosen" class="a-preview">
       <img
         v-if="chosen.kind === 'image'"
         :src="chosen.url"
         :alt="chosen.alt ?? ''"
-        style="width: 90px; height: 112px; object-fit: cover; border-radius: 3px"
+        class="a-preview-img"
       />
-      <span v-else class="pill">{{ chosen.mime }}</span>
-      <button class="btn" type="button" @click="model = null">Retirer</button>
+
+      <!--
+        Un PDF montrait son type MIME et rien d'autre : impossible de savoir
+        si le fichier téléversé était le bon, ni même s'il s'était ouvert.
+        Le navigateur sait rendre un PDF — autant le lui demander.
+      -->
+      <object v-else :data="chosen.url" type="application/pdf" class="a-preview-pdf">
+        <!-- Replacement shown when the browser cannot display a PDF inline,
+             on most phones in particular. -->
+        <p class="a-preview-fallback">
+          <a :href="chosen.url" target="_blank" rel="noopener">Ouvrir le PDF ↗</a>
+        </p>
+      </object>
+
+      <div class="a-preview-side">
+        <span class="a-preview-name">{{ fileName }}</span>
+        <a class="a-btn" :href="chosen.url" target="_blank" rel="noopener">Ouvrir ↗</a>
+        <button class="a-btn" type="button" @click="model = null">Retirer</button>
+      </div>
     </div>
 
     <div class="cluster">

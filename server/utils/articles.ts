@@ -13,7 +13,19 @@ import { countCharacters, readingMinutes, renderMarkdown } from './markdown'
  */
 export async function replaceTags(articleId: number, labels: string[]): Promise<void> {
   const db = useDatabase()
-  const wanted = [...new Set(labels.map((l) => l.trim()).filter(Boolean))]
+  /*
+   * Deduplicated on the SLUG and not on the label: « Géopolitique » and
+   * « geopolitique » are the same tag, and keeping both made the loop write
+   * the same row twice.
+   */
+  const bySlug = new Map<string, string>()
+  for (const raw of labels) {
+    const label = raw.trim()
+    if (!label) continue
+    const slug = slugify(label)
+    if (slug && !bySlug.has(slug)) bySlug.set(slug, label)
+  }
+  const wanted = [...bySlug.values()]
 
   if (wanted.length === 0) {
     await db.delete(articleTag).where(eq(articleTag.articleId, articleId))
@@ -22,11 +34,20 @@ export async function replaceTags(articleId: number, labels: string[]): Promise<
 
   const ids: number[] = []
   for (const label of wanted) {
-    const [row] = await db
-      .insert(tag)
-      .values({ slug: slugify(label), label: label })
-      .onConflictDoUpdate({ target: tag.slug, set: { label: label } })
-      .returning({ id: tag.id })
+    /*
+     * onConflictDoNOTHING, and no longer DoUpdate.
+     *
+     * A tag row is SHARED by every article carrying it. Updating its label
+     * meant that typing « geopolitique » on one article renamed
+     * « Géopolitique » everywhere — in the other articles, and in the
+     * filter buttons of the home page. The first spelling wins; renaming a
+     * tag for good is a deliberate act, not a side effect of a save.
+     */
+    const slug = slugify(label)
+    await db.insert(tag).values({ slug, label }).onConflictDoNothing({ target: tag.slug })
+
+    // DoNothing returns no row on conflict: the existing one is read back.
+    const [row] = await db.select({ id: tag.id }).from(tag).where(eq(tag.slug, slug))
     if (row) ids.push(row.id)
   }
 

@@ -30,6 +30,11 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 502,
       statusMessage: `Le flux Substack a répondu ${response.status}`,
+      // `message` and not `statusMessage` alone: h3 strips every non-ASCII
+      // character from the status line, and in HTTP/2 there is no status line
+      // at all — the accented French text reached the browser mangled, or
+      // empty.
+      message: `Le flux Substack a répondu ${response.status}`,
     })
   }
 

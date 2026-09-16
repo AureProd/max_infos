@@ -21,6 +21,8 @@ export interface ArticleSubstack {
   dek: string
   bodyHtml: string
   cover: string | null
+  /** The subjects Substack files the post under: its <category> tags. */
+  categories: string[]
 }
 
 /**
@@ -130,6 +132,23 @@ function attribute(fragment: string, name: string, attr: string): string | null 
  * cover looks wrong everywhere it gets shared — which is precisely what we
  * came here for.
  */
+/**
+ * The <category> tags of a post.
+ *
+ * Substack repeats the element once per subject. They were dropped on the
+ * floor, so an imported article arrived with no tag at all and Max had to
+ * retype every one of them.
+ */
+function categoriesOf(item: string): string[] {
+  const found = item.match(/<category(?:\s[^>]*)?>([\s\S]*?)<\/category>/gi) ?? []
+  return found
+    .map((block) => {
+      const inner = block.replace(/^<category(?:\s[^>]*)?>/i, '').replace(/<\/category>$/i, '')
+      return decode(inner).trim()
+    })
+    .filter(Boolean)
+}
+
 function coverOf(item: string, bodyHtml: string): string | null {
   const enclosure = attribute(item, 'enclosure', 'url')
   if (enclosure?.startsWith('http')) return enclosure
@@ -178,6 +197,7 @@ export function parseSubstackFeed(xml: string): ArticleSubstack[] {
         dek: stripTags(tagName(item, 'description')),
         bodyHtml,
         cover: coverOf(item, bodyHtml),
+        categories: categoriesOf(item),
       }
     })
     .filter((a) => a.title !== '' && a.link !== '')
