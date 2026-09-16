@@ -111,3 +111,59 @@ describe('the dek, which must be plain text', () => {
     expect(article?.dek).toBe('Une enquête sur la mémoire.')
   })
 })
+
+describe('the entities Substack really produces', () => {
+  /** One item, one description: the shortest path to the dek. */
+  function dek(description: string): string | undefined {
+    return parseSubstackFeed(`<rss><channel>
+      <item>
+        <title>T</title>
+        <link>https://unmaxdinfo.substack.com/p/z</link>
+        <description>${description}</description>
+      </item>
+    </channel></rss>`)[0]?.dek
+  }
+
+  // Measured in production on 16/09/2026: the two imported articles carry
+  // « identit&#233; » and « op&#233;rations » in the database, and the site
+  // shows them as such — Vue escapes the ampersand, so the reader sees the
+  // entity itself.
+  it('decodes the numeric entities that shipped broken', () => {
+    expect(dek('Comment ils transforment leur double identit&#233;.')).toBe(
+      'Comment ils transforment leur double identité.',
+    )
+  })
+
+  it('decodes hexadecimal and named entities too', () => {
+    expect(dek('Un caf&#xE9; &agrave; c&#xF4;t&eacute; du march&eacute;')).toBe(
+      'Un café à côté du marché',
+    )
+    // U+00A0 and not a plain space: `&nbsp;` is French typography here, and
+    // flattening it would be a silent change of the text.
+    expect(dek('Il r&eacute;pond &laquo;&nbsp;oui&nbsp;&raquo;')).toBe(
+      'Il répond «\u00A0oui\u00A0»',
+    )
+  })
+
+  it('decodes the typographic apostrophe and dashes Substack emits', () => {
+    expect(dek('L&#8217;enqu&#234;te &#8212; au long cours')).toBe('L’enquête — au long cours')
+  })
+
+  // The ordering trap, already why `&amp;` is replaced last: a feed that
+  // escaped its own ampersand means the ENTITY as text, not the character.
+  // Decoding after `&amp;` would turn « &amp;#233; » into « é ».
+  it('does not decode an entity that was itself escaped', () => {
+    expect(dek('Le code &amp;#233; s&apos;écrit ainsi')).toBe("Le code &#233; s'écrit ainsi")
+  })
+
+  it('leaves a lone ampersand alone', () => {
+    expect(dek('FIFA &amp; le pouvoir')).toBe('FIFA & le pouvoir')
+  })
+
+  // A numeric escape is a way to smuggle a tag past a naive stripper.
+  it('does not let a numeric entity rebuild a tag', () => {
+    const out = dek('&#60;script&#62;alert(1)&#60;/script&#62;Le vrai chapô.')
+    expect(out).not.toContain('<')
+    expect(out).toContain('Le vrai chapô.')
+  })
+})

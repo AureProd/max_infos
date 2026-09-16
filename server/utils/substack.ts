@@ -23,17 +23,88 @@ export interface ArticleSubstack {
   cover: string | null
 }
 
-/** Decodes the XML entities Substack actually produces. */
-function decode(text: string): string {
+/**
+ * The named entities Substack actually produces, `amp` deliberately absent.
+ *
+ * Written out rather than pulled from a library: the list is short, it is
+ * French, and a dependency for forty characters is a dependency to update.
+ *
+ * `nbsp` yields U+00A0 and not an ordinary space: in French the narrow gap
+ * before a semicolon or inside quotation marks is typography, not padding.
+ */
+const NAMED: Record<string, string> = {
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: '\u00A0',
+  agrave: 'à',
+  acirc: 'â',
+  aelig: 'æ',
+  ccedil: 'ç',
+  eacute: 'é',
+  egrave: 'è',
+  ecirc: 'ê',
+  euml: 'ë',
+  icirc: 'î',
+  iuml: 'ï',
+  ocirc: 'ô',
+  oelig: 'œ',
+  ugrave: 'ù',
+  ucirc: 'û',
+  uuml: 'ü',
+  Agrave: 'À',
+  Acirc: 'Â',
+  Ccedil: 'Ç',
+  Eacute: 'É',
+  Egrave: 'È',
+  Ecirc: 'Ê',
+  Ocirc: 'Ô',
+  OElig: 'Œ',
+  Ugrave: 'Ù',
+  laquo: '«',
+  raquo: '»',
+  lsquo: '‘',
+  rsquo: '’',
+  ldquo: '“',
+  rdquo: '”',
+  hellip: '…',
+  ndash: '–',
+  mdash: '—',
+  bull: '•',
+  middot: '·',
+  deg: '°',
+  times: '×',
+  euro: '€',
+}
+
+/**
+ * Decodes the XML entities Substack actually produces.
+ *
+ * `&amp;` is handled LAST, and nothing above may touch it. A feed that
+ * escaped its own ampersand means the ENTITY AS TEXT: « &amp;#233; » is an author
+ * writing about the entity, and it must stay « &#233; ». Decoding it first
+ * would silently turn documentation into « é ».
+ *
+ * Numeric entities were missing until 16/09/2026: the two articles imported
+ * from Substack went live with « identit&#233; » in their dek, shown as such to
+ * readers, because Vue escapes the ampersand on the way out.
+ */
+export function decode(text: string): string {
   return (
     text
       .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#0?39;|&apos;/g, "'")
-      .replace(/&nbsp;/g, ' ')
-      // Last, otherwise « &amp;lt; » would become « < » instead of « &lt; ».
+      // Decimal and hexadecimal, in one pass. An out-of-range code point
+      // throws rather than corrupting the text: it is left as it came.
+      .replace(/&#(\d+);|&#x([0-9a-fA-F]+);/g, (whole, dec: string, hex: string) => {
+        try {
+          return String.fromCodePoint(dec ? Number.parseInt(dec, 10) : Number.parseInt(hex, 16))
+        } catch {
+          return whole
+        }
+      })
+      .replace(/&([A-Za-z]+);/g, (whole, name: string) => NAMED[name] ?? whole)
+      // Last, otherwise « &amp;lt; » would become « < » instead of « &lt; ».
       .replace(/&amp;/g, '&')
       .trim()
   )

@@ -30,7 +30,8 @@
     "db:studio": "drizzle-kit studio",
     "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "seed": "tsx scripts/seed/seed.ts",
-    "substack": "tsx scripts/substack.ts"
+    "substack": "tsx scripts/substack.ts",
+    "fix-deks": "tsx scripts/fix-deks.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1131.0",
