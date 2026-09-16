@@ -114,7 +114,7 @@ onMounted(() => {
       <CoverImage
         :src="article.coverUrl"
         :seed="7"
-        ratio="4 / 5"
+        ratio="3 / 2"
         :alt="article.coverAlt ?? article.title"
       />
 

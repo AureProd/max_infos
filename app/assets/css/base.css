@@ -1067,6 +1067,7 @@ button {
 }
 .article header {
   max-width: 62ch;
+  margin-inline: auto;
 }
 .article h1 {
   font-family: var(--display);
@@ -1091,8 +1092,24 @@ button {
   max-width: 520px;
 }
 
+/*
+ * The cover follows the reading column: same width, same centring. Left to
+ * itself it spreads over the whole 1240px .wrap while the text stays at
+ * 66ch, and the two no longer line up.
+ */
+.article > .frame {
+  max-width: var(--read);
+  margin: 40px auto;
+}
+
+/*
+ * The reading column is centred on the page. Without margin-inline it sits
+ * against the left edge of a 1240px .wrap, leaving a void on the right —
+ * which reads as « squashed and off-centre » on a wide screen.
+ */
 .prose {
   max-width: var(--read);
+  margin-inline: auto;
   font-size: 1.2rem;
   line-height: 1.8;
   text-align: justify;
@@ -1203,6 +1220,7 @@ button {
 
 .endnote {
   max-width: var(--read);
+  margin-inline: auto;
   margin-top: 56px;
   padding-top: 24px;
   border-top: 1px solid var(--line);
