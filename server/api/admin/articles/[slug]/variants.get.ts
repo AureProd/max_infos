@@ -3,8 +3,9 @@ import { z } from 'zod'
 import { slugParam } from '#shared/schemas/api'
 import { useDatabase } from '~~/server/database/client'
 import { article, setting } from '~~/server/database/schema'
+import { tagsOf } from '~~/server/utils/articles'
 import { requireRole } from '~~/server/utils/auth'
-import { DEFAULT_TEMPLATES, resolve, VARIABLES } from '~~/server/utils/templates'
+import { DEFAULT_TEMPLATES, hashtags, resolve, VARIABLES } from '~~/server/utils/templates'
 
 /**
  * An article's variant skeletons, variables already resolved.
@@ -20,6 +21,7 @@ export default defineEventHandler(async (event) => {
 
   const [a] = await db
     .select({
+      id: article.id,
       slug: article.slug,
       title: article.title,
       dek: article.dek,
@@ -47,7 +49,10 @@ export default defineEventHandler(async (event) => {
     title: a.title,
     dek: a.dek ?? '',
     url: `${pub.baseUrl.replace(/\/+$/, '')}/article/${a.slug}`,
-    tags: '',
+    // The article's real subjects. This was an empty string, hard-coded, so
+    // every LinkedIn post ended on a lone « # » and Max retyped his own
+    // subjects by hand.
+    tags: hashtags((await tagsOf(a.id)).map((t) => t.label)),
     minutes: a.readingMinutes,
     characters: a.charCount,
   }

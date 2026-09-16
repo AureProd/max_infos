@@ -24,6 +24,12 @@ const { data: accounts, refresh } = await useFetch('/api/admin/users', {
 // `peut('tech')` is false during server rendering.
 onMounted(() => refresh())
 
+/** Written once: the same labels served the invitation and each row. */
+const ROLES = [
+  { label: 'Éditeur', value: 'editor' },
+  { label: 'Technique', value: 'tech' },
+]
+
 const invitation = ref<{ email: string; role: Role }>({ email: '', role: 'editor' })
 const busy = ref(false)
 const failure = ref('')
@@ -88,74 +94,113 @@ function remove(id: number, email: string): void {
     acceptée. Désactiver un compte le déconnecte à sa requête suivante.
   </p>
 
-  <form class="field" @submit.prevent="invite">
-    <label for="u-email">Inviter une adresse</label>
-    <div class="cluster">
+  <form class="a-invite" @submit.prevent="invite">
+    <label class="a-label" for="u-email">Inviter une adresse</label>
+    <div class="a-toolbar">
       <input
         id="u-email"
         v-model="invitation.email"
+        class="a-input"
         type="email"
         required
         placeholder="prenom@exemple.fr"
       />
-      <select v-model="invitation.role" aria-label="Rôle de l’invité">
-        <option value="editor">Éditeur</option>
-        <option value="tech">Technique</option>
-      </select>
-      <button class="btn btn-primary" type="submit" :disabled="busy">Inviter</button>
+      <Select
+        v-model="invitation.role"
+        :options="ROLES"
+        option-label="label"
+        option-value="value"
+        aria-label="Rôle de l’invité"
+      />
+      <Button type="submit" label="Inviter" :disabled="busy" />
     </div>
   </form>
 
-  <p v-if="failure" class="err">{{ failure }}</p>
+  <p v-if="failure" class="a-err">{{ failure }}</p>
 
-  <ul class="list">
-    <li v-for="c in accounts ?? []" :key="c.id">
-      <div class="entry">
-        <div>
-          <h3>{{ c.name ?? c.email }}</h3>
-          <div class="meta">
-            <span>{{ c.email }}</span>
-            <span class="pill">{{ c.role === 'tech' ? 'technique' : 'éditeur' }}</span>
-            <span v-if="!c.active" class="pill">désactivé</span>
-            <span v-if="isMe(c.id)" class="pill">vous</span>
-            <time v-if="c.lastLoginAt" :datetime="c.lastLoginAt">
-              vu le {{ frDate(c.lastLoginAt.slice(0, 10)) }}
-            </time>
-            <span v-else>jamais connecté</span>
-          </div>
-        </div>
+  <!--
+    Un vrai tableau : les colonnes s'alignent d'une ligne à l'autre, donc
+    les rôles et les dernières visites se comparent d'un coup d'oeil. La
+    liste précédente les empilait dans une ligne de méta, où rien ne se
+    comparait.
+  -->
+  <DataTable
+    :value="accounts ?? []"
+    data-key="id"
+    sort-field="email"
+    :sort-order="1"
+    size="small"
+    striped-rows
+  >
+    <template #empty>
+      <p class="a-empty">Aucun compte autorisé pour l'instant.</p>
+    </template>
 
-        <div class="cluster">
-          <select
-            :value="c.role"
-            :disabled="busy || isMe(c.id)"
-            :title="why(c.id)"
-            aria-label="Rôle"
-            @change="change(c.id, { role: ($event.target as HTMLSelectElement).value as Role })"
-          >
-            <option value="editor">Éditeur</option>
-            <option value="tech">Technique</option>
-          </select>
-          <button
-            class="btn"
-            type="button"
-            :disabled="busy || isMe(c.id)"
-            :title="why(c.id)"
-            @click="change(c.id, { active: !c.active })"
-          >
-            {{ c.active ? 'Désactiver' : 'Réactiver' }}
-          </button>
-          <button
-            class="btn"
-            type="button"
-            :disabled="busy || isMe(c.id)"
-            :title="why(c.id)"
-            @click="remove(c.id, c.email)"
-          >
-            Supprimer
-          </button>
+    <Column field="name" header="Compte" sortable>
+      <template #body="{ data }">
+        <span class="a-title">{{ data.name ?? data.email }}</span>
+        <div class="a-sub">
+          <span>{{ data.email }}</span>
+          <span v-if="isMe(data.id)" class="a-tag is-info">vous</span>
         </div>
-      </div>
-    </li>
-  </ul>
+      </template>
+    </Column>
+
+    <Column field="role" header="Rôle" sortable style="width: 170px">
+      <template #body="{ data }">
+        <Select
+          :model-value="data.role"
+          :options="ROLES"
+          option-label="label"
+          option-value="value"
+          :disabled="busy || isMe(data.id)"
+          aria-label="Rôle"
+          @update:model-value="(v: Role) => change(data.id, { role: v })"
+        />
+      </template>
+    </Column>
+
+    <Column field="active" header="État" sortable style="width: 120px">
+      <template #body="{ data }">
+        <Tag
+          :value="data.active ? 'actif' : 'désactivé'"
+          :severity="data.active ? 'success' : 'warn'"
+        />
+      </template>
+    </Column>
+
+    <Column field="lastLoginAt" header="Dernière visite" sortable style="width: 170px">
+      <template #body="{ data }">
+        <time v-if="data.lastLoginAt" class="a-date" :datetime="data.lastLoginAt">
+          {{ frDate(data.lastLoginAt.slice(0, 10)) }}
+        </time>
+        <span v-else class="a-nil">jamais connecté</span>
+      </template>
+    </Column>
+
+    <Column style="width: 1%">
+      <template #body="{ data }">
+        <div class="a-row-act">
+          <Button
+            severity="secondary"
+            outlined
+            size="small"
+            :label="data.active ? 'Désactiver' : 'Réactiver'"
+            :disabled="busy || isMe(data.id)"
+            :title="why(data.id)"
+            @click="change(data.id, { active: !data.active })"
+          />
+          <Button
+            severity="danger"
+            outlined
+            size="small"
+            label="Supprimer"
+            :disabled="busy || isMe(data.id)"
+            :title="why(data.id)"
+            @click="remove(data.id, data.email)"
+          />
+        </div>
+      </template>
+    </Column>
+  </DataTable>
 </template>

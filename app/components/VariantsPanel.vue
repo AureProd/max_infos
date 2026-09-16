@@ -27,6 +27,20 @@ watch(
   { immediate: true },
 )
 
+const NETWORKS = [
+  { label: 'LinkedIn', value: 'linkedin' },
+  { label: 'Instagram', value: 'instagram' },
+]
+
+/**
+ * The variable names, braces included, built HERE.
+ *
+ * Writing them in the template would nest the delimiters inside an
+ * interpolation, and the Vue compiler reads the inner `{{` as the start of
+ * an expression: « Unterminated string constant ».
+ */
+const variableNames = computed(() => (models.value?.variables ?? []).map((v) => `{{${v}}}`))
+
 const copied = ref<'linkedin' | 'reel' | null>(null)
 
 async function copy(quoi: 'linkedin' | 'reel'): Promise<void> {
@@ -67,66 +81,77 @@ async function attach(): Promise<void> {
 </script>
 
 <template>
-  <section class="section">
-    <div class="section-head">
-      <h2>Décliner</h2>
-      <span class="rule" />
-    </div>
+  <section class="admin-card a-variants">
+    <h2>Décliner</h2>
+    <p class="admin-lede">
+      Le site ne publie jamais : il prépare un texte que tu copies, colles et publies
+      toi-même.
+    </p>
 
-    <p v-if="!publie" class="hint">
+    <p v-if="!publie" class="a-empty">
       Les squelettes s'affichent une fois l'article publié : ils contiennent son adresse.
     </p>
 
     <template v-else-if="models">
-      <div class="field">
-        <label for="d-linkedin">
-          Post LinkedIn
-          <button class="btn" type="button" @click="copy('linkedin')">
-            {{ copied === 'linkedin' ? 'copié ✓' : 'copier' }}
-          </button>
-        </label>
-        <textarea id="d-linkedin" :value="models.linkedin" rows="10" readonly />
+      <div class="a-variant">
+        <div class="a-variant-head">
+          <span class="a-label">Post LinkedIn</span>
+          <Button
+            severity="secondary"
+            outlined
+            size="small"
+            :label="copied === 'linkedin' ? 'copié ✓' : 'Copier'"
+            @click="copy('linkedin')"
+          />
+        </div>
+        <textarea id="d-linkedin" :value="models.linkedin" rows="11" readonly />
       </div>
 
-      <div class="field">
-        <label for="d-reel">
-          Script de reel
-          <button class="btn" type="button" @click="copy('reel')">
-            {{ copied === 'reel' ? 'copié ✓' : 'copier' }}
-          </button>
-        </label>
+      <div class="a-variant">
+        <div class="a-variant-head">
+          <span class="a-label">Script de reel</span>
+          <Button
+            severity="secondary"
+            outlined
+            size="small"
+            :label="copied === 'reel' ? 'copié ✓' : 'Copier'"
+            @click="copy('reel')"
+          />
+        </div>
         <textarea id="d-reel" :value="models.reel" rows="8" readonly />
       </div>
 
       <p class="hint">
-        Variables disponibles dans les gabarits : {{ models.variables.join(', ') }}. Les
-        modifier se fait depuis l'écran À propos.
+        Variables des gabarits :
+        <code v-for="v in variableNames" :key="v">{{ v }}</code>
+        — ils se modifient depuis l'écran À propos.
       </p>
 
-      <div class="field">
-        <label for="d-url">Une fois publié, coller l'adresse ici</label>
-        <div class="cluster">
-          <select v-model="network" aria-label="Réseau">
-            <option value="linkedin">LinkedIn</option>
-            <option value="instagram">Instagram</option>
-          </select>
+      <div class="a-variant">
+        <span class="a-label">Une fois publié, coller l'adresse ici</span>
+        <div class="a-toolbar">
+          <Select
+            v-model="network"
+            :options="NETWORKS"
+            option-label="label"
+            option-value="value"
+            aria-label="Réseau"
+          />
           <input
             id="d-url"
             v-model="url"
+            class="a-input"
             type="url"
             placeholder="https://www.linkedin.com/posts/…"
           />
-          <button
-            class="btn btn-primary"
-            type="button"
+          <Button
+            label="Rattacher"
             :disabled="!url || state === 'envoi'"
             @click="attach"
-          >
-            Rattacher
-          </button>
+          />
         </div>
-        <p v-if="state === 'lié'" class="note">Publication rattachée à cet article.</p>
-        <p v-if="error" class="err">{{ error }}</p>
+        <p v-if="state === 'lié'" class="a-tag is-ok">Publication rattachée à cet article.</p>
+        <p v-if="error" class="a-err">{{ error }}</p>
       </div>
     </template>
   </section>

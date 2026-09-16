@@ -902,3 +902,102 @@ a.a-figure:hover {
 .a-pub-text {
   min-width: 0;
 }
+
+/* ---------- décliner un article ---------- */
+.a-variants {
+  margin-top: 20px;
+}
+.a-variant {
+  margin-bottom: 18px;
+}
+.a-variant-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.a-variant-head .a-label {
+  margin-bottom: 0;
+}
+/* Le squelette est un texte à copier : il se lit, il ne s'édite pas. */
+.a-variants textarea[readonly] {
+  background: var(--a-bg);
+  color: var(--a-muted);
+  font-family: var(--body);
+  font-size: 0.95rem;
+}
+.a-variants code {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--a-bg);
+  border: 1px solid var(--a-line);
+  font-size: 0.8rem;
+  color: var(--a-muted);
+}
+
+/* ---------- lignes de réglage (contact, CV) ---------- */
+.a-rows {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+}
+.a-rows > li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--a-line);
+}
+.a-rows > li:last-child {
+  border-bottom: 0;
+}
+
+/*
+ * Une grille, et non une rangée en flex : les colonnes s'alignent d'une
+ * ligne à l'autre au lieu de se serrer selon la longueur de ce qu'on tape.
+ */
+.a-row-grid {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(140px, 1.4fr) minmax(140px, 1.4fr) auto auto;
+  gap: 10px;
+  align-items: center;
+}
+.a-row-grid.is-cv {
+  grid-template-columns:
+    minmax(140px, 1.6fr) minmax(120px, 1.2fr) 90px 90px auto auto;
+}
+@media (max-width: 900px) {
+  .a-row-grid,
+  .a-row-grid.is-cv {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.a-short {
+  max-width: 100%;
+}
+
+/* Un interrupteur se voit ; une case à cocher dans une pastille bleue, non. */
+.a-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+  color: var(--a-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.a-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 22px 0 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--a-line);
+}
+.a-section-head h3 {
+  margin: 0;
+}

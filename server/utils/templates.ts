@@ -38,6 +38,30 @@ export function resolve(template: string, context: ArticleContext): string {
   return template.replace(PATTERN, (all, name: string) => values[name.toLowerCase()] ?? all)
 }
 
+/**
+ * The subjects, as hashtags ready to paste.
+ *
+ * The default template writes « #{{sujets}} ». The handler used to pass an
+ * empty string no matter what, so every LinkedIn post ended on a lone « # »
+ * — and Max had to retype his own subjects by hand.
+ *
+ * Accents are stripped and spaces removed: « Intelligence artificielle »
+ * becomes #intelligenceartificielle, which is what a hashtag can carry.
+ */
+export function hashtags(labels: string[]): string {
+  return labels
+    .map((label) =>
+      label
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, ''),
+    )
+    .filter(Boolean)
+    .map((t) => `#${t}`)
+    .join(' ')
+}
+
 /** The recognised variable names, for the help shown in the admin. */
 export const VARIABLES = ['titre', 'chapo', 'url', 'sujets', 'minutes', 'caracteres'] as const
 
@@ -49,7 +73,7 @@ export const DEFAULT_TEMPLATES = {
 J'y reviens en détail dans l'article, {{minutes}} min de lecture :
 {{url}}
 
-#{{sujets}}`,
+{{sujets}}`,
   reel: `ACCROCHE — une phrase qui pose la question.
 
 DÉVELOPPEMENT — trois idées, une par plan.

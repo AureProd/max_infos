@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_TEMPLATES, resolve, VARIABLES } from '../../server/utils/templates'
+import { DEFAULT_TEMPLATES, hashtags, resolve, VARIABLES } from '../../server/utils/templates'
 
 const CONTEXT = {
   title: "Contrôler l'IA",
@@ -51,5 +51,23 @@ describe('template resolution', () => {
     for (const template of Object.values(DEFAULT_TEMPLATES)) {
       expect(resolve(template, CONTEXT)).not.toMatch(/\{\{/)
     }
+  })
+})
+
+describe('les sujets', () => {
+  it('rend les sujets en mots-dièse', () => {
+    // Le gabarit par défaut écrit « #{{sujets}} » : les sujets doivent
+    // arriver prêts à coller, pas à retravailler à la main.
+    expect(hashtags(['Géopolitique', 'Europe'])).toBe('#geopolitique #europe')
+  })
+
+  it('ne laisse pas un dièse orphelin quand il n’y a aucun sujet', () => {
+    // Le handler passait « tags: '' » en dur : le post LinkedIn se terminait
+    // par un « # » tout seul.
+    expect(hashtags([])).toBe('')
+  })
+
+  it('colle les mots composés', () => {
+    expect(hashtags(['Intelligence artificielle'])).toBe('#intelligenceartificielle')
   })
 })

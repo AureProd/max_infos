@@ -111,34 +111,42 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
       <p class="hint">
         Chaque champ a son propre interrupteur. Un champ ajouté est masqué par défaut.
       </p>
-      <ul v-if="contact.value.value" class="list">
+      <!--
+        Une grille plutôt qu'une rangée en flex : les trois champs
+        s'alignent d'une ligne à l'autre, au lieu de se serrer les uns
+        contre les autres selon la longueur de ce qu'on y tape.
+      -->
+      <ul v-if="contact.value.value" class="a-rows">
         <li v-for="(field, i) in contact.value.value.fields" :key="i">
-          <div class="entry">
-            <div style="flex: 1">
-              <div class="cluster">
-                <input v-model="field.label" type="text" placeholder="Libellé" />
-                <input v-model="field.value" type="text" placeholder="Valeur" />
-                <input v-model="field.href" type="text" placeholder="Lien (facultatif)" />
-              </div>
-              <p v-if="isSensitive(field) && field.visible" class="a-err">
-                ⚠ Cette donnée personnelle sera publique et indexée par les moteurs de
-                recherche. Elle restera consultable même après l'avoir retirée.
-              </p>
-            </div>
-            <div class="cluster">
-              <label class="pill">
-                <input v-model="field.visible" type="checkbox" />
-                visible
-              </label>
-              <button
-                class="a-btn"
-                type="button"
-                @click="contact.value.value?.fields.splice(i, 1)"
-              >
-                Retirer
-              </button>
-            </div>
+          <div class="a-row-grid">
+            <input v-model="field.label" class="a-input" type="text" placeholder="Libellé" />
+            <input v-model="field.value" class="a-input" type="text" placeholder="Valeur" />
+            <input
+              v-model="field.href"
+              class="a-input"
+              type="text"
+              placeholder="Lien (facultatif)"
+            />
+
+            <!-- Un interrupteur se voit ; une case dans une pastille bleue,
+                 non. -->
+            <label class="a-switch">
+              <ToggleSwitch v-model="field.visible" />
+              <span>{{ field.visible ? 'visible' : 'masqué' }}</span>
+            </label>
+
+            <Button
+              severity="danger"
+              outlined
+              size="small"
+              label="Retirer"
+              @click="contact.value.value?.fields.splice(i, 1)"
+            />
           </div>
+          <p v-if="isSensitive(field) && field.visible" class="a-err">
+            ⚠ Cette donnée personnelle sera publique et indexée par les moteurs de
+            recherche. Elle restera consultable même après l'avoir retirée.
+          </p>
         </li>
       </ul>
       <button class="a-btn" type="button" @click="addContact">+ Ajouter un champ</button>
@@ -163,29 +171,30 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
         </p>
 
       <template v-for="r in SECTIONS" :key="r.key">
-          <h3>
-            {{ r.label }}
-            <label class="pill">
-              <input v-model="cv.value.value[r.key].visible" type="checkbox" />
-              rubrique visible
+          <div class="a-section-head">
+            <h3>{{ r.label }}</h3>
+            <label class="a-switch">
+              <ToggleSwitch v-model="cv.value.value[r.key].visible" />
+              <span>{{ cv.value.value[r.key].visible ? 'rubrique visible' : 'rubrique masquée' }}</span>
             </label>
-          </h3>
-          <ul class="list">
+          </div>
+          <ul class="a-rows">
             <li v-for="(e, i) in cv.value.value[r.key].entries" :key="i">
-              <div class="entry">
-                <div style="flex: 1" class="cluster">
-                  <input v-model="e.title" type="text" placeholder="Intitulé" />
-                  <input v-model="e.org" type="text" placeholder="Organisation" />
-                  <input v-model="e.start" type="text" placeholder="Début" style="max-width: 90px" />
-                  <input v-model="e.end" type="text" placeholder="Fin" style="max-width: 90px" />
-                </div>
-                <div class="cluster">
-                  <label class="pill">
-                    <input v-model="e.visible" type="checkbox" />
-                    visible
-                  </label>
-                  <button class="a-btn" type="button" @click="removeEntry(r.key, i)">Retirer</button>
-                </div>
+              <div class="a-row-grid is-cv">
+                <input v-model="e.title" class="a-input" type="text" placeholder="Intitulé" />
+                <input v-model="e.org" class="a-input" type="text" placeholder="Organisation" />
+                <input v-model="e.start" class="a-input a-short" type="text" placeholder="Début" />
+                <input v-model="e.end" class="a-input a-short" type="text" placeholder="Fin" />
+                <label class="a-switch">
+                  <ToggleSwitch v-model="e.visible" />
+                </label>
+                <Button
+                  severity="danger"
+                  outlined
+                  size="small"
+                  label="Retirer"
+                  @click="removeEntry(r.key, i)"
+                />
               </div>
             </li>
           </ul>

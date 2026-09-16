@@ -9,6 +9,7 @@
 //   2. The only exceptions are the development server settings below: they
 //      only serve dev, where there is no build.
 
+import Aura from '@primevue/themes/aura'
 // The version is a BUILD constant, unlike the secrets: freezing it into
 // the image is exactly what we want, so that /api/health says which image
 // is running.
@@ -24,7 +25,35 @@ export default defineNuxtConfig({
   // nuxt-auth-utils provides the cookie-sealed session and the Google OAuth
   // flow. It replaces what authlib and itsdangerous did on the Python side,
   // in less code.
-  modules: ['nuxt-auth-utils'],
+  modules: ['nuxt-auth-utils', '@primevue/nuxt-module'],
+
+  /**
+   * PrimeVue habille les LISTES du back-office, et rien d'autre.
+   *
+   * Version 4, sous licence MIT : la 5 affiche un avertissement de licence
+   * dans la console. Le site public n'en charge rien — il ne doit pas
+   * ressembler à un tableau de bord.
+   */
+  primevue: {
+    // Auto-import limité : sans cela le module enregistre les ~80 composants
+    // de la bibliothèque, et chacun entre dans le paquet.
+    components: {
+      include: ['DataTable', 'Column', 'Tag', 'Select', 'InputText', 'Button', 'ToggleSwitch'],
+    },
+    options: {
+      theme: {
+        preset: Aura,
+        options: {
+          // Le back-office est en clair. Sans sélecteur, PrimeVue suivrait
+          // prefers-color-scheme et repeindrait l'administration selon le
+          // réglage du système.
+          darkModeSelector: '.primevue-dark',
+          cssLayer: { name: 'primevue', order: 'primevue, theme, base' },
+        },
+      },
+      ripple: false,
+    },
+  },
 
   // The whole design lives in this file. It is loaded globally, as before,
   // and excluded from the formatter (see biome.jsonc).
