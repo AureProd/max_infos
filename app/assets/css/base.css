@@ -1888,3 +1888,32 @@ button {
   display: block;
   background: #000;
 }
+
+/* ---------- pagination ---------- */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 40px;
+  font-family: var(--display);
+  font-size: 0.87rem;
+  color: var(--muted);
+}
+.pager button {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.pager button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.pager button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

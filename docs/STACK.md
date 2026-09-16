@@ -343,35 +343,36 @@ altération du message.
 
 ---
 
-## Tailwind et PrimeVue — l'habillage
+## L'habillage — deux feuilles, et rien d'autre
 
-**Ajoutés le 16/09/2026**, quand le site a eu une apparence à reprendre.
+**Ni Tailwind ni PrimeVue.** Les deux ont été essayés le 16/09/2026, puis
+retirés le jour même : le rendu voulu était assez particulier pour que tout
+soit écrit à la main — tableau, fenêtres, boutons, pastilles. Il ne restait
+que le poids des paquets, un avertissement de licence dans la console, et
+deux garde-fous qu'il avait fallu contourner pour les faire passer.
 
-**Tailwind 4** ne se règle plus par un `tailwind.config.js` : c'est un
-plugin Vite (`@tailwindcss/vite`, branché dans `nuxt.config.ts`), et les
-jetons de couleur, de fonte et de largeur sont déclarés **en CSS**, dans un
-bloc `@theme` en tête de `app/assets/css/base.css`. Les mêmes valeurs
-servent aux règles écrites à la main et aux classes utilitaires : une
-couleur changée à un endroit ne peut plus diverger de l'autre.
+Deux feuilles, donc :
 
-**PrimeVue** habille le **back-office seulement**. Les tableaux et les
-formulaires d'une administration sont ce qu'un catalogue de composants fait
-de mieux ; le site public reste sur-mesure, parce qu'il ne doit pas
-ressembler à un tableau de bord et qu'il n'a pas à charger ce qu'il
-n'affiche jamais.
+- `app/assets/css/base.css` — le site public, **sombre**, chargé
+  globalement par `nuxt.config.ts`.
+- `app/assets/css/admin.css` — le back-office, **clair**, importé par
+  `app/layouts/admin.vue` : il ne part pas dans le paquet des pages
+  publiques, qui ne s'en servent jamais.
 
-Deux conséquences à connaître :
+Une distinction à garder en tête dans la seconde : **`.admin-ui` porte le
+thème, `.admin-shell` porte la page.** Les fenêtres du back-office sont
+téléportées dans `<body>`, donc hors du layout ; sans cette séparation elles
+retombent sur la feuille sombre du site, champs compris. Elles portent
+`.admin-ui` et n'héritent ni de la hauteur ni du fond d'une page entière.
 
-- **Biome ne sait pas lire `@theme` ni `@import 'tailwindcss'`.** Il échoue
-  au parsing, avant même d'appliquer ses exceptions. Les deux feuilles sont
-  donc exclues dans la section `files` de `biome.jsonc`, et pas seulement
-  par un `override`.
-- **`scripts/hooks/vue-templates.mjs` aurait signalé chaque `<Button>`** en
-  composant inconnu et bloqué tous les commits. Il lit maintenant la liste
-  des composants dans le paquet `primevue` installé, plutôt qu'une liste
-  recopiée à la main qui serait périmée à la mise à jour suivante.
+Deux pièges de spécificité, payés une fois chacun :
 
-Les deux feuilles : `app/assets/css/base.css` pour le site public, sombre,
-et `app/assets/css/admin.css` pour le back-office, clair. La seconde est
-importée par `app/layouts/admin.vue`, donc elle ne part pas dans le paquet
-des pages publiques.
+- un `<label>` qui porte une classe de bouton **est** un bouton — c'est
+  ainsi qu'on habille un `<input type="file">`. Une règle sur `label` tout
+  court le transforme en libellé gris pleine largeur ;
+- `.admin-ui a` pèse plus lourd que `.a-btn-primary`. Un **lien** habillé en
+  bouton bleu recevait donc du texte bleu sur fond bleu, et ne redevenait
+  blanc qu'au survol.
+
+Dans les deux cas, la règle générique ne vise plus que ce qui n'a pas de
+classe : `label:not([class])`, `a:not([class])`.

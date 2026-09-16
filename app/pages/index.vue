@@ -3,7 +3,7 @@ import { frDate, frShort } from '#shared/utils/format'
 
 const { data: site } = await useSite()
 const { data: list } = await useFetch('/api/articles', { key: 'accueil', query: { size: 20 } })
-const { articles, tags, state, isActive, total, toggleTag } = useFilters()
+const { articles, tags, state, isActive, total, toggleTag, page, pages, goTo } = useFilters()
 
 const all = computed(() => list.value?.items ?? [])
 const feature = computed(() => all.value[0])
@@ -137,6 +137,17 @@ useSeoMeta({
           <ArticleCard :article="article" :byline="site?.identity.byline" />
         </li>
       </ul>
+
+      <!--
+        Le compteur annonçait « 38 résultat(s) » et la liste en montrait
+        douze, sans aucun moyen d'atteindre les vingt-six autres : ils
+        étaient simplement inaccessibles.
+      -->
+      <nav v-if="pages > 1" class="pager" aria-label="Pages d'articles">
+        <button type="button" :disabled="page <= 1" @click="goTo(page - 1)">← Précédents</button>
+        <span>page {{ page }} sur {{ pages }}</span>
+        <button type="button" :disabled="page >= pages" @click="goTo(page + 1)">Suivants →</button>
+      </nav>
     </section>
   </div>
 </template>
