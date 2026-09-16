@@ -26,7 +26,7 @@
 | 6 — Instagram : jeton chiffré, synchronisation, cartes maison | ✅ |
 | 6 bis — Plusieurs comptes Instagram, réglés depuis l'écran Réseaux | ✅ |
 | 7 — Rattachement, LinkedIn manuel, gabarits | ✅ |
-| 8 — Réglages : accueil, CV, contact, apparence | ✅ |
+| 8 — Réglages : CV, contact, à propos | ✅ |
 | 9 — Référencement : flux, plan du site, JSON-LD, cache | ✅ |
 | 10 — Export / import avec aller-retour vérifié | ✅ |
 | 11 — CI, compose de production, déploiement | ✅ écrit, **pas encore exécuté** |
@@ -35,7 +35,7 @@
 
 Le back-office est complet : tableau de bord, articles avec couverture et
 panneau Décliner, publications, **Réseaux**, accueil, CV illustré (photo +
-PDF), apparence, et un écran Technique qui garde la sauvegarde et les comptes
+PDF), et un écran Technique qui garde la sauvegarde et les comptes
 autorisés.
 
 ### Plusieurs comptes Instagram

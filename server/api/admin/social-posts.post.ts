@@ -1,4 +1,5 @@
 import { manualPost } from '#shared/schemas/api'
+import { mediaTypeFromUrl } from '#shared/utils/social'
 import { useDatabase } from '~~/server/database/client'
 import { socialPost } from '~~/server/database/schema'
 import { requireRole } from '~~/server/utils/auth'
@@ -27,7 +28,15 @@ export default defineEventHandler(async (event) => {
       shortcode: ref?.shortcode ?? null,
       url: d.url,
       permalink: d.url,
-      mediaType: d.mediaType ?? (d.network === 'linkedin' ? 'post' : 'image'),
+      /*
+       * The link is read before falling back.
+       *
+       * Every manual entry used to be filed as « image », reels included:
+       * the home page then showed a reel as a still photo, labelled
+       * « Image ». The permalink says which it is.
+       */
+      mediaType:
+        d.mediaType ?? mediaTypeFromUrl(d.url) ?? (d.network === 'linkedin' ? 'post' : 'image'),
       caption: d.caption ?? null,
       postedAt: d.postedAt ? new Date(`${d.postedAt}T12:00:00Z`) : new Date(),
       source: 'manual',

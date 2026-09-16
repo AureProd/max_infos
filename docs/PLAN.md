@@ -313,7 +313,6 @@ Instagram. C'est ce qui règle le problème des blocs blancs dans le thème somb
    expériences, engagements, compétences, centres d'intérêt, langues, certifications), chaque
    entrée réordonnable et masquable ; photo et PDF téléversés ; bloc **contact** avec
    interrupteur de visibilité par champ et avertissement sur les données personnelles.
-7. **Apparence** — palette et typographie, prévisualisées en direct.
 8. **Technique** *(JB uniquement)* — connexions tierces, stockage, utilisateurs, export/import,
    journal de synchronisation.
 
@@ -526,7 +525,7 @@ modifications :
 | 5 | Admin : articles, médias (R2), tags | Max écrit et publie un article depuis le navigateur |
 | 6 | Intégration Instagram : connexion, sync, profil, cartes maison | Les vraies publications et le vrai profil s'affichent |
 | 7 | Rattachement article ↔ publications, LinkedIn manuel, gabarits de déclinaison | Max relie un reel à un article et copie son post LinkedIn |
-| 8 | Réglages : accueil, CV structuré, contact, apparence | Max change la home, son CV et la palette sans coder |
+| 8 | Réglages : CV structuré, contact, à propos | Max change son CV et ses informations sans coder. L'apparence, elle, est fixée dans le code |
 | 9 | SEO : injection serveur, RSS, sitemap, Open Graph, compteur de vues | Aperçu de partage correct, flux valide |
 | 10 | Export/import + sauvegarde | Archive téléchargée, réimportée dans une base vierge |
 | 11 | CI, compose de prod, déploiement, HTTPS | `https://unmaxdinfo.fr` en ligne |

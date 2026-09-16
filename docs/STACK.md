@@ -340,3 +340,38 @@ La dernière ligne mérite un mot : **Fernet n'existe pas en Node** et ne doit
 pas être réimplémenté. On utilise AES-256-GCM, du module `crypto` natif, qui
 offre la même garantie — un chiffrement authentifié, qui détecte toute
 altération du message.
+
+---
+
+## Tailwind et PrimeVue — l'habillage
+
+**Ajoutés le 16/09/2026**, quand le site a eu une apparence à reprendre.
+
+**Tailwind 4** ne se règle plus par un `tailwind.config.js` : c'est un
+plugin Vite (`@tailwindcss/vite`, branché dans `nuxt.config.ts`), et les
+jetons de couleur, de fonte et de largeur sont déclarés **en CSS**, dans un
+bloc `@theme` en tête de `app/assets/css/base.css`. Les mêmes valeurs
+servent aux règles écrites à la main et aux classes utilitaires : une
+couleur changée à un endroit ne peut plus diverger de l'autre.
+
+**PrimeVue** habille le **back-office seulement**. Les tableaux et les
+formulaires d'une administration sont ce qu'un catalogue de composants fait
+de mieux ; le site public reste sur-mesure, parce qu'il ne doit pas
+ressembler à un tableau de bord et qu'il n'a pas à charger ce qu'il
+n'affiche jamais.
+
+Deux conséquences à connaître :
+
+- **Biome ne sait pas lire `@theme` ni `@import 'tailwindcss'`.** Il échoue
+  au parsing, avant même d'appliquer ses exceptions. Les deux feuilles sont
+  donc exclues dans la section `files` de `biome.jsonc`, et pas seulement
+  par un `override`.
+- **`scripts/hooks/vue-templates.mjs` aurait signalé chaque `<Button>`** en
+  composant inconnu et bloqué tous les commits. Il lit maintenant la liste
+  des composants dans le paquet `primevue` installé, plutôt qu'une liste
+  recopiée à la main qui serait périmée à la mise à jour suivante.
+
+Les deux feuilles : `app/assets/css/base.css` pour le site public, sombre,
+et `app/assets/css/admin.css` pour le back-office, clair. La seconde est
+importée par `app/layouts/admin.vue`, donc elle ne part pas dans le paquet
+des pages publiques.
