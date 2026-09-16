@@ -126,3 +126,23 @@ defineProps<{ thumbnailUrl: string | null }>()
     expect(rules([opaque, page])).toEqual([])
   })
 })
+
+describe('composants PrimeVue', () => {
+  it('accepts an auto-imported component when PrimeVue provides it', () => {
+    // Without this the guard would flag every <Button> and <DataTable>,
+    // and block every commit of the back-office.
+    const files = [
+      { path: 'app/pages/admin/articles.vue', content: '<template><DataTable /></template>' },
+    ]
+    expect(checkVueTemplates(files, new Set(['datatable']))).toEqual([])
+  })
+
+  it('still flags a component PrimeVue does not provide', () => {
+    const files = [
+      { path: 'app/pages/admin/articles.vue', content: '<template><DataTabel /></template>' },
+    ]
+    const problems = checkVueTemplates(files, new Set(['datatable']))
+    expect(problems).toHaveLength(1)
+    expect(problems[0]?.rule).toBe('unknown-component')
+  })
+})

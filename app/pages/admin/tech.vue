@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'admin' })
+definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const { peut } = useUser()
 const seesTech = peut('tech')
@@ -41,9 +41,7 @@ useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
 </script>
 
 <template>
-  <div class="wrap">
-    <section class="admin-page">
-      <AdminNav />
+  <div>
 
       <h1>Technique</h1>
 
@@ -85,6 +83,5 @@ useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
         -->
         <UsersPanel />
       </template>
-    </section>
   </div>
 </template>

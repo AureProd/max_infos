@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'admin' })
+definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const identity = useSetting('identity')
 const contact = useSetting('contact')
@@ -67,15 +67,18 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
 </script>
 
 <template>
-  <div class="wrap">
-    <section class="admin-page">
-      <AdminNav>
-        <span v-if="state === 'enregistré'" class="note">enregistré</span>
-        <span v-else-if="state === 'échec'" class="err">échec</span>
-        <button class="btn btn-primary" type="button" @click="saveAll">Enregistrer</button>
-      </AdminNav>
+  <div>
 
-      <h1>À propos</h1>
+    <div class="admin-title">
+      <div>
+        <h1>À propos</h1>
+      </div>
+      <div class="admin-actions">
+          <span v-if="state === 'enregistré'" class="a-tag is-ok">enregistré</span>
+          <span v-else-if="state === 'échec'" class="a-err">échec</span>
+          <button class="a-btn a-btn-primary" type="button" @click="saveAll">Enregistrer</button>
+      </div>
+    </div>
 
       <h2>Identité du site</h2>
       <div v-if="identity.value.value">
@@ -114,7 +117,7 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                 <input v-model="field.value" type="text" placeholder="Valeur" />
                 <input v-model="field.href" type="text" placeholder="Lien (facultatif)" />
               </div>
-              <p v-if="isSensitive(field) && field.visible" class="err">
+              <p v-if="isSensitive(field) && field.visible" class="a-err">
                 ⚠ Cette donnée personnelle sera publique et indexée par les moteurs de
                 recherche. Elle restera consultable même après l'avoir retirée.
               </p>
@@ -125,7 +128,7 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                 visible
               </label>
               <button
-                class="btn"
+                class="a-btn"
                 type="button"
                 @click="contact.value.value?.fields.splice(i, 1)"
               >
@@ -135,7 +138,7 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
           </div>
         </li>
       </ul>
-      <button class="btn" type="button" @click="addContact">+ Ajouter un champ</button>
+      <button class="a-btn" type="button" @click="addContact">+ Ajouter un champ</button>
 
       <template v-if="cv.value.value">
         <h2>Curriculum</h2>
@@ -177,14 +180,13 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                     <input v-model="e.visible" type="checkbox" />
                     visible
                   </label>
-                  <button class="btn" type="button" @click="removeEntry(r.key, i)">Retirer</button>
+                  <button class="a-btn" type="button" @click="removeEntry(r.key, i)">Retirer</button>
                 </div>
               </div>
             </li>
           </ul>
-          <button class="btn" type="button" @click="addEntry(r.key)">+ Ajouter</button>
+          <button class="a-btn" type="button" @click="addEntry(r.key)">+ Ajouter</button>
         </template>
       </template>
-    </section>
   </div>
 </template>

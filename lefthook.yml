@@ -25,7 +25,7 @@ pre-commit:
     - name: biome
       glob: "*.{js,mjs,cjs,ts,mts,cts,vue,css,json,jsonc}"
       exclude:
-        - "app/assets/css/base.css"
+        - "app/assets/css/*.css"
       run: pnpm exec biome check --write --no-errors-on-unmatched {staged_files}
       stage_fixed: true
 

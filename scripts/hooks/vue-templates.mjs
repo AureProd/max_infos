@@ -54,6 +54,30 @@ const BUILT_IN = new Set([
   'Base',
 ])
 
+/**
+ * The components PrimeVue auto-imports.
+ *
+ * They belong to no file in app/components/, so without this the guard
+ * would flag every <Button> and <DataTable> and block each commit. The
+ * names are read from the installed package rather than written down:
+ * a list copied by hand goes stale at the next update.
+ *
+ * Compared in lower case, because the folder is `datatable` while the
+ * component is <DataTable>.
+ */
+function primevueComponents(root) {
+  try {
+    return new Set(
+      readdirSync(join(root, 'node_modules', 'primevue'), { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name.toLowerCase()),
+    )
+  } catch {
+    // PrimeVue not installed: the guard simply has nothing extra to allow.
+    return new Set()
+  }
+}
+
 /** Native attributes, never props. */
 const NATIVE = new Set(['class', 'style', 'key', 'ref', 'id', 'is', 'slot', 'title', 'role'])
 
@@ -177,9 +201,14 @@ function attributes(raw) {
 
 /**
  * The problems of a set of .vue files, as `{ path, rule, message }`.
+ *
+ * `fromPrimevue` is a parameter rather than a global read: the function
+ * stays pure, and the test decides what is installed.
+ *
  * @param {{ path: string, content: string }[]} files
+ * @param {Set<string>} [fromPrimevue] lower-case names auto-imported by PrimeVue
  */
-export function checkVueTemplates(files) {
+export function checkVueTemplates(files, fromPrimevue = new Set()) {
   const components = new Map()
   for (const f of files) {
     const m = f.path.match(/app\/components\/([A-Za-z0-9]+)\.vue$/)
@@ -193,6 +222,7 @@ export function checkVueTemplates(files) {
 
     for (const { tag, attrs } of usages(tpl)) {
       if (BUILT_IN.has(tag)) continue
+      if (fromPrimevue.has(tag.toLowerCase())) continue
 
       if (!components.has(tag)) {
         problems.push({
@@ -231,7 +261,7 @@ function walk(dir, out = []) {
 
 if (process.argv[1]?.endsWith('vue-templates.mjs')) {
   const files = walk('app').map((path) => ({ path, content: readFileSync(path, 'utf8') }))
-  const problems = checkVueTemplates(files)
+  const problems = checkVueTemplates(files, primevueComponents(process.cwd()))
   for (const { path, rule, message } of problems) console.error(`${path}: ${rule}: ${message}`)
   process.exit(problems.length ? 1 : 0)
 }

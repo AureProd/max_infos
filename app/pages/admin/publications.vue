@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { frDate } from '#shared/utils/format'
+import { mediaLabel, networkLabel } from '#shared/utils/social'
 
-definePageMeta({ middleware: 'admin' })
+definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const { data: publications, refresh } = await useFetch('/api/admin/social-posts', {
   key: 'admin-publications',
@@ -74,73 +75,93 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
 </script>
 
 <template>
-  <div class="wrap">
-    <section class="admin-page">
-      <AdminNav />
-
-      <h1>Publications</h1>
-      <p v-if="toAttach" class="note">
-        {{ toAttach }} publication(s) découverte(s) et non rattachée(s) à un article.
-      </p>
+  <div>
+    <div class="admin-title">
+      <div>
+        <h1>Publications</h1>
+        <p class="admin-lede">
+          {{ linked?.length ?? 0 }} visible(s) sur le site<template v-if="toAttach">
+            · {{ toAttach }} découverte(s) sans article rattaché</template
+          >
+        </p>
+      </div>
+    </div>
 
       <!--
         La saisie manuelle est la SEULE voie pour LinkedIn : lire ses propres
         publications y est impossible, le scope r_member_social étant fermé
         aux nouvelles applications.
       -->
-      <form class="field" style="margin: 24px 0" @submit.prevent="add">
-        <label for="p-url">Coller l'adresse d'une publication</label>
-        <div class="cluster">
-          <select v-model="input.network" aria-label="Réseau">
+    <div class="admin-card" style="margin-bottom: 20px">
+      <form @submit.prevent="add">
+        <label class="a-label" for="p-url">Coller l'adresse d'une publication</label>
+        <div class="a-toolbar">
+          <select v-model="input.network" class="a-select" aria-label="Réseau">
             <option value="linkedin">LinkedIn</option>
             <option value="instagram">Instagram</option>
           </select>
           <input
             id="p-url"
             v-model="input.url"
+            class="a-input"
             type="url"
             placeholder="https://www.linkedin.com/posts/…"
             required
           />
-          <button class="btn btn-primary" type="submit">Ajouter</button>
+          <button class="a-btn a-btn-primary" type="submit">Ajouter</button>
         </div>
-        <p v-if="inputError" class="err">{{ inputError }}</p>
+        <p v-if="inputError" class="a-err">{{ inputError }}</p>
       </form>
+    </div>
 
-      <div v-if="accounts.length > 1" class="field" style="margin-bottom: 16px">
-        <label for="p-compte">Compte</label>
-        <select id="p-compte" v-model="filterCount">
+    <div class="admin-card">
+      <div v-if="accounts.length > 1" class="a-toolbar">
+        <select id="p-compte" v-model="filterCount" class="a-select" aria-label="Compte">
           <option value="">— tous les comptes —</option>
           <option v-for="c in accounts" :key="c.id" :value="String(c.id)">@{{ c.username }}</option>
         </select>
       </div>
 
-      <p v-if="!publications?.length" class="empty">Aucune publication pour l'instant.</p>
+      <p v-if="!publications?.length" class="a-empty">Aucune publication pour l'instant.</p>
 
-      <ul v-else class="list">
-        <li v-for="p in visible" :key="p.id">
-          <div class="entry">
-            <div>
-              <h3>
-                <a v-if="p.permalink" :href="p.permalink" target="_blank" rel="noopener">
-                  {{ p.caption?.slice(0, 70) || `${p.network} ${p.shortcode ?? ''}` }} ↗
-                </a>
-                <span v-else>{{ p.caption?.slice(0, 70) || p.network }}</span>
-              </h3>
-              <div class="meta">
-                <span class="pill">{{ p.network }}</span>
+      <table v-else class="a-table">
+        <thead>
+          <tr>
+            <th>Publication</th>
+            <th class="a-col-state">Réseau</th>
+            <th class="a-col-date">Publiée le</th>
+            <th>Article rattaché</th>
+            <th class="a-col-act"><span class="a-sr">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="p in visible" :key="p.id">
+            <td>
+              <a v-if="p.permalink" class="a-title" :href="p.permalink" target="_blank" rel="noopener">
+                {{ p.caption?.slice(0, 60) || mediaLabel(p.mediaType) }} ↗
+              </a>
+              <span v-else class="a-title">
+                {{ p.caption?.slice(0, 60) || mediaLabel(p.mediaType) }}
+              </span>
+              <div class="a-sub">
                 <span v-if="p.accountUsername">@{{ p.accountUsername }}</span>
-                <span v-if="p.mediaType">{{ p.mediaType }}</span>
-                <span class="pill">{{ p.source === 'api' ? 'découverte' : 'saisie' }}</span>
-                <time v-if="p.postedAt" :datetime="p.postedAt">
-                  {{ frDate(p.postedAt.slice(0, 10)) }}
-                </time>
-                <span v-if="p.hidden" class="todo">masquée</span>
+                <span>{{ mediaLabel(p.mediaType) }}</span>
+                <span>{{ p.source === 'api' ? 'découverte' : 'saisie' }}</span>
+                <span v-if="p.hidden" class="a-tag is-draft">masquée</span>
               </div>
-            </div>
-
-            <div class="cluster">
+            </td>
+            <td>
+              <span class="a-tag is-info">{{ networkLabel(p.network) }}</span>
+            </td>
+            <td class="a-date">
+              <time v-if="p.postedAt" :datetime="p.postedAt">
+                {{ frDate(p.postedAt.slice(0, 10)) }}
+              </time>
+              <span v-else class="a-nil">—</span>
+            </td>
+            <td>
               <select
+                class="a-select a-select-wide"
                 :value="p.articleSlug ?? ''"
                 aria-label="Article rattaché"
                 @change="attach(p.id, ($event.target as HTMLSelectElement).value)"
@@ -150,18 +171,20 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
                   {{ a.title }}
                 </option>
               </select>
-              <button class="btn" type="button" @click="toggleVisibility(p.id, !p.hidden)">
-                {{ p.hidden ? 'Afficher' : 'Masquer' }}
-              </button>
-              <button class="btn" type="button" @click="remove(p.id)">Supprimer</button>
-            </div>
-          </div>
-        </li>
-      </ul>
-
-      <p class="hint" style="margin-top: 24px">
-        {{ linked?.length ?? 0 }} publication(s) visible(s) sur le site.
-      </p>
-    </section>
+            </td>
+            <td>
+              <div class="a-row-act">
+                <button class="a-btn" type="button" @click="toggleVisibility(p.id, !p.hidden)">
+                  {{ p.hidden ? 'Afficher' : 'Masquer' }}
+                </button>
+                <button class="a-btn a-btn-danger" type="button" @click="remove(p.id)">
+                  Supprimer
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>

@@ -66,7 +66,9 @@ describe('rendering for an editor', () => {
     // A Nuxt page in error answers 200 with its error page: so we check the
     // CONTENT, not just the status code.
     expect(html).not.toContain('statusCode:500')
-    expect(html).toContain('admin-page')
+    // `admin-shell` is the root of layouts/admin.vue: its presence proves
+    // the back-office chrome was rendered, not an error page.
+    expect(html).toContain('admin-shell')
   })
 
   it('the menu does NOT offer the tech screen', async () => {
@@ -81,7 +83,7 @@ describe('rendering for a tech', () => {
   it('the tech screen renders', async () => {
     const r = await fetch('/admin/tech', { headers: { cookie: cookies.tech } })
     expect(r.status).toBe(200)
-    expect(await r.text()).toContain('admin-page')
+    expect(await r.text()).toContain('admin-shell')
   })
 
   it('the menu offers the tech screen', async () => {

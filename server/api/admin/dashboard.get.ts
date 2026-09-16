@@ -97,25 +97,39 @@ export default defineEventHandler(async (event) => {
     .from(article)
     .where(eq(article.status, 'draft'))
 
+  /*
+   * The real count, and not `nonRattachees.length`.
+   *
+   * That list is capped at five to show a few examples; using its length as
+   * a figure made the dashboard announce « 5 » whether there were five or
+   * fifty. A tile that saturates in silence is worse than no tile.
+   */
+  const [nbNonRattachees] = await db
+    .select({ n: count() })
+    .from(socialPost)
+    .leftJoin(articleSocialPost, eq(articleSocialPost.socialPostId, socialPost.id))
+    .where(and(isNull(articleSocialPost.articleId), eq(socialPost.hidden, false)))
+
   const alerts: Alert[] = []
   if ((sansCouverture[0]?.n ?? 0) > 0) {
     alerts.push({
       niveau: 'attention',
-      message: `${sansCouverture[0]?.n} article(s) publié(s) sans image de cover`,
-      link: '/admin',
+      message: `${sansCouverture[0]?.n} article(s) publié(s) sans image de couverture`,
+      // Pointing at /admin meant pointing at the page being read.
+      link: '/admin/articles',
     })
   }
   if ((sansResume[0]?.n ?? 0) > 0) {
     alerts.push({
       niveau: 'info',
       message: `${sansResume[0]?.n} article(s) publié(s) sans chapô`,
-      link: '/admin',
+      link: '/admin/articles',
     })
   }
-  if (nonRattachees.length > 0) {
+  if ((nbNonRattachees?.n ?? 0) > 0) {
     alerts.push({
       niveau: 'info',
-      message: `${nonRattachees.length} publication(s) sans article rattaché`,
+      message: `${nbNonRattachees?.n} publication(s) sans article rattaché`,
       link: '/admin/publications',
     })
   }
@@ -128,6 +142,7 @@ export default defineEventHandler(async (event) => {
       postedAt: p.postedAt?.toISOString() ?? null,
     })),
     // `sum` returns a string in SQL: the total can exceed the safe integer.
+    nbNonRattachees: nbNonRattachees?.n ?? 0,
     vuesSemaine: Number(views[0]?.total ?? 0),
     populaires,
     alerts,

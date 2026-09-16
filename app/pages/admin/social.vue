@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nb } from '#shared/utils/format'
 
-definePageMeta({ middleware: 'admin' })
+definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 /**
  * The social network accounts, configured by Max.
@@ -97,26 +97,29 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
 </script>
 
 <template>
-  <div class="wrap">
-    <section class="admin-page">
-      <AdminNav>
-        <span v-if="state === 'enregistré'" class="note">enregistré</span>
-        <span v-else-if="state === 'échec'" class="err">échec</span>
-        <button
-          class="btn"
-          type="button"
-          :disabled="syncTask !== null || !(accounts ?? []).length"
-          @click="syncPosts()"
-        >
-          {{ syncTask === 'tous' ? 'Synchronisation…' : 'Tout synchroniser' }}
-        </button>
-        <a class="btn btn-primary" href="/api/admin/instagram/connect">Connecter un compte</a>
-      </AdminNav>
+  <div>
 
-      <h1>Réseaux</h1>
+    <div class="admin-title">
+      <div>
+        <h1>Réseaux</h1>
+      </div>
+      <div class="admin-actions">
+          <span v-if="state === 'enregistré'" class="a-tag is-ok">enregistré</span>
+          <span v-else-if="state === 'échec'" class="a-err">échec</span>
+          <button
+            class="a-btn"
+            type="button"
+            :disabled="syncTask !== null || !(accounts ?? []).length"
+            @click="syncPosts()"
+          >
+            {{ syncTask === 'tous' ? 'Synchronisation…' : 'Tout synchroniser' }}
+          </button>
+          <a class="a-btn a-btn-primary" href="/api/admin/instagram/connect">Connecter un compte</a>
+      </div>
+    </div>
 
-      <p v-if="back === 'ok'" class="note">Le compte est connecté.</p>
-      <p v-else-if="back === 'refus'" class="err">
+      <p v-if="back === 'ok'" class="a-tag is-ok">Le compte est connecté.</p>
+      <p v-else-if="back === 'refus'" class="a-err">
         L'autorisation a été refusée côté Instagram.
       </p>
       <p v-if="message" class="hint">{{ message }}</p>
@@ -144,7 +147,7 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
                   <span>
                     Synchronisé : {{ c.lastSyncAt ? c.lastSyncAt.slice(0, 10) : 'jamais' }}
                   </span>
-                  <span v-if="!c.signedIn" class="err">jeton absent — reconnecter</span>
+                  <span v-if="!c.signedIn" class="a-err">jeton absent — reconnecter</span>
                   <strong v-else-if="c.jetonAlerte">
                     Jeton vieux de {{ c.jetonAgeJours }} jours : à renouveler avant 60.
                   </strong>
@@ -153,11 +156,11 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
             </div>
 
             <div class="cluster">
-              <button class="btn" type="button" :disabled="i === 0" @click="move(i, -1)">
+              <button class="a-btn" type="button" :disabled="i === 0" @click="move(i, -1)">
                 ↑
               </button>
               <button
-                class="btn"
+                class="a-btn"
                 type="button"
                 :disabled="i === (accounts ?? []).length - 1"
                 @click="move(i, 1)"
@@ -188,14 +191,14 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
               </label>
 
               <button
-                class="btn"
+                class="a-btn"
                 type="button"
                 :disabled="syncTask !== null"
                 @click="syncPosts(c.id)"
               >
                 {{ syncTask === c.id ? 'Synchronisation…' : 'Synchroniser' }}
               </button>
-              <button class="btn" type="button" @click="signOut(c)">Déconnecter</button>
+              <button class="a-btn" type="button" @click="signOut(c)">Déconnecter</button>
             </div>
           </div>
         </li>
@@ -204,7 +207,6 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
       <p v-if="!(accounts ?? []).length" class="empty">
         Aucun compte connecté. « Connecter un compte » ouvre l'autorisation Instagram.
       </p>
-    </section>
   </div>
 </template>
 

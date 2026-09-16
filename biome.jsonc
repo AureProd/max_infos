@@ -12,7 +12,12 @@
       "!mockup",
       // Leftover from the mock-up, converted as we go then removed.
       "!frontend",
-      "!pnpm-lock.yaml"
+      "!pnpm-lock.yaml",
+      // The stylesheets hold the Tailwind at-rules (@import, @theme), which
+      // Biome cannot parse — it fails before any override applies. They
+      // carry the whole design and are reviewed by hand, never reformatted.
+      "!app/assets/css/base.css",
+      "!app/assets/css/admin.css"
     ]
   },
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
@@ -48,13 +53,6 @@
       // rule therefore does not apply here.
       "includes": ["app/pages/**", "app/layouts/**", "app/app.vue", "app/error.vue"],
       "linter": { "rules": { "style": { "useVueMultiWordComponentNames": "off" } } }
-    },
-    {
-      // base.css carries the whole design (1618 lines). Reformatting it
-      // would drown every future review in noise.
-      "includes": ["app/assets/css/base.css"],
-      "formatter": { "enabled": false },
-      "linter": { "enabled": false }
     },
     {
       // Biome's Vue support is experimental: it analyses the <script>

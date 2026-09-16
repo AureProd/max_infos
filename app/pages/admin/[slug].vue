@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ middleware: 'admin' })
+definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const route = useRoute()
 const slug = ref<string | null>(String(route.params.slug))
@@ -35,8 +35,7 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
 </script>
 
 <template>
-  <div class="wrap">
-    <section class="admin-page">
+  <div>
       <div class="admin-bar">
         <h1>
           <NuxtLink to="/admin">←</NuxtLink>
@@ -101,6 +100,5 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
       </div>
 
       <VariantsPanel :slug="slug ?? ''" :publie="status === 'published'" />
-    </section>
   </div>
 </template>
