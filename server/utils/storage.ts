@@ -62,6 +62,11 @@ function useS3(): S3Client {
       region: 'auto',
       endpoint: c.r2Endpoint,
       credentials: { accessKeyId: c.r2AccessKeyId, secretAccessKey: c.r2SecretAccessKey },
+      // A presigned URL is signed WITHOUT a body. Left to itself the SDK
+      // signs the CRC32 of nothing, R2 compares it to the file the browser
+      // actually sends, and refuses the upload.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     })
   }
   return client

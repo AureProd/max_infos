@@ -133,6 +133,16 @@ describe('upload URL', () => {
     expect(url).toContain('X-Amz-Expires=600')
   })
 
+  it('signs without a checksum, which would cover an empty body', async () => {
+    // Since 3.729 the SDK computes a checksum by default. getSignedUrl does
+    // not know the body, so it signs the CRC32 of nothing — and R2 then
+    // rejects the PUT that carries the real file.
+    const url = await uploadUrl('2026-09-15/abcd1234-a.png', 'image/png')
+
+    expect(url).not.toContain('x-amz-checksum')
+    expect(url).not.toContain('x-amz-sdk-checksum-algorithm')
+  })
+
   it('refuses plainly when storage is not configured', async () => {
     // A 503 says « not configured »; a crash would say nothing.
     config = { ...COMPLETE, r2Endpoint: '' }

@@ -144,11 +144,19 @@ NUXT_PUBLIC_R2_BASE_URL=https://media.unmaxdinfo.fr
 L'`ENDPOINT` sert à **signer** le téléversement ; la `BASE_URL` est ce que
 lit le navigateur. Ce sont deux domaines différents, c'est normal.
 
-> **CORS** : le navigateur envoie le fichier *directement* à R2, pas au
-> serveur. Dans les réglages du bucket, autoriser la méthode `PUT` depuis
-> l'origine `https://unmaxdinfo.fr` (et
-> `http://localhost:8000` pour tester en local). Sans cela le
-> téléversement échoue sur une erreur CORS que rien d'autre n'explique.
+> **CORS — obligatoire, et invisible si on l'oublie.** Le navigateur envoie
+> le fichier *directement* à R2, pas au serveur. Sans règle CORS sur le
+> bucket, le préflight `OPTIONS` revient sans en-tête et le téléversement
+> échoue sur un `Failed to fetch` sans code de statut, sans rien dans les
+> journaux du serveur. La règle est versionnée, pas à recopier à la main :
+>
+> ```bash
+> NUXT_R2_ENDPOINT=… NUXT_R2_ACCESS_KEY_ID=… \
+> NUXT_R2_SECRET_ACCESS_KEY=… NUXT_R2_BUCKET=… pnpm r2:cors
+> ```
+>
+> Le script écrit la règle, **relit** la configuration du bucket et affiche
+> ce qu'elle contient vraiment.
 
 ---
 
@@ -353,7 +361,7 @@ Puis, dans le navigateur :
 | Le conteneur `app` redémarre en boucle | Un secret obligatoire manque. `docker compose logs app` **nomme la variable**. |
 | Connexion Google → retour à `/login` | Adresse absente de la liste blanche, ou hors des *Test users*. |
 | `redirect_uri_mismatch` | L'URI déclarée chez Google diffère d'un caractère. Elle inclut le schéma, le port et le chemin. |
-| Téléversement refusé, erreur CORS | Le `PUT` depuis l'origine du site n'est pas autorisé sur le bucket R2. |
+| Téléversement : « Failed to fetch », sans statut | La règle CORS du bucket n'autorise pas l'origine du site. Lancer `pnpm r2:cors`. |
 | Instagram : « le jeton ne se rafraîchit plus » | Passé 60 jours, il est mort. Refaire *Connecter un compte* pour le même compte : il retombe sur sa ligne, ordre et réglages préservés. |
 | Cookie de session jamais posé | SSL en *Flexible* chez Cloudflare, ou site servi en clair. |
 | Le déploiement ne part pas | L'environnement `production` n'existe pas dans les Settings du dépôt. |

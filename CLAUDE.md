@@ -62,6 +62,8 @@ migration appliquant un jeu périmé tout en répondant « applied successfully 
 | Le défi ACME **TLS-ALPN-01 ne traverse pas un proxy** : derrière le nuage orange de Cloudflare, aucun certificat n'est jamais émis | `@` et `www` en *DNS only*. Voir « Décisions arrêtées » |
 | `docker compose config` **déplie `env_file` en clair même avec `--no-env-resolution`** — mesuré, sortie identique au bit près | Les quatre options du rendu, tenues par `scripts/hooks/compose-artifact.mjs` |
 | `docker compose config` grave le **nom de projet du rendu** dans `name:` et dans les volumes : `up -d` fabrique alors un nouveau `db_data` et orpheline la base pendant que le site répond | `--no-normalize` et `sed '/^name:/d'`. Tenu par le même garde-fou |
+| Le préflight CORS d'un `PUT` presigné vers R2 échoue **sans code de statut** : le navigateur ne dit que `Failed to fetch`, et le serveur ne voit rien passer | La règle du seau est versionnée dans `scripts/r2-cors.ts` (`pnpm r2:cors`), qui **relit** ce que le seau répond |
+| `getSignedUrl` signe **sans corps** : depuis 3.729 le SDK AWS y grave le CRC32 du vide (`x-amz-checksum-crc32=AAAAAA==`), et R2 rejette ensuite le fichier réel | `requestChecksumCalculation: 'WHEN_REQUIRED'` sur le `S3Client`. Tenu par `test/unit/storage.spec.ts` |
 | `social_post.source` a pour défaut **`'manual'`** : il dit la PROVENANCE, pas le placement. Filtrer dessus affiche deux fois le même billet sur l'accueil | Pour « quel billet n'a pas de section », filtrer sur `account_id IS NULL` |
 
 ## Décisions arrêtées
@@ -102,6 +104,12 @@ des sections. Le rendu est fixé dans le code (décision de JB, 16/09/2026).
 - **Le site ne publie jamais sur les réseaux.** Il découvre, affiche, assiste.
 - **`v-html`** n'est admis que dans les fichiers listés par
   `scripts/hooks/check-v-html.sh`, avec sa justification.
+- **Claude ne lit ni n'utilise les secrets réels**, même présents en local
+  (`.env.dev`, `.env*`, clés R2, Google OAuth, Instagram). Il n'ouvre pas ces
+  fichiers, n'en affiche pas le contenu, et ne lance aucun script qui s'en
+  sert — `pnpm r2:cors`, une synchronisation Instagram, un appel à l'API Meta.
+  Il écrit le script, donne la commande, et **c'est JB qui la lance**. Même
+  règle que `git push` : l'action qui sort de la machine appartient à JB.
 
 ## Base de données
 

@@ -49,11 +49,21 @@ async function upload(evenement: Event): Promise<void> {
 
     // Direct send to R2. The Content-Type must be EXACTLY the one signed,
     // otherwise R2 refuses the request — the signature covers it.
-    const response = await fetch(uploadUrl, {
-      method: 'PUT',
-      body: file,
-      headers: { 'content-type': file.type },
-    })
+    let response: Response
+    try {
+      response = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: { 'content-type': file.type },
+      })
+    } catch {
+      // A preflight the bucket refuses surfaces as a bare TypeError: no
+      // status, no message, nothing in our logs — the request never left.
+      // Naming CORS here saves the next hour spent reading the console.
+      throw new Error(
+        "Le stockage a refusé la connexion : la règle CORS du seau n'autorise pas ce site (pnpm r2:cors).",
+      )
+    }
     if (!response.ok) throw new Error(`Le stockage a refusé le fichier (${response.status})`)
 
     model.value = media.id
