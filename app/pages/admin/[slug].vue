@@ -78,7 +78,7 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
             <label for="a-tags">Sujets, séparés par des virgules</label>
             <input id="a-tags" v-model="tags" type="text" />
           </div>
-          <MediaPicker v-model="draft.coverMediaId" libelle="Image de cover" />
+          <MediaPicker v-model="draft.coverMediaId" label="Image de couverture" />
           <div class="field">
             <label for="a-body">
               Texte
@@ -100,7 +100,7 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
         </div>
       </div>
 
-      <DeclinerPanneau :slug="slug ?? ''" :publie="status === 'published'" />
+      <VariantsPanel :slug="slug ?? ''" :publie="status === 'published'" />
     </section>
   </div>
 </template>

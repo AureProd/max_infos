@@ -42,6 +42,20 @@ pre-commit:
       glob: "*.vue"
       run: scripts/hooks/check-v-html.sh
 
+    - name: templates
+      # The blind spot between the two tools above: Biome reads the
+      # `<script>` of a .vue WITHOUT the `<template>`, and typecheck treats
+      # neither an unknown auto-imported component nor an undeclared
+      # attribute as an error. Both shipped to production on 15/09/2026 as
+      # fallout from the French→English rename — a dead « Décliner » panel,
+      # and a CV PDF that could never be selected.
+      #
+      # On the whole tree and not on the staged files: knowing whether
+      # <Foo> exists means knowing every component, not just the ones about
+      # to be committed.
+      glob: "*.vue"
+      run: node scripts/hooks/vue-templates.mjs
+
 commit-msg:
   jobs:
     - name: commitlint
