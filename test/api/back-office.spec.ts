@@ -45,14 +45,7 @@ beforeAll(async () => {
   }
 })
 
-const EDITOR_SCREENS = [
-  '/admin',
-  '/admin/articles',
-  '/admin/publications',
-  '/admin/home',
-  '/admin/about',
-  '/admin/appearance',
-]
+const EDITOR_SCREENS = ['/admin', '/admin/articles', '/admin/publications', '/admin/about']
 
 describe('access', () => {
   it.each([...EDITOR_SCREENS, '/admin/tech'])(

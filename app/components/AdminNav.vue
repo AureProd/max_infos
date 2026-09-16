@@ -21,9 +21,7 @@ const screens = computed(() =>
     { to: '/admin/articles', label: 'Articles', tech: false },
     { to: '/admin/publications', label: 'Publications', tech: false },
     { to: '/admin/social', label: 'Réseaux', tech: false },
-    { to: '/admin/home', label: 'Accueil', tech: false },
     { to: '/admin/about', label: 'À propos', tech: false },
-    { to: '/admin/appearance', label: 'Apparence', tech: false },
     { to: '/admin/tech', label: 'Technique', tech: true },
   ].filter((e) => !e.tech || seesTech.value),
 )

@@ -35,12 +35,4 @@ export function slugify(text: string): string {
  * This list must follow `app/pages/admin/`. A test compares it to the real
  * contents of the folder, so that a screen added tomorrow cannot slip past.
  */
-export const RESERVED_SLUGS = [
-  'about',
-  'appearance',
-  'articles',
-  'home',
-  'publications',
-  'social',
-  'tech',
-] as const
+export const RESERVED_SLUGS = ['about', 'articles', 'publications', 'social', 'tech'] as const

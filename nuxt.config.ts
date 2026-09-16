@@ -9,6 +9,8 @@
 //   2. The only exceptions are the development server settings below: they
 //      only serve dev, where there is no build.
 
+import Aura from '@primeuix/themes/aura'
+import tailwindcss from '@tailwindcss/vite'
 // The version is a BUILD constant, unlike the secrets: freezing it into
 // the image is exactly what we want, so that /api/health says which image
 // is running.
@@ -24,7 +26,31 @@ export default defineNuxtConfig({
   // nuxt-auth-utils provides the cookie-sealed session and the Google OAuth
   // flow. It replaces what authlib and itsdangerous did on the Python side,
   // in less code.
-  modules: ['nuxt-auth-utils'],
+  modules: ['nuxt-auth-utils', '@primevue/nuxt-module'],
+
+  /**
+   * PrimeVue habille le BACK-OFFICE, pas le site public.
+   *
+   * Les tableaux et les formulaires de l'administration sont ce qu'un
+   * catalogue de composants fait de mieux ; le site public, lui, reste du
+   * sur-mesure — il ne doit pas ressembler à un tableau de bord, et il n'a
+   * pas à charger ce qu'il n'affiche jamais.
+   */
+  primevue: {
+    options: {
+      theme: {
+        preset: Aura,
+        options: {
+          // Le back-office est en clair, le site public en sombre. Sans
+          // sélecteur, PrimeVue suivrait prefers-color-scheme et
+          // repeindrait l'administration selon le réglage du système.
+          darkModeSelector: '.primevue-dark',
+          cssLayer: { name: 'primevue', order: 'theme, base, primevue' },
+        },
+      },
+      ripple: false,
+    },
+  },
 
   // The whole design lives in this file. It is loaded globally, as before,
   // and excluded from the formatter (see biome.jsonc).
@@ -153,6 +179,10 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    // Tailwind 4 : un plugin Vite, pas de tailwind.config.js. Les tokens
+    // sont déclarés en @theme dans app/assets/css/base.css.
+    plugins: [tailwindcss()],
+
     server: {
       // Vite already allows `localhost` and `.localhost` domains. Explicit
       // anyway, for the day URL_HOST becomes a real staging domain.

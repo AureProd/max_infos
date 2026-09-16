@@ -1,3 +1,38 @@
+@import 'tailwindcss';
+
+/*
+ * Tailwind 4 declares its tokens in CSS, not in a config file.
+ *
+ * The values below are the SAME as those of :root just after — they are
+ * declared here so that Tailwind generates the matching utilities
+ * (bg-ink, text-muted, max-w-read…). The hand-written rules of this file
+ * and the utilities therefore speak of the same colours, and a change made
+ * in one place cannot drift from the other.
+ *
+ * The back-office is light and dressed by PrimeVue; the public site stays
+ * dark. That is why there is no dark: variant here: the dark theme is not
+ * a variant of the site, it IS the site.
+ */
+@theme {
+  --color-ink: #17191d;
+  --color-surface: #1e2127;
+  --color-raised: #272b33;
+  --color-line: #343842;
+  --color-text: #dbdee1;
+  --color-muted: #949ba4;
+  --color-faint: #6b727c;
+  --color-accent: #4a81f5;
+  --color-accent-solid: #2462e9;
+  --color-gold: #e9ab24;
+
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body: 'Newsreader', Georgia, serif;
+
+  /* The two widths the whole layout is built on. */
+  --container-wrap: 1240px;
+  --container-read: 66ch;
+}
+
 /* ============================================================
    Un Max d'info — stylesheet
    Direction: editorial, sharp angles, carried by the typography.

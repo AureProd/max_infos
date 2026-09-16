@@ -228,7 +228,7 @@ describe('GET /api/site', () => {
     // A site whose CV is not filled in must render, not fail.
     const site = await $fetch<Record<string, unknown>>('/api/site')
     expect(site.cv).toBeDefined()
-    expect(site.theme).toBeDefined()
+    expect(site.seo).toBeDefined()
   })
 
   it('NEVER leaks a technical setting', async () => {

@@ -11,9 +11,7 @@ const SCREENS = [
   '/admin/articles',
   '/admin/publications',
   '/admin/social',
-  '/admin/home',
   '/admin/about',
-  '/admin/appearance',
   '/admin/tech',
 ]
 

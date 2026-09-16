@@ -76,16 +76,6 @@ export const cvSchema = z.object({
   certifications: z.array(z.string().max(200)).max(20).default([]),
 })
 
-export const homeSchema = z.object({
-  sections: z.array(z.string().max(40)).max(20).default([]),
-  featured: z.array(z.string().max(200)).max(10).default([]),
-})
-
-export const themeSchema = z.object({
-  /** The CSS variables of base.css, overridden at runtime. */
-  variables: z.record(z.string().max(60), z.string().max(200)).default({}),
-})
-
 export const seoSchema = z.object({
   title: z.string().trim().max(300).default(''),
   description: z.string().trim().max(600).default(''),
@@ -129,8 +119,6 @@ export const SETTING_SCHEMAS = {
   identity: identitySchema,
   contact: contactSchema,
   cv: cvSchema,
-  home: homeSchema,
-  theme: themeSchema,
   seo: seoSchema,
   templates: templatesSchema,
   instagram: instagramSchema,
@@ -150,8 +138,6 @@ export const SETTING_SCOPE: Record<SettingKey, 'public' | 'tech'> = {
   identity: 'public',
   contact: 'public',
   cv: 'public',
-  home: 'public',
-  theme: 'public',
   seo: 'public',
   templates: 'public',
   instagram: 'tech',
@@ -182,8 +168,6 @@ export const SETTING_DEFAULTS: { [K in SettingKey]: SettingValue<K> } = {
   },
   contact: { fields: [] },
   cv: cvSchema.parse({}),
-  home: homeSchema.parse({}),
-  theme: themeSchema.parse({}),
   seo: seoSchema.parse({}),
   templates: { linkedin: '', reel: '' },
   instagram: instagramSchema.parse({}),

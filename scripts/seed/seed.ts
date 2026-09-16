@@ -218,11 +218,6 @@ async function main(): Promise<void> {
     },
     cv: { skills: SITE.skills, interests: [], languages: [], certifications: [] },
     seo: { title: SITE.name, description: SITE.tagline, imageMediaId: null },
-    home: {
-      sections: ['hero', 'front', 'marquee', 'articles', 'instagram', 'all'],
-      featured: [],
-    },
-    theme: { variables: {} },
     templates: DEFAULT_TEMPLATES,
   }
 
