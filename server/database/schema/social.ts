@@ -87,6 +87,18 @@ export const socialPost = pgTable(
     mediaType: text().$type<SocialMediaType>(),
     caption: text(),
     thumbnailUrl: text(),
+    /**
+     * The media file itself — the MP4 of a reel, the JPEG of a photo.
+     *
+     * Distinct from `thumbnailUrl`, which for a video is only its poster
+     * frame. Meta was already returning it and we dropped it, so a reel
+     * could only ever be shown as a still image.
+     *
+     * KNOWN LIMIT: these CDN addresses EXPIRE after a few weeks. The value
+     * is refreshed on every sync, which is why the site falls back to the
+     * thumbnail rather than showing a broken player.
+     */
+    mediaUrl: text(),
     permalink: text(),
     postedAt: timestamp({ withTimezone: true, mode: 'date' }),
     source: text().$type<SocialSource>().notNull().default('manual'),

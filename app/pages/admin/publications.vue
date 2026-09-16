@@ -71,6 +71,23 @@ async function add(): Promise<void> {
   }
 }
 
+/**
+ * The publication whose article is being chosen.
+ *
+ * A window rather than a <select>: the select carried whole article titles,
+ * so it stretched its column until the page itself scrolled sideways, and
+ * it could neither be searched nor show the state of each article.
+ */
+const chooserFor = ref<number | null>(null)
+
+const titleOf = (slug: string): string =>
+  (articles.value ?? []).find((a) => a.slug === slug)?.title ?? slug
+
+async function chooseArticle(id: number, slug: string): Promise<void> {
+  chooserFor.value = null
+  await attach(id, slug)
+}
+
 useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
 </script>
 
@@ -137,17 +154,37 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
         <tbody>
           <tr v-for="p in visible" :key="p.id">
             <td>
-              <a v-if="p.permalink" class="a-title" :href="p.permalink" target="_blank" rel="noopener">
-                {{ p.caption?.slice(0, 60) || mediaLabel(p.mediaType) }} ↗
-              </a>
-              <span v-else class="a-title">
-                {{ p.caption?.slice(0, 60) || mediaLabel(p.mediaType) }}
-              </span>
-              <div class="a-sub">
-                <span v-if="p.accountUsername">@{{ p.accountUsername }}</span>
-                <span>{{ mediaLabel(p.mediaType) }}</span>
-                <span>{{ p.source === 'api' ? 'découverte' : 'saisie' }}</span>
-                <span v-if="p.hidden" class="a-tag is-draft">masquée</span>
+              <!--
+                La vignette, le compte et la légende : l'écran n'affichait
+                qu'un identifiant brut (« instagram DdGUF5XJbhE »), qui ne
+                permet pas de reconnaître la publication qu'on rattache.
+              -->
+              <div class="a-pub">
+                <div class="a-pub-thumb">
+                  <img v-if="p.thumbnailUrl" :src="p.thumbnailUrl" alt="" loading="lazy" />
+                  <span v-else class="a-pub-nothumb">{{ mediaLabel(p.mediaType) }}</span>
+                </div>
+                <div class="a-pub-text">
+                  <a
+                    v-if="p.permalink"
+                    class="a-title"
+                    :href="p.permalink"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    {{ p.caption?.slice(0, 90) || mediaLabel(p.mediaType) }} ↗
+                  </a>
+                  <span v-else class="a-title">
+                    {{ p.caption?.slice(0, 90) || mediaLabel(p.mediaType) }}
+                  </span>
+                  <div class="a-sub">
+                    <span v-if="p.accountUsername">@{{ p.accountUsername }}</span>
+                    <span>{{ mediaLabel(p.mediaType) }}</span>
+                    <span>{{ p.source === 'api' ? 'découverte' : 'saisie' }}</span>
+                    <span v-if="p.mediaUrl" class="a-tag is-info">vidéo</span>
+                    <span v-if="p.hidden" class="a-tag is-draft">masquée</span>
+                  </div>
+                </div>
               </div>
             </td>
             <td>
@@ -160,17 +197,12 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
               <span v-else class="a-nil">—</span>
             </td>
             <td>
-              <select
-                class="a-select a-select-wide"
-                :value="p.articleSlug ?? ''"
-                aria-label="Article rattaché"
-                @change="attach(p.id, ($event.target as HTMLSelectElement).value)"
-              >
-                <option value="">— non rattachée —</option>
-                <option v-for="a in articles ?? []" :key="a.slug" :value="a.slug">
-                  {{ a.title }}
-                </option>
-              </select>
+              <button class="a-link-btn" type="button" @click="chooserFor = p.id">
+                <template v-if="p.articleSlug">
+                  {{ titleOf(p.articleSlug) }}
+                </template>
+                <span v-else class="a-nil">— rattacher —</span>
+              </button>
             </td>
             <td>
               <div class="a-row-act">
@@ -186,5 +218,14 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
         </tbody>
       </table>
     </div>
+
+    <ArticleChooser
+      v-if="chooserFor !== null"
+      :articles="articles ?? []"
+      :current="(publications ?? []).find((p) => p.id === chooserFor)?.articleSlug ?? null"
+      :caption="(publications ?? []).find((p) => p.id === chooserFor)?.caption"
+      @close="chooserFor = null"
+      @choose="(slug) => chooseArticle(chooserFor as number, slug)"
+    />
   </div>
 </template>

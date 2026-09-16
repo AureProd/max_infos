@@ -43,26 +43,33 @@ useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
 <template>
   <div>
 
-      <h1>Technique</h1>
+    <div class="admin-title">
+      <div>
+        <h1>Technique</h1>
+        <p class="admin-lede">
+          La sauvegarde et les comptes autorisés. Les comptes Instagram, eux, se règlent
+          dans l'écran Réseaux.
+        </p>
+      </div>
+    </div>
 
-      <p v-if="!seesTech" class="empty">
-        Cet écran est réservé au rôle technique.
-      </p>
+    <p v-if="!seesTech" class="a-empty">Cet écran est réservé au rôle technique.</p>
 
-      <template v-else>
+    <template v-else>
         <!--
           Instagram n'est plus ici : les comptes appartiennent à Max, et se
           règlent dans l'écran Réseaux. Ne restent au technique que les
           secrets de l'infrastructure et les comptes autorisés.
         -->
-        <h2>Sauvegarde</h2>
+      <section class="field-group">
+        <h2 style="margin-top: 0">Sauvegarde</h2>
         <p class="hint">
           L'export est une archive zip : les données en JSON, les articles en Markdown lisibles
           tels quels, et un LISEZ-MOI. Les jetons tiers n'y figurent jamais.
         </p>
         <div class="cluster">
-          <a class="btn btn-primary" href="/api/admin/export">Télécharger une sauvegarde</a>
-          <label class="btn">
+          <a class="a-btn a-btn-primary" href="/api/admin/export">Télécharger une sauvegarde</a>
+          <label class="a-btn">
             {{ importState === 'en cours' ? 'Lecture…' : 'Simuler un import (JSON)' }}
             <input
               type="file"
@@ -75,6 +82,7 @@ useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
         <p v-if="importMessage" :class="importState === 'échec' ? 'err' : 'hint'">
           {{ importMessage }}
         </p>
+      </section>
 
         <!--
           The accounts moved into their own component: this screen already

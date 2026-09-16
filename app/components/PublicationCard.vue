@@ -23,6 +23,7 @@ interface Publication {
   mediaType: 'reel' | 'carousel' | 'image' | 'post' | null
   caption: string | null
   thumbnailUrl: string | null
+  mediaUrl?: string | null
   postedAt: string | null
 }
 
@@ -30,6 +31,16 @@ const props = defineProps<{ publication: Publication; handle?: string | null }>(
 
 const kind = computed(() => mediaLabel(props.publication.mediaType))
 const isReel = computed(() => props.publication.mediaType === 'reel')
+
+/**
+ * The video, when we have it.
+ *
+ * Only a synced account gives one: a link pasted by hand carries no file.
+ * And these CDN addresses EXPIRE after a few weeks, which is why a missing
+ * or stale one falls back to the thumbnail rather than to a broken player.
+ */
+const video = computed(() => (isReel.value ? (props.publication.mediaUrl ?? null) : null))
+const playing = ref(false)
 const isCarousel = computed(() => props.publication.mediaType === 'carousel')
 
 /** Truncated on a whole word: cutting mid-word shows. */
@@ -51,8 +62,22 @@ const caption = computed(() => {
     </div>
 
     <div class="pub-media">
+      <!--
+        La vidéo n'est chargée QU'AU CLIC : autrement chaque visite de
+        l'accueil téléchargerait plusieurs mégaoctets de MP4 pour des
+        vignettes que personne ne regardera forcément.
+      -->
+      <video
+        v-if="video && playing"
+        :src="video"
+        :poster="publication.thumbnailUrl ?? undefined"
+        controls
+        autoplay
+        playsinline
+        @click.prevent.stop
+      />
       <img
-        v-if="publication.thumbnailUrl"
+        v-else-if="publication.thumbnailUrl"
         :src="publication.thumbnailUrl"
         :alt="caption || kind"
         loading="lazy"
@@ -64,8 +89,21 @@ const caption = computed(() => {
         lecture, comme partout ailleurs, et non par le mot « Reel » posé
         dans un coin.
       -->
-      <span v-if="isReel" class="pub-play" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M8 5v14l11-7z" fill="currentColor" /></svg>
+      <button
+        v-if="video && !playing"
+        class="pub-play is-live"
+        type="button"
+        :aria-label="`Lire : ${caption || kind}`"
+        @click.prevent.stop="playing = true"
+      >
+        <svg viewBox="0 0 24 24" width="20" height="20">
+          <path d="M8 5v14l11-7z" fill="currentColor" />
+        </svg>
+      </button>
+      <span v-else-if="isReel && !playing" class="pub-play" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18">
+          <path d="M8 5v14l11-7z" fill="currentColor" />
+        </svg>
       </span>
       <span v-else-if="isCarousel" class="pub-stack" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="15" height="15">

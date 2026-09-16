@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
       mediaType: socialPost.mediaType,
       caption: socialPost.caption,
       thumbnailUrl: socialPost.thumbnailUrl,
+      mediaUrl: socialPost.mediaUrl,
       postedAt: socialPost.postedAt,
       hidden: socialPost.hidden,
       position: socialPost.position,

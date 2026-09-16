@@ -207,6 +207,10 @@ export async function syncPosts(
         mediaType: mediaType(m),
         caption: m.caption ?? null,
         thumbnailUrl: m.thumbnail_url ?? m.media_url ?? null,
+        // The file itself, kept apart: for a video, thumbnail_url is only
+        // the poster frame, and dropping media_url meant a reel could never
+        // be shown as anything but a still image.
+        mediaUrl: m.media_url ?? null,
         postedAt: new Date(m.timestamp),
         source: 'api',
         raw: m as unknown as Record<string, unknown>,
@@ -219,6 +223,8 @@ export async function syncPosts(
           accountId: accountId,
           caption: m.caption ?? null,
           thumbnailUrl: m.thumbnail_url ?? m.media_url ?? null,
+          // Refreshed on every sync: these CDN addresses expire.
+          mediaUrl: m.media_url ?? null,
           permalink: m.permalink,
           mediaType: mediaType(m),
           raw: m as unknown as Record<string, unknown>,

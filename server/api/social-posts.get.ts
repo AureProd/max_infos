@@ -30,6 +30,7 @@ export default defineEventHandler(async (event) => {
       mediaType: socialPost.mediaType,
       caption: socialPost.caption,
       thumbnailUrl: socialPost.thumbnailUrl,
+      mediaUrl: socialPost.mediaUrl,
       permalink: socialPost.permalink,
       postedAt: socialPost.postedAt,
       // The originating account, so a post's page knows which @ to sign it

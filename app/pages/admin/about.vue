@@ -80,6 +80,7 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
       </div>
     </div>
 
+    <section class="field-group">
       <h2>Identité du site</h2>
       <div v-if="identity.value.value">
         <div class="field">
@@ -103,7 +104,9 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
           <textarea id="i-pitch" v-model="identity.value.value.pitch" rows="3" />
         </div>
       </div>
+    </section>
 
+    <section class="field-group">
       <h2>Contact</h2>
       <p class="hint">
         Chaque champ a son propre interrupteur. Un champ ajouté est masqué par défaut.
@@ -139,9 +142,10 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
         </li>
       </ul>
       <button class="a-btn" type="button" @click="addContact">+ Ajouter un champ</button>
+    </section>
 
-      <template v-if="cv.value.value">
-        <h2>Curriculum</h2>
+    <section v-if="cv.value.value" class="field-group">
+      <h2>Curriculum</h2>
         <div class="field">
           <label for="cv-headline">Titre</label>
           <input id="cv-headline" v-model="cv.value.value.headline" type="text" />
@@ -158,7 +162,7 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
           s'affiche sans encadré : rien ne casse.
         </p>
 
-        <template v-for="r in SECTIONS" :key="r.key">
+      <template v-for="r in SECTIONS" :key="r.key">
           <h3>
             {{ r.label }}
             <label class="pill">
@@ -187,6 +191,6 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
           </ul>
           <button class="a-btn" type="button" @click="addEntry(r.key)">+ Ajouter</button>
         </template>
-      </template>
+    </section>
   </div>
 </template>

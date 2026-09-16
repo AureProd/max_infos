@@ -586,3 +586,272 @@ a.a-figure:hover {
   color: var(--a-accent);
   font-weight: 600;
 }
+
+/* ============================================================
+   Héritage — les classes du site public employées dans le
+   back-office.
+
+   Les écrans ont été écrits avant que l'administration ait son
+   propre thème : ils portent encore .field, .btn, .list, .pill…
+   qui sont définies en SOMBRE dans base.css. Sans ces règles,
+   chaque écran mêlait des champs sombres à un fond clair.
+
+   Repeintes ICI, sous .admin-shell, donc sans toucher au site
+   public, qui reste sombre.
+   ============================================================ */
+
+.admin-shell .field {
+  display: block;
+  margin-bottom: 18px;
+  border: 0;
+  padding: 0;
+  background: none;
+}
+.admin-shell .field > label,
+.admin-shell .field > .label,
+.admin-shell label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--a-muted);
+  font-size: 0.87rem;
+  font-weight: 600;
+}
+.admin-shell input[type='text'],
+.admin-shell input[type='url'],
+.admin-shell input[type='email'],
+.admin-shell input[type='search'],
+.admin-shell input[type='number'],
+.admin-shell input[type='date'],
+.admin-shell select,
+.admin-shell textarea {
+  width: 100%;
+  max-width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--a-line-strong);
+  border-radius: 8px;
+  background: var(--a-panel);
+  color: var(--a-text);
+  font: inherit;
+  font-size: 0.92rem;
+}
+.admin-shell textarea {
+  /* Le corps d'un article se lit mieux dans la fonte du site. */
+  font-family: var(--body);
+  font-size: 1rem;
+  line-height: 1.7;
+  resize: vertical;
+}
+.admin-shell input:focus,
+.admin-shell select:focus,
+.admin-shell textarea:focus {
+  outline: 2px solid var(--a-accent-soft);
+  border-color: var(--a-accent);
+}
+.admin-shell input[type='checkbox'] {
+  width: auto;
+  accent-color: var(--a-accent);
+}
+
+/* Un groupe d'éléments sur une ligne : il ne doit jamais pousser la page
+   hors de l'écran, d'où le wrap et les largeurs souples. */
+.admin-shell .cluster {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.admin-shell .cluster input,
+.admin-shell .cluster select {
+  width: auto;
+  min-width: 0;
+  flex: 1 1 200px;
+}
+
+.admin-shell .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 13px;
+  border: 1px solid var(--a-line-strong);
+  border-radius: 8px;
+  background: var(--a-panel);
+  color: var(--a-text);
+  font: inherit;
+  font-size: 0.87rem;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.admin-shell .btn:hover {
+  border-color: var(--a-accent);
+  color: var(--a-accent);
+}
+.admin-shell .btn-primary {
+  background: var(--a-accent);
+  border-color: var(--a-accent);
+  color: #fff;
+  font-weight: 600;
+}
+.admin-shell .btn-primary:hover {
+  background: #1d51c4;
+  color: #fff;
+}
+
+.admin-shell .pill {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--a-accent-soft);
+  color: var(--a-accent);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.admin-shell .hint,
+.admin-shell .note,
+.admin-shell .count,
+.admin-shell .meta {
+  color: var(--a-muted);
+  font-size: 0.85rem;
+}
+.admin-shell .err {
+  color: var(--a-danger);
+  font-size: 0.87rem;
+}
+.admin-shell .todo {
+  color: var(--a-warn);
+  font-size: 0.8rem;
+}
+.admin-shell .empty {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--a-muted);
+}
+
+.admin-shell .list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* La grille « 1fr 132px » n'a de sens qu'avec une vignette à droite : dans
+   le back-office elle laissait un vide ou écrasait des boutons. */
+.admin-shell .entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--a-line);
+  color: inherit;
+  text-decoration: none;
+}
+.admin-shell .entry h3 {
+  margin: 0 0 4px;
+  font-size: 0.96rem;
+}
+.admin-shell .entry h3 a {
+  color: var(--a-text);
+  text-decoration: none;
+}
+.admin-shell .entry h3 a:hover {
+  color: var(--a-accent);
+}
+
+.admin-shell h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 28px 0 14px;
+}
+.admin-shell h3 {
+  font-size: 0.96rem;
+  font-weight: 600;
+}
+.admin-shell a {
+  color: var(--a-accent);
+}
+
+/* Chaque section d'un écran de réglages dans sa propre carte : sans cela
+   les blocs se suivaient sans séparation sur un fond uni. */
+.admin-shell .field-group {
+  background: var(--a-panel);
+  border: 1px solid var(--a-line);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+/* ---------- éditeur d'article ---------- */
+/*
+ * Métadonnées à gauche, texte à droite. L'aperçu, lui, est une fenêtre :
+ * incrusté ici, il affichait la feuille SOMBRE du site au milieu d'un
+ * back-office clair, et ne montrait que le corps — ni couverture, ni titre,
+ * ni chapô, c'est-à-dire pas ce qu'on venait vérifier.
+ */
+.a-editor {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .a-editor {
+    grid-template-columns: 1fr;
+  }
+}
+.a-editor textarea {
+  min-height: 60vh;
+}
+
+/* Le rattachement : un bouton qui dit l'état, et ouvre la fenêtre de choix. */
+.a-link-btn {
+  max-width: 240px;
+  padding: 6px 10px;
+  border: 1px solid var(--a-line-strong);
+  border-radius: 8px;
+  background: var(--a-panel);
+  color: var(--a-text);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+.a-link-btn:hover {
+  border-color: var(--a-accent);
+  color: var(--a-accent);
+}
+
+/* ---------- une publication dans le tableau ---------- */
+.a-pub {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.a-pub-thumb {
+  flex: none;
+  width: 54px;
+  height: 54px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--a-bg);
+  border: 1px solid var(--a-line);
+  display: grid;
+  place-items: center;
+}
+.a-pub-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.a-pub-nothumb {
+  color: var(--a-faint);
+  font-size: 0.68rem;
+  text-align: center;
+  padding: 2px;
+}
+.a-pub-text {
+  min-width: 0;
+}

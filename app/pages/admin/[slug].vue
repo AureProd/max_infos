@@ -61,40 +61,68 @@ onBeforeRouteLeave(async () => {
   if (modified.value) await save()
 })
 
+/**
+ * The preview is a WINDOW, not a column.
+ *
+ * Side by side it showed the body alone, with the site's dark stylesheet
+ * inside the light back-office: neither pretty nor faithful, and it left
+ * out the cover, the title and the dek — the very things one wants to
+ * check.
+ */
+const previewOpen = ref(false)
+
+/**
+ * The cover's address, for the preview.
+ *
+ * The picker holds an identifier; the preview needs the URL, exactly as the
+ * public page receives it.
+ */
+const { data: medias } = await useFetch('/api/admin/media', { key: 'medias-apercu' })
+const coverUrl = computed(
+  () => (medias.value?.items ?? []).find((m) => m.id === draft.value.coverMediaId)?.url ?? null,
+)
+
+const { data: site } = await useSite()
+
 useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noindex, nofollow' })
 </script>
 
 <template>
   <div>
-      <div class="admin-bar">
-        <h1>
-          <NuxtLink to="/admin">←</NuxtLink>
-          {{ draft.title || 'Sans titre' }}
-        </h1>
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
-          <span class="pill">{{ status === 'published' ? 'publié' : 'brouillon' }}</span>
-          <span v-if="record === 'en cours'" class="note">enregistrement…</span>
-          <span v-else-if="record === 'échec'" class="err">échec de l'enregistrement</span>
-          <span v-else-if="modified" class="note">modifications non enregistrées</span>
-          <span v-else-if="record === 'enregistré'" class="note">enregistré</span>
-
-          <button class="btn" type="button" @click="save">Enregistrer</button>
-          <button
-            v-if="status === 'draft'"
-            class="btn btn-primary"
-            type="button"
-            @click="changeStatus('published')"
-          >
-            Publier
-          </button>
-          <button v-else class="btn" type="button" @click="changeStatus('draft')">
-            Dépublier
-          </button>
-        </div>
+    <div class="admin-title">
+      <div>
+        <h1>{{ draft.title || 'Sans titre' }}</h1>
+        <p class="admin-lede">
+          <NuxtLink to="/admin/articles">← Tous les articles</NuxtLink>
+          ·
+          <span :class="['a-tag', status === 'published' ? 'is-ok' : 'is-draft']">
+            {{ status === 'published' ? 'publié' : 'brouillon' }}
+          </span>
+          <span v-if="record === 'en cours'"> · enregistrement…</span>
+          <span v-else-if="record === 'échec'" class="a-err"> · échec de l'enregistrement</span>
+          <span v-else-if="modified"> · modifications non enregistrées</span>
+          <span v-else-if="record === 'enregistré'"> · enregistré</span>
+        </p>
       </div>
+      <div class="admin-actions">
+        <button class="a-btn" type="button" @click="previewOpen = true">Aperçu</button>
+        <button class="a-btn" type="button" @click="save">Enregistrer</button>
+        <button
+          v-if="status === 'draft'"
+          class="a-btn a-btn-primary"
+          type="button"
+          @click="changeStatus('published')"
+        >
+          Publier
+        </button>
+        <button v-else class="a-btn" type="button" @click="changeStatus('draft')">
+          Dépublier
+        </button>
+      </div>
+    </div>
 
-      <div class="editor">
-        <div>
+    <div class="a-editor">
+      <div class="admin-card">
           <div class="field">
             <label for="a-title">Titre</label>
             <input id="a-title" v-model="draft.title" type="text" />
@@ -138,28 +166,36 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
               </button>
             </div>
           </div>
-          <MediaPicker v-model="draft.coverMediaId" label="Image de couverture" />
-          <div class="field">
-            <label for="a-body">
-              Texte
-              <span class="count">
-                — {{ preview.charCount }} caractères, {{ preview.readingMinutes }} min
-              </span>
-            </label>
-            <textarea id="a-body" v-model="draft.bodyMd" spellcheck="false" />
-          </div>
-        </div>
-        <div class="preview">
-          <!--
-            Le HTML vient du SERVEUR, rendu et assaini par le même moteur que
-            l'enregistrement. Ce que Max voit ici est exactement ce qui sera
-            publié. app/pages/admin/[slug].vue est inscrit dans la liste
-            autorisée de scripts/hooks/check-v-html.sh pour cette reason.
-          -->
-          <div class="prose" v-html="preview.html" />
-        </div>
+        <MediaPicker v-model="draft.coverMediaId" label="Image de couverture" />
       </div>
 
-      <VariantsPanel :slug="slug ?? ''" :publie="status === 'published'" />
+      <div class="admin-card">
+        <div class="field">
+          <label for="a-body">
+            Texte
+            <span class="count">
+              — {{ preview.charCount }} caractères, {{ preview.readingMinutes }} min
+            </span>
+          </label>
+          <textarea id="a-body" v-model="draft.bodyMd" spellcheck="false" rows="30" />
+        </div>
+      </div>
+    </div>
+
+    <VariantsPanel :slug="slug ?? ''" :publie="status === 'published'" />
+
+    <ArticlePreview
+      v-if="previewOpen"
+      :title="draft.title"
+      :dek="draft.dek ?? ''"
+      :html="preview.html"
+      :cover-url="coverUrl"
+      :cover-alt="draft.title"
+      :tags="draft.tags"
+      :byline="site?.identity.byline"
+      :published-at="null"
+      :reading-minutes="preview.readingMinutes"
+      @close="previewOpen = false"
+    />
   </div>
 </template>

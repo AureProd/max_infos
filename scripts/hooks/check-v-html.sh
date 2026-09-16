@@ -18,6 +18,7 @@ ALLOWED=(
   # unsanitised can come out of it.
   "app/pages/article/[slug].vue"
   "app/pages/admin/[slug].vue"
+  "app/components/ArticlePreview.vue"
 )
 
 offenders=()
