@@ -122,7 +122,44 @@ describe('GET /api/social-posts', () => {
     // MASQ1 is there: it belongs to a hidden account, which removes it from
     // the HOME PAGE, not from the general list. The two notions are
     // distinct.
-    expect(posts.map((p) => p.shortcode)).toEqual(['ABC123', 'DEF456', 'MASQ1'])
+    expect(posts.map((p) => p.shortcode)).toEqual(['MAIN1', 'ABC123', 'DEF456', 'MASQ1'])
+  })
+
+  // The home page renders one section per ACCOUNT. A post belonging to none
+  // had nowhere to appear at all: three sat invisible in production from
+  // 15/09/2026.
+  it('isolates the posts that belong to no account', async () => {
+    const posts = await $fetch('/api/social-posts', { query: { account: 'none' } })
+    expect(posts.map((p) => p.shortcode)).toEqual(['MAIN1'])
+  })
+
+  // The distinction that matters: `source` says where a post CAME FROM and
+  // defaults to `manual`, so filtering on it would also return posts an
+  // account section already shows — the same post twice on the home page.
+  it('does not mistake provenance for placement', async () => {
+    const posts = await $fetch('/api/social-posts', { query: { account: 'none' } })
+    expect(posts.map((p) => p.shortcode)).not.toContain('DEF456')
+    expect(posts.map((p) => p.shortcode)).not.toContain('MASQ1')
+  })
+
+  // Hiding wins over everything: it is the one lever Max has to take a post
+  // off the site without deleting it.
+  it('still hides the hidden ones when filtering', async () => {
+    const posts = await $fetch('/api/social-posts', { query: { account: 'none' } })
+    expect(posts.map((p) => p.shortcode)).not.toContain('CACHE1')
+  })
+
+  it('refuses an unknown account filter', async () => {
+    expect((await fetch('/api/social-posts?account=42')).status).toBe(400)
+  })
+
+  // The point of the whole filter, checked where it matters: on the page.
+  // Answering correctly from the API while showing nothing is exactly the
+  // failure that shipped.
+  it('shows them on the home page, which renders sections per account', async () => {
+    const html = await (await fetch('/')).text()
+    expect(html).toContain('Publication ajoutée à la main')
+    expect(html).toContain('Sur les réseaux')
   })
 
   it("NEVER exposes Meta's payload", async () => {

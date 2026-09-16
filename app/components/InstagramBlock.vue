@@ -13,6 +13,23 @@ import { nb } from '#shared/utils/format'
  * U+202F or U+00A0 depending on the bundled ICU, and hydration breaks.
  */
 const { data: accounts } = await useFetch('/api/social-accounts', { key: 'comptes-sociaux-public' })
+
+/**
+ * The posts belonging to no account.
+ *
+ * The sections above are built per ACCOUNT. A post added by hand from the
+ * Publications screen has none, so until this fetch existed it appeared
+ * NOWHERE: three of them sat invisible in production from 15/09/2026, while
+ * the admin screen listed them as perfectly visible.
+ *
+ * Filtered on the account and not on `source`, whose default is 'manual':
+ * that column says where a post came from, not whether a section already
+ * shows it, and the home page would have displayed some of them twice.
+ */
+const { data: loose } = await useFetch('/api/social-posts', {
+  key: 'publications-sans-compte',
+  query: { account: 'none' },
+})
 </script>
 
 <template>
@@ -56,6 +73,18 @@ const { data: accounts } = await useFetch('/api/social-accounts', { key: 'compte
     -->
     <ul class="pubs">
       <li v-for="item in account.publications" :key="item.id">
+        <PublicationCard :publication="item" />
+      </li>
+    </ul>
+  </section>
+
+  <section v-if="(loose ?? []).length" class="section">
+    <div class="section-head">
+      <h2>Sur les réseaux</h2>
+      <span class="rule" />
+    </div>
+    <ul class="pubs">
+      <li v-for="item in loose ?? []" :key="item.id">
         <PublicationCard :publication="item" />
       </li>
     </ul>

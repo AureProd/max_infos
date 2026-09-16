@@ -181,6 +181,7 @@ export async function seedTestData(db: TestDatabase): Promise<void> {
     accountId: account?.id ?? null,
     externalId: 'CACHE1',
     shortcode: 'CACHE1',
+    source: 'api',
     hidden: true,
   })
 
@@ -191,6 +192,7 @@ export async function seedTestData(db: TestDatabase): Promise<void> {
     accountId: account?.id ?? null,
     externalId: 'DEF456',
     shortcode: 'DEF456',
+    source: 'api',
     postedAt: new Date('2026-01-01T12:00:00Z'),
   })
 
@@ -201,7 +203,24 @@ export async function seedTestData(db: TestDatabase): Promise<void> {
     accountId: hiddenAccount?.id ?? null,
     externalId: 'MASQ1',
     shortcode: 'MASQ1',
+    source: 'api',
     postedAt: new Date('2025-06-01T12:00:00Z'),
+  })
+
+  // Added by hand from the Publications screen: no account, and therefore
+  // no section on the home page to live in. Production shipped three of
+  // these on 15/09/2026, and none of them was ever displayed.
+  await db.insert(s.socialPost).values({
+    network: 'instagram',
+    accountId: null,
+    externalId: null,
+    shortcode: 'MAIN1',
+    source: 'manual',
+    // A caption, so a rendering test can look for it: the card shows the
+    // caption, never the shortcode.
+    caption: 'Publication ajoutée à la main',
+    permalink: 'https://www.instagram.com/p/MAIN1/',
+    postedAt: new Date('2026-09-14T12:00:00Z'),
   })
 
   if (published && post)

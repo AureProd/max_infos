@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, isNull } from 'drizzle-orm'
 import { listSocialQuery } from '#shared/schemas/api'
 import { useDatabase } from '~~/server/database/client'
 import { article, articleSocialPost, socialAccount, socialPost } from '~~/server/database/schema'
@@ -11,11 +11,15 @@ import { iso } from '~~/server/utils/serialize'
  * that have no business on a public page.
  */
 export default defineEventHandler(async (event) => {
-  const { network, article: slug } = await getValidatedQuery(event, listSocialQuery.parse)
+  const { network, article: slug, account } = await getValidatedQuery(event, listSocialQuery.parse)
   const db = useDatabase()
 
+  // `hidden` comes first and is never optional: it is the single lever Max
+  // has to take a post off the site without deleting it, and no filter may
+  // bring one back.
   const conditions = [eq(socialPost.hidden, false)]
   if (network) conditions.push(eq(socialPost.network, network))
+  if (account === 'none') conditions.push(isNull(socialPost.accountId))
 
   const base = db
     .select({

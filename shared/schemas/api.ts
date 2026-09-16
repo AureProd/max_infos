@@ -25,6 +25,23 @@ export const listSocialQuery = z.object({
   network: z.enum(['instagram', 'linkedin']).optional(),
   /** A given article: its variants. */
   article: z.string().trim().min(1).max(200).optional(),
+  /**
+   * Which account a post belongs to, `none` meaning: no account at all.
+   *
+   * This is what the home page needs. It renders one section per ACCOUNT, so
+   * a post added by hand has nowhere to appear — three sat invisible in
+   * production from 15/09/2026.
+   *
+   * Deliberately NOT a filter on `source`. That column defaults to `manual`
+   * and describes PROVENANCE, not placement: a post synced long ago and one
+   * typed in yesterday can share it, and the home page would then show a
+   * post twice — once in its account's section, once among the homeless. A
+   * test caught exactly that.
+   *
+   * An enum and not a boolean: a query string carries text, and
+   * `?unattached=false` would read as true.
+   */
+  account: z.enum(['none']).optional(),
 })
 
 export type ListSocialQuery = z.infer<typeof listSocialQuery>
