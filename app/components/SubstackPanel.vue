@@ -63,12 +63,22 @@ async function run(dryRun: boolean): Promise<void> {
 
 <template>
   <div>
-    <button class="btn" type="button" @click="open = !open">
+    <button class="a-btn" type="button" @click="open = !open">
       {{ open ? 'Fermer' : 'Rapatrier depuis Substack' }}
     </button>
 
-    <section v-if="open" class="admin-page" style="margin-top: 16px">
-      <h2>Rapatrier depuis Substack</h2>
+    <!--
+      Téléporté : le bouton vit dans la barre d'actions de l'écran, une
+      rangée en flex. Le panneau ouvert à cet endroit la déformait et
+      poussait le titre de la page de côté.
+    -->
+    <Teleport to="body">
+      <div v-if="open" class="sp-backdrop" @click.self="open = false">
+        <section class="sp-box admin-ui">
+          <header class="sp-head">
+            <h2>Rapatrier depuis Substack</h2>
+            <button class="a-btn" type="button" @click="open = false">Fermer ✕</button>
+          </header>
       <p class="hint">
         Les billets déjà présents ici récupèrent leur lien d’origine et leur couverture — leur
         texte n’est jamais réécrit. Les autres arrivent en <strong>brouillon</strong>, corps
@@ -85,11 +95,11 @@ async function run(dryRun: boolean): Promise<void> {
             required
             placeholder="https://exemple.substack.com/feed"
           />
-          <button class="btn" type="submit" :disabled="busy">
+          <button class="a-btn" type="submit" :disabled="busy">
             {{ busy ? 'Lecture…' : 'Simuler' }}
           </button>
           <button
-            class="btn btn-primary"
+            class="a-btn a-btn-primary"
             type="button"
             :disabled="busy || !report?.dryRun"
             :title="report?.dryRun ? '' : 'Simule d’abord : tu verras ce qui serait écrit.'"
@@ -125,6 +135,45 @@ async function run(dryRun: boolean): Promise<void> {
           </li>
         </ul>
       </template>
-    </section>
+        </section>
+      </div>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+.sp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 18, 22, 0.5);
+}
+.sp-box {
+  width: min(680px, 100%);
+  max-height: 82vh;
+  overflow-y: auto;
+  padding: 0 22px 22px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+.sp-head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 0 14px;
+  background: #fff;
+  border-bottom: 1px solid #e2e5ea;
+  margin-bottom: 16px;
+}
+.sp-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+</style>

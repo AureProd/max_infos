@@ -4,7 +4,15 @@
    éditorial ; l'outil de travail n'a pas à lui ressembler.
    ============================================================ */
 
-.admin-shell {
+/*
+ * `.admin-ui` porte le THÈME ; `.admin-shell` porte la PAGE.
+ *
+ * Les fenêtres du back-office sont téléportées dans <body>, donc hors du
+ * layout : sans cette séparation elles retombaient sur la feuille sombre
+ * du site, champs compris. Elles portent .admin-ui, et n'héritent ni de la
+ * hauteur ni du fond d'une page entière.
+ */
+.admin-ui {
   /* Le back-office est en clair, quoi que dise le système : les captures,
      les impressions et les copies d'écran restent lisibles. */
   --a-bg: #f6f7f9;
@@ -21,12 +29,15 @@
   --a-danger: #b91c1c;
 
   color-scheme: light;
-  min-height: 100vh;
-  background: var(--a-bg);
   color: var(--a-text);
   font-family: var(--display);
   font-size: 15px;
   line-height: 1.5;
+}
+
+.admin-shell {
+  min-height: 100vh;
+  background: var(--a-bg);
 }
 
 /* ---------- en-tête ---------- */
@@ -188,7 +199,10 @@
   border-color: var(--a-accent);
   color: var(--a-accent);
 }
-.a-btn-primary {
+/* Le texte reste blanc qu'il s'agisse d'un <button> ou d'un <a>. */
+.a-btn-primary,
+a.a-btn-primary,
+.admin-ui a.a-btn-primary {
   background: var(--a-accent);
   border-color: var(--a-accent);
   color: #fff;
@@ -600,30 +614,55 @@ a.a-figure:hover {
    public, qui reste sombre.
    ============================================================ */
 
-.admin-shell .field {
+.admin-ui .field {
   display: block;
   margin-bottom: 18px;
   border: 0;
   padding: 0;
   background: none;
 }
-.admin-shell .field > label,
-.admin-shell .field > .label,
-.admin-shell label {
+/*
+ * Les libellés de champ — et EUX SEULS.
+ *
+ * Un <label> qui porte une classe de bouton EST un bouton : c'est ainsi
+ * qu'on habille un <input type="file">, qui n'est pas stylable autrement.
+ * La règle générique les écrasait et les transformait en libellés gris
+ * pleine largeur, ce qui cassait « Simuler un import » dans l'écran
+ * Technique et le bouton « Téléverser » du sélecteur de média.
+ */
+.admin-ui label:not([class]),
+.admin-ui .field > label,
+.admin-ui .field > .label {
   display: block;
   margin-bottom: 6px;
   color: var(--a-muted);
   font-size: 0.87rem;
   font-weight: 600;
 }
-.admin-shell input[type='text'],
-.admin-shell input[type='url'],
-.admin-shell input[type='email'],
-.admin-shell input[type='search'],
-.admin-shell input[type='number'],
-.admin-shell input[type='date'],
-.admin-shell select,
-.admin-shell textarea {
+
+/* Un label-bouton reste un bouton. */
+.admin-ui label.btn,
+.admin-ui label.a-btn,
+.admin-ui label.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+  font-weight: 500;
+}
+.admin-ui label.pill {
+  color: var(--a-accent);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.admin-ui input[type='text'],
+.admin-ui input[type='url'],
+.admin-ui input[type='email'],
+.admin-ui input[type='search'],
+.admin-ui input[type='number'],
+.admin-ui input[type='date'],
+.admin-ui select,
+.admin-ui textarea {
   width: 100%;
   max-width: 100%;
   padding: 8px 11px;
@@ -634,40 +673,40 @@ a.a-figure:hover {
   font: inherit;
   font-size: 0.92rem;
 }
-.admin-shell textarea {
+.admin-ui textarea {
   /* Le corps d'un article se lit mieux dans la fonte du site. */
   font-family: var(--body);
   font-size: 1rem;
   line-height: 1.7;
   resize: vertical;
 }
-.admin-shell input:focus,
-.admin-shell select:focus,
-.admin-shell textarea:focus {
+.admin-ui input:focus,
+.admin-ui select:focus,
+.admin-ui textarea:focus {
   outline: 2px solid var(--a-accent-soft);
   border-color: var(--a-accent);
 }
-.admin-shell input[type='checkbox'] {
+.admin-ui input[type='checkbox'] {
   width: auto;
   accent-color: var(--a-accent);
 }
 
 /* Un groupe d'éléments sur une ligne : il ne doit jamais pousser la page
    hors de l'écran, d'où le wrap et les largeurs souples. */
-.admin-shell .cluster {
+.admin-ui .cluster {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
 }
-.admin-shell .cluster input,
-.admin-shell .cluster select {
+.admin-ui .cluster input,
+.admin-ui .cluster select {
   width: auto;
   min-width: 0;
   flex: 1 1 200px;
 }
 
-.admin-shell .btn {
+.admin-ui .btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -682,22 +721,22 @@ a.a-figure:hover {
   text-decoration: none;
   white-space: nowrap;
 }
-.admin-shell .btn:hover {
+.admin-ui .btn:hover {
   border-color: var(--a-accent);
   color: var(--a-accent);
 }
-.admin-shell .btn-primary {
+.admin-ui .btn-primary {
   background: var(--a-accent);
   border-color: var(--a-accent);
   color: #fff;
   font-weight: 600;
 }
-.admin-shell .btn-primary:hover {
+.admin-ui .btn-primary:hover {
   background: #1d51c4;
   color: #fff;
 }
 
-.admin-shell .pill {
+.admin-ui .pill {
   display: inline-block;
   padding: 3px 9px;
   border-radius: 999px;
@@ -706,35 +745,35 @@ a.a-figure:hover {
   font-size: 0.76rem;
   font-weight: 600;
 }
-.admin-shell .hint,
-.admin-shell .note,
-.admin-shell .count,
-.admin-shell .meta {
+.admin-ui .hint,
+.admin-ui .note,
+.admin-ui .count,
+.admin-ui .meta {
   color: var(--a-muted);
   font-size: 0.85rem;
 }
-.admin-shell .err {
+.admin-ui .err {
   color: var(--a-danger);
   font-size: 0.87rem;
 }
-.admin-shell .todo {
+.admin-ui .todo {
   color: var(--a-warn);
   font-size: 0.8rem;
 }
-.admin-shell .empty {
+.admin-ui .empty {
   padding: 28px 12px;
   text-align: center;
   color: var(--a-muted);
 }
 
-.admin-shell .list {
+.admin-ui .list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 /* La grille « 1fr 132px » n'a de sens qu'avec une vignette à droite : dans
    le back-office elle laissait un vide ou écrasait des boutons. */
-.admin-shell .entry {
+.admin-ui .entry {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -745,34 +784,42 @@ a.a-figure:hover {
   color: inherit;
   text-decoration: none;
 }
-.admin-shell .entry h3 {
+.admin-ui .entry h3 {
   margin: 0 0 4px;
   font-size: 0.96rem;
 }
-.admin-shell .entry h3 a {
+.admin-ui .entry h3 a {
   color: var(--a-text);
   text-decoration: none;
 }
-.admin-shell .entry h3 a:hover {
+.admin-ui .entry h3 a:hover {
   color: var(--a-accent);
 }
 
-.admin-shell h2 {
+.admin-ui h2 {
   font-size: 1.05rem;
   font-weight: 600;
   margin: 28px 0 14px;
 }
-.admin-shell h3 {
+.admin-ui h3 {
   font-size: 0.96rem;
   font-weight: 600;
 }
-.admin-shell a {
+/*
+ * Les liens ordinaires — et EUX SEULS.
+ *
+ * `.admin-ui a` pèse plus lourd que `.a-btn-primary` : un LIEN habillé en
+ * bouton bleu recevait donc du texte bleu sur fond bleu, et ne redevenait
+ * blanc qu'au survol, où la règle de survol reprenait la main. Un lien qui
+ * porte une classe gère sa propre couleur.
+ */
+.admin-ui a:not([class]) {
   color: var(--a-accent);
 }
 
 /* Chaque section d'un écran de réglages dans sa propre carte : sans cela
    les blocs se suivaient sans séparation sur un fond uni. */
-.admin-shell .field-group {
+.admin-ui .field-group {
   background: var(--a-panel);
   border: 1px solid var(--a-line);
   border-radius: 12px;

@@ -19,7 +19,7 @@ describe('useFilters', () => {
   it('starts from an empty state', () => {
     const { state, isActive, reset } = useFilters()
     reset()
-    expect(state.value).toEqual({ q: '', tag: null })
+    expect(state.value).toEqual({ q: '', tag: null, page: 1 })
     expect(isActive.value).toBe(false)
   })
 

@@ -12,12 +12,7 @@
       "!mockup",
       // Leftover from the mock-up, converted as we go then removed.
       "!frontend",
-      "!pnpm-lock.yaml",
-      // The stylesheets hold the Tailwind at-rules (@import, @theme), which
-      // Biome cannot parse — it fails before any override applies. They
-      // carry the whole design and are reviewed by hand, never reformatted.
-      "!app/assets/css/base.css",
-      "!app/assets/css/admin.css"
+      "!pnpm-lock.yaml"
     ]
   },
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
@@ -46,6 +41,13 @@
       // unexpected null would break a page in production.
       "includes": ["test/**"],
       "linter": { "rules": { "style": { "noNonNullAssertion": "off" } } }
+    },
+    {
+      // The two stylesheets carry the whole design. Reformatting them would
+      // drown every future review in noise.
+      "includes": ["app/assets/css/base.css", "app/assets/css/admin.css"],
+      "formatter": { "enabled": false },
+      "linter": { "enabled": false }
     },
     {
       // Nuxt mandates these names: file-based routing wants `index.vue`,

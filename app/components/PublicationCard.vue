@@ -39,8 +39,7 @@ const isReel = computed(() => props.publication.mediaType === 'reel')
  * And these CDN addresses EXPIRE after a few weeks, which is why a missing
  * or stale one falls back to the thumbnail rather than to a broken player.
  */
-const video = computed(() => (isReel.value ? (props.publication.mediaUrl ?? null) : null))
-const playing = ref(false)
+const video = computed(() => props.publication.mediaUrl ?? null)
 const isCarousel = computed(() => props.publication.mediaType === 'carousel')
 
 /** Truncated on a whole word: cutting mid-word shows. */
@@ -63,18 +62,20 @@ const caption = computed(() => {
 
     <div class="pub-media">
       <!--
-        La vidéo n'est chargée QU'AU CLIC : autrement chaque visite de
-        l'accueil téléchargerait plusieurs mégaoctets de MP4 pour des
-        vignettes que personne ne regardera forcément.
+        La vidéo joue d'elle-même, muette et en boucle, comme sur Instagram.
+        `preload="metadata"` plutôt que le fichier entier : la carte affiche
+        sa première image sans télécharger tout le MP4, et la lecture ne
+        démarre que lorsqu'elle entre à l'écran.
       -->
       <video
-        v-if="video && playing"
+        v-if="video"
         :src="video"
         :poster="publication.thumbnailUrl ?? undefined"
-        controls
         autoplay
+        muted
+        loop
         playsinline
-        @click.prevent.stop
+        preload="metadata"
       />
       <img
         v-else-if="publication.thumbnailUrl"
@@ -89,18 +90,7 @@ const caption = computed(() => {
         lecture, comme partout ailleurs, et non par le mot « Reel » posé
         dans un coin.
       -->
-      <button
-        v-if="video && !playing"
-        class="pub-play is-live"
-        type="button"
-        :aria-label="`Lire : ${caption || kind}`"
-        @click.prevent.stop="playing = true"
-      >
-        <svg viewBox="0 0 24 24" width="20" height="20">
-          <path d="M8 5v14l11-7z" fill="currentColor" />
-        </svg>
-      </button>
-      <span v-else-if="isReel && !playing" class="pub-play" aria-hidden="true">
+      <span v-if="isReel && !video" class="pub-play" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="18" height="18">
           <path d="M8 5v14l11-7z" fill="currentColor" />
         </svg>

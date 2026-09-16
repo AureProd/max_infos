@@ -38,7 +38,7 @@ const screens = computed(() =>
 </script>
 
 <template>
-  <div class="admin-shell">
+  <div class="admin-shell admin-ui">
     <header class="admin-head">
       <div class="admin-head-in">
         <NuxtLink class="admin-brand" to="/admin">

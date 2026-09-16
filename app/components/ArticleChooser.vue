@@ -39,7 +39,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
 <template>
   <Teleport to="body">
     <div class="ac-backdrop" @click.self="emit('close')">
-      <div class="ac-box" role="dialog" aria-modal="true" aria-label="Choisir un article">
+      <div class="ac-box admin-ui" role="dialog" aria-modal="true" aria-label="Choisir un article">
         <header class="ac-head">
           <div>
             <h2>Rattacher à un article</h2>

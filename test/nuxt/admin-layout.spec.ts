@@ -1,9 +1,9 @@
 import { mockNuxtImport, mountSuspended } from '@nuxt/test-utils/runtime'
 import { describe, expect, it, vi } from 'vitest'
-import AdminNav from '~/components/AdminNav.vue'
+import AdminLayout from '~/layouts/admin.vue'
 
 /**
- * The back-office menu.
+ * The back-office menu, which now lives in the layout.
  *
  * Hiding the technical screens is COMFORT, not security — the server refuses
  * anyway. What the menu owes the reader is simpler: saying where they are.
@@ -19,7 +19,7 @@ mockNuxtImport('useUser', () => () => ({
   signOut: async () => {},
 }))
 
-const nav = async () => (await mountSuspended(AdminNav)).findAll('a')
+const nav = async () => (await mountSuspended(AdminLayout)).findAll('a')
 
 /**
  * Which entry is lit is proved in test/unit/admin-nav.spec.ts, on a pure

@@ -3,6 +3,7 @@ import type { ListArticlesQuery } from '#shared/schemas/api'
 export interface FiltersState {
   q: string
   tag: string | null
+  page: number
 }
 
 /**
@@ -17,7 +18,7 @@ export interface FiltersState {
  * next.
  */
 export function useFilters() {
-  const state = useState<FiltersState>('filtres', () => ({ q: '', tag: null }))
+  const state = useState<FiltersState>('filtres', () => ({ q: '', tag: null, page: 1 }))
 
   /**
    * The typed text, settled.
@@ -50,7 +51,19 @@ export function useFilters() {
     // as « Aucun article ne correspond ».
     ...(settledQ.value.trim() ? { q: settledQ.value.trim() } : {}),
     ...(state.value.tag ? { tag: state.value.tag } : {}),
+    page: state.value.page,
   }))
+
+  /*
+   * Any change of filter goes back to page 1.
+   *
+   * Otherwise a search made from page 3 answered with the third page of its
+   * results — most often an empty one, read as « nothing matches ».
+   */
+
+  watch([settledQ, () => state.value.tag], () => {
+    state.value.page = 1
+  })
 
   const { data: tags } = useFetch('/api/tags', { key: 'tags' })
 
@@ -69,12 +82,27 @@ export function useFilters() {
     total: computed(() => data.value?.total ?? 0),
     enCours: computed(() => status.value === 'pending'),
     isActive: computed(() => Boolean(state.value.q || state.value.tag)),
+    page: computed(() => state.value.page),
+    /*
+     * The page count. The counter announced « 38 résultat(s) » while the
+     * list showed twelve, and no control existed to reach the other
+     * twenty-six: they were simply unreachable.
+     */
+    pages: computed(() => {
+      const size = data.value?.size ?? 12
+      return Math.max(1, Math.ceil((data.value?.total ?? 0) / size))
+    }),
+    goTo: (page: number): void => {
+      state.value.page = Math.max(1, page)
+      if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' })
+    },
     toggleTag: (slug: string): void => {
       state.value.tag = state.value.tag === slug ? null : slug
     },
     reset: (): void => {
       state.value.q = ''
       state.value.tag = null
+      state.value.page = 1
     },
   }
 }
