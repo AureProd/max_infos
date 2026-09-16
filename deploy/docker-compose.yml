@@ -25,7 +25,10 @@ services:
         condition: service_healthy
     labels:
       - traefik.enable=true
-      - traefik.http.routers.app-${INSTANCE_NAME}.rule=Host(`${URL_HOST}`)
+      # Both names, one router. www had NO router at all until 16/09/2026: it
+      # answered 404 behind the TRAEFIK DEFAULT CERT, because a name absent
+      # from every rule is also absent from the certificate request.
+      - traefik.http.routers.app-${INSTANCE_NAME}.rule=Host(`${URL_HOST}`) || Host(`www.${URL_HOST}`)
       - traefik.http.routers.app-${INSTANCE_NAME}.priority=1
       # Explicit rather than inferred: Traefik must know which port to send
       # to, without depending on what the image exposes.
@@ -42,7 +45,20 @@ services:
       # the only place where Server and X-Powered-By really disappear.
       - traefik.http.middlewares.hide-tech-${INSTANCE_NAME}.headers.customResponseHeaders.Server=
       - traefik.http.middlewares.hide-tech-${INSTANCE_NAME}.headers.customResponseHeaders.X-Powered-By=
-      - traefik.http.routers.app-${INSTANCE_NAME}.middlewares=hide-tech-${INSTANCE_NAME}@docker
+      # One canonical name. $$ escapes Compose interpolation so that Traefik
+      # receives ${1}, its own capture-group syntax.
+      - traefik.http.middlewares.www-to-apex-${INSTANCE_NAME}.redirectregex.regex=^https?://www\.(.*)
+      - traefik.http.middlewares.www-to-apex-${INSTANCE_NAME}.redirectregex.replacement=https://$${1}
+      - traefik.http.middlewares.www-to-apex-${INSTANCE_NAME}.redirectregex.permanent=true
+      # Six months. No preload while the domain is young: preloading is
+      # baked into browsers and cannot be taken back for months.
+      - traefik.http.middlewares.hsts-${INSTANCE_NAME}.headers.stsSeconds=15552000
+      - traefik.http.middlewares.hsts-${INSTANCE_NAME}.headers.stsIncludeSubdomains=false
+      - traefik.http.middlewares.hsts-${INSTANCE_NAME}.headers.stsPreload=false
+      # ONE comma-separated value, not one label per middleware. Declaring
+      # this key twice keeps only the last: the others vanish without a word.
+      # Order matters — redirect www before spending work on the response.
+      - traefik.http.routers.app-${INSTANCE_NAME}.middlewares=www-to-apex-${INSTANCE_NAME}@docker,hsts-${INSTANCE_NAME}@docker,hide-tech-${INSTANCE_NAME}@docker
     networks: [default, reverse_proxy]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]

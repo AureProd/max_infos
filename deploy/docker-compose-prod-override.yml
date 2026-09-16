@@ -8,6 +8,18 @@
 services:
   app:
     restart: always
+    labels:
+      # Named rather than inherited from the shared VPS Traefik. Its defaults
+      # live outside this repository: another project changing them would move
+      # this site without a single line changing here. They stay in THIS file
+      # and not in the common base, because the development Traefik has
+      # neither a TLS entrypoint in clear-text mode nor an ACME resolver.
+      - traefik.http.routers.app-${INSTANCE_NAME}.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}
+      # Without tls=true Traefik serves the router on the TLS entrypoint but
+      # DOES NOT TERMINATE TLS, and the diagnosis misleads: the certificate is
+      # presented correctly all the same.
+      - traefik.http.routers.app-${INSTANCE_NAME}.tls=true
+      - traefik.http.routers.app-${INSTANCE_NAME}.tls.certresolver=${TRAEFIK_CERTRESOLVER:-myresolver}
   db:
     restart: always
 
