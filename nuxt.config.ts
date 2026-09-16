@@ -34,6 +34,15 @@ export default defineNuxtConfig({
     head: {
       htmlAttrs: { lang: 'fr' },
       link: [
+        // An SVG icon, and an SVG icon only, for anything modern: one file,
+        // sharp at every size, no 16/32/48 set to keep in step. The .ico is
+        // not provided on purpose — a browser that cannot read the SVG falls
+        // back to asking for /favicon.ico and simply gets a 404, which costs
+        // one request and breaks nothing.
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        // iOS refuses SVG here, and applies its own rounded mask: the PNG is
+        // deliberately square, edge to edge.
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {
