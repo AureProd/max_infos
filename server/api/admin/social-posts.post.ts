@@ -38,6 +38,9 @@ export default defineEventHandler(async (event) => {
       mediaType:
         d.mediaType ?? mediaTypeFromUrl(d.url) ?? (d.network === 'linkedin' ? 'post' : 'image'),
       caption: d.caption ?? null,
+      // Read from the link or typed in: a hand-entered post has no media of
+      // its own, and the card fell back to a plate saying nothing.
+      thumbnailUrl: d.thumbnailUrl ?? null,
       postedAt: d.postedAt ? new Date(`${d.postedAt}T12:00:00Z`) : new Date(),
       source: 'manual',
     })

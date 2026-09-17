@@ -57,14 +57,62 @@ async function remove(id: number): Promise<void> {
 }
 
 // --- Manual entry ----------------------------------------------------------
-const input = ref({ network: 'linkedin' as 'linkedin' | 'instagram', url: '', caption: '' })
+const BLANK = {
+  network: 'linkedin' as 'linkedin' | 'instagram',
+  url: '',
+  caption: '',
+  thumbnailUrl: '',
+}
+
+const input = ref({ ...BLANK })
 const inputError = ref('')
+
+/**
+ * What the pasted page says about itself.
+ *
+ * No API will ever hand over a LinkedIn post — `r_member_social` is closed
+ * to new applications — so the card arrived with neither title nor image.
+ * The server reads the OpenGraph tags of the link instead. LinkedIn serves
+ * them unevenly: when it says nothing, the two fields simply stay there,
+ * empty and editable, which is why they are always shown.
+ */
+const reading = ref(false)
+const readingSaid = ref('')
+
+async function readLink(): Promise<void> {
+  const url = input.value.url.trim()
+  if (!url) return
+  reading.value = true
+  readingSaid.value = ''
+  try {
+    const found = await $fetch('/api/admin/social-posts/unfurl', { method: 'POST', body: { url } })
+    if (found.title && !input.value.caption) input.value.caption = found.title
+    if (found.image && !input.value.thumbnailUrl) input.value.thumbnailUrl = found.image
+    readingSaid.value =
+      found.title || found.image
+        ? 'Lu depuis la page.'
+        : 'Cette page ne dit rien d’exploitable : à remplir à la main.'
+  } finally {
+    reading.value = false
+  }
+}
 
 async function add(): Promise<void> {
   inputError.value = ''
   try {
-    await $fetch('/api/admin/social-posts', { method: 'POST', body: input.value })
-    input.value = { network: 'linkedin', url: '', caption: '' }
+    await $fetch('/api/admin/social-posts', {
+      method: 'POST',
+      body: {
+        network: input.value.network,
+        url: input.value.url,
+        // Empty strings would fail the URL and length checks: absent means
+        // absent.
+        caption: input.value.caption || undefined,
+        thumbnailUrl: input.value.thumbnailUrl || undefined,
+      },
+    })
+    input.value = { ...BLANK }
+    readingSaid.value = ''
     await refresh()
   } catch (e) {
     inputError.value = (e as { statusMessage?: string }).statusMessage ?? 'Adresse non reconnue.'
@@ -124,9 +172,40 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
             type="url"
             placeholder="https://www.linkedin.com/posts/…"
             required
+            @blur="readLink"
+          />
+          <Button
+            severity="secondary"
+            outlined
+            type="button"
+            :label="reading ? 'Lecture…' : 'Lire la page'"
+            :disabled="reading || !input.url"
+            @click="readLink"
           />
           <button class="a-btn a-btn-primary" type="submit">Ajouter</button>
         </div>
+
+        <!--
+          Toujours affichés, jamais seulement en cas d'échec : LinkedIn ne
+          sert ses balises qu'une fois sur deux, et un champ qui apparaît
+          par surprise se remarque moins qu'un champ vide qui attend.
+        -->
+        <div class="a-row-grid is-cv" style="margin-top: 12px">
+          <input
+            v-model="input.caption"
+            class="a-input"
+            type="text"
+            placeholder="Titre ou légende"
+          />
+          <input
+            v-model="input.thumbnailUrl"
+            class="a-input"
+            type="url"
+            placeholder="Adresse de l'image (facultative)"
+          />
+        </div>
+
+        <p v-if="readingSaid" class="hint">{{ readingSaid }}</p>
         <p v-if="inputError" class="a-err">{{ inputError }}</p>
       </form>
     </div>

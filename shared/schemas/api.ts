@@ -118,8 +118,20 @@ export const manualPost = z.object({
   network: z.enum(['instagram', 'linkedin']),
   url: z.string().trim().url().max(600),
   caption: z.string().trim().max(4000).optional(),
+  /**
+   * The picture, read from the pasted link or typed in.
+   *
+   * No API hands over a LinkedIn post, so nothing but the page itself can
+   * say what it looks like — and when it says nothing, Max fills it in.
+   */
+  thumbnailUrl: z.string().trim().url().max(1000).optional(),
   postedAt: z.string().date().optional(),
   mediaType: z.enum(['reel', 'carousel', 'image', 'post']).optional(),
+})
+
+/** The link whose OpenGraph tags the back-office asks the server to read. */
+export const unfurlRequest = z.object({
+  url: z.string().trim().url().max(600),
 })
 
 export const postLink = z.object({

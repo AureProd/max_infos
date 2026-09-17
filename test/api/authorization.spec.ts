@@ -93,6 +93,14 @@ const EXPECTED: Record<string, Pending> = {
   // here. A subject still carried by an article answers 409, and that
   // refusal has its own test.
   'DELETE /api/admin/tags/[slug]': { anonyme: 401, editor: 404, tech: 404 },
+  // Reading a pasted link never fails on the remote page's behalf: an
+  // unreachable address comes back as empty fields, not as an error.
+  'POST /api/admin/social-posts/unfurl': {
+    anonyme: 401,
+    editor: 200,
+    tech: 200,
+    body: { url: 'https://exemple.invalid/x' },
+  },
   'GET /api/admin/social-posts': { anonyme: 401, editor: 200, tech: 200 },
   'POST /api/admin/social-posts': {
     anonyme: 401,
