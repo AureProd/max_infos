@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
       or(
         like(folded(article.title), pattern),
         like(folded(article.dek), pattern),
-        like(folded(article.bodyMd), pattern),
+        like(folded(article.bodyText), pattern),
       ) ?? eq(article.id, article.id),
     )
   }

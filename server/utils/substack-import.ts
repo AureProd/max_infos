@@ -2,7 +2,8 @@ import { eq } from 'drizzle-orm'
 import { slugify } from '#shared/utils/slug'
 import { useDatabase } from '~~/server/database/client'
 import { article, media } from '~~/server/database/schema'
-import { derivedFields, freeSlug, replaceTags } from './articles'
+import { freeSlug, replaceTags } from './articles'
+import { derivedFromMarkdown } from './markdown'
 import { parseSubstackFeed } from './substack'
 import { htmlToMarkdown } from './substack-markdown'
 
@@ -210,7 +211,17 @@ export async function importSubstack(
     report.created.push({ slug, title: post.title })
     if (options.dryRun) continue
 
-    const bodyMd = htmlToMarkdown(post.bodyHtml)
+    /*
+     * Le flux donne du HTML, et il repasse par le Markdown — à dessein.
+     *
+     * `htmlToMarkdown` ne convertit pas seulement : il NETTOIE le balisage
+     * propre à Substack, que l'assainissement seul laisserait passer — les
+     * `<div class="captioned-image">`, les srcset de 1456 px, les boutons
+     * d'abonnement, les `<aside>`. Trente tests décrivent ce nettoyage.
+     * L'éditeur, lui, écrit du HTML directement : c'est là que la double
+     * conversion n'avait plus lieu d'être.
+     */
+    const derived = derivedFromMarkdown(htmlToMarkdown(post.bodyHtml))
     const coverMediaId = post.cover ? await coverFor(post.cover, post.title) : null
 
     const [created] = await db
@@ -219,10 +230,9 @@ export async function importSubstack(
         slug,
         title: post.title,
         dek: post.dek || null,
-        bodyMd,
         // Rendered and counted by the same functions as a hand-written
         // article: an imported draft is an article like any other.
-        ...derivedFields(bodyMd),
+        ...derived,
         // `draft`, always. The date is kept all the same, so that the order
         // survives the day Max publishes it here.
         status: 'draft',

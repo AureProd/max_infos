@@ -27,8 +27,8 @@ registerEndpoint('/api/admin/preview', {
   method: 'POST',
   handler: async (event) => {
     calls.push('POST preview')
-    const body = (await readBody(event)) as { bodyMd: string }
-    return { html: `<p>${body.bodyMd}</p>`, charCount: body.bodyMd.length, readingMinutes: 1 }
+    const body = (await readBody(event)) as { bodyHtml: string }
+    return { html: `<p>${body.bodyHtml}</p>`, charCount: body.bodyHtml.length, readingMinutes: 1 }
   },
 })
 registerEndpoint('/api/admin/articles', {
@@ -67,7 +67,7 @@ beforeEach(() => {
   existing = {
     title: 'Mon article',
     dek: null,
-    bodyMd: 'Le corps.',
+    bodyHtml: 'Le corps.',
     status: 'published',
     featured: false,
     seoTitle: null,
@@ -107,11 +107,11 @@ describe('the preview', () => {
     vi.useFakeTimers()
     const { draft, preview } = useDraft(ref(null))
 
-    draft.value.bodyMd = 'a'
+    draft.value.bodyHtml = 'a'
     await nextTick()
-    draft.value.bodyMd = 'ab'
+    draft.value.bodyHtml = 'ab'
     await nextTick()
-    draft.value.bodyMd = 'abc'
+    draft.value.bodyHtml = 'abc'
     await nextTick()
 
     // Nothing yet: a request per keystroke would be one per letter typed.

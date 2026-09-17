@@ -95,7 +95,11 @@ export async function seedTestData(db: TestDatabase): Promise<void> {
       slug: 'article-publie',
       title: 'Un article publié',
       dek: 'Son chapô',
-      bodyMd: 'Le corps contient le mot rarissime zzyzx.',
+      bodyHtml: '<p>Le corps contient le mot rarissime zzyzx.</p>',
+      // La recherche porte sur le TEXTE, pas sur le balisage : l'insertion
+      // directe doit donc le poser, là où un enregistrement passé par
+      // `derivedFields` l'aurait dérivé.
+      bodyText: 'Le corps contient le mot rarissime zzyzx.',
       status: 'published',
       publishedAt: new Date('2026-09-10T12:00:00Z'),
       coverMediaId: img?.id ?? null,

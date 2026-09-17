@@ -60,7 +60,10 @@ export const slugParam = z
 export const articleDraft = z.object({
   title: z.string().trim().min(1).max(300),
   dek: z.string().trim().max(600).nullable().optional(),
-  bodyMd: z.string().max(500_000).default(''),
+  // Le corps est du HTML : c'est l'éditeur qui l'écrit. Il est ASSAINI
+  // côté serveur à l'enregistrement — ce schéma vérifie une taille, pas
+  // une innocuité.
+  bodyHtml: z.string().max(500_000).default(''),
   /** Tag slugs. Unknown ones are created. */
   tags: z.array(z.string().trim().min(1).max(80)).max(20).default([]),
   coverMediaId: z.number().int().positive().nullable().optional(),
@@ -100,7 +103,7 @@ export const uploadRequest = z.object({
 })
 
 export const previewMarkdown = z.object({
-  bodyMd: z.string().max(500_000),
+  bodyHtml: z.string().max(500_000),
 })
 
 // ---------------------------------------------------------------------------

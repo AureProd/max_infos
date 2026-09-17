@@ -1,6 +1,11 @@
 import { previewMarkdown } from '#shared/schemas/api'
 import { requireRole } from '~~/server/utils/auth'
-import { countCharacters, readingMinutes, renderMarkdown } from '~~/server/utils/markdown'
+import {
+  countCharacters,
+  htmlToText,
+  readingMinutes,
+  sanitizeArticleHtml,
+} from '~~/server/utils/markdown'
 
 /**
  * Preview of the rendering, through the SAME engine as saving.
@@ -10,11 +15,16 @@ import { countCharacters, readingMinutes, renderMarkdown } from '~~/server/utils
  */
 export default defineEventHandler(async (event) => {
   await requireRole(event, 'editor')
-  const { bodyMd } = await readValidatedBody(event, previewMarkdown.parse)
+  const { bodyHtml } = await readValidatedBody(event, previewMarkdown.parse)
+
+  const html = sanitizeArticleHtml(bodyHtml)
+  const text = htmlToText(html)
 
   return {
-    html: renderMarkdown(bodyMd),
-    charCount: countCharacters(bodyMd),
-    readingMinutes: readingMinutes(bodyMd),
+    // Le MÊME assainissement qu'à l'enregistrement : l'aperçu ne peut donc
+    // pas montrer autre chose que ce qui sera publié.
+    html,
+    charCount: countCharacters(text),
+    readingMinutes: readingMinutes(text),
   }
 })

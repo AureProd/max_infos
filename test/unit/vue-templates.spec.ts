@@ -145,3 +145,51 @@ describe('composants PrimeVue', () => {
     expect(problems[0]?.rule).toBe('unknown-component')
   })
 })
+
+/**
+ * Un composant qu'un fichier IMPORTE lui-même.
+ *
+ * `<EditorContent>` vient de Tiptap : il n'est ni dans app/components/, ni
+ * auto-importé par PrimeVue, et il était pourtant signalé comme inconnu —
+ * sans aucun moyen de faire taire le contrôle sur un composant parfaitement
+ * déclaré.
+ */
+describe('un composant amené par un import', () => {
+  const file = (content: string) => [{ path: 'app/components/Ecran.vue', content }]
+
+  it('ne le signale pas comme inconnu', () => {
+    const source = `<script setup lang="ts">
+import { EditorContent } from '@tiptap/vue-3'
+</script>
+<template><EditorContent :editor="editor" /></template>`
+    expect(checkVueTemplates(file(source))).toEqual([])
+  })
+
+  it('accepte aussi un import par défaut', () => {
+    const source = `<script setup lang="ts">
+import Chose from 'ailleurs'
+</script>
+<template><Chose /></template>`
+    expect(checkVueTemplates(file(source))).toEqual([])
+  })
+
+  it('signale toujours ce qui n’est importé nulle part', () => {
+    const source = `<script setup lang="ts">
+import { EditorContent } from '@tiptap/vue-3'
+</script>
+<template><EditorContent /><Fantome /></template>`
+    const problems = checkVueTemplates(file(source))
+    expect(problems).toHaveLength(1)
+    expect(problems[0]?.message).toContain('<Fantome>')
+  })
+
+  it('ne prend pas un type importé pour un composant utilisé', () => {
+    // `import type { Role }` déclare un type, pas une balise : si <Role>
+    // apparaît dans le template, c'est une erreur qui doit se voir.
+    const source = `<script setup lang="ts">
+const x = 1
+</script>
+<template><Role /></template>`
+    expect(checkVueTemplates(file(source))).toHaveLength(1)
+  })
+})

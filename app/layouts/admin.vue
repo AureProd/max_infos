@@ -86,14 +86,14 @@ const here = computed(
                missing from the menu is otherwise a puzzle. -->
           <span v-if="seesTech" class="admin-tag">développeur</span>
           <!--
-            Deux libellés, un long et un court : sur un téléphone, « Voir le
-            site ↗ » et « Se déconnecter » à eux seuls dépassent la largeur
-            de l'écran. Le nom accessible, lui, ne change pas — il vient de
-            l'aria-label, et non du texte qui se voit.
+            Une icône, et un libellé qui disparaît sur un téléphone : « Voir
+            le site » et « Se déconnecter » à eux seuls y dépassaient la
+            largeur de l'écran. Le nom accessible, lui, ne change pas — il
+            vient de l'aria-label, et non du texte qui se voit.
           -->
           <NuxtLink class="admin-out" to="/" target="_blank" aria-label="Voir le site">
-            <span class="admin-out-long">Voir le site ↗</span>
-            <span class="admin-out-short" aria-hidden="true">↗</span>
+            <i class="pi pi-external-link" aria-hidden="true" />
+            <span class="admin-out-long">Voir le site</span>
           </NuxtLink>
           <button
             class="admin-out"
@@ -101,8 +101,8 @@ const here = computed(
             aria-label="Se déconnecter"
             @click="signOut"
           >
+            <i class="pi pi-sign-out" aria-hidden="true" />
             <span class="admin-out-long">Se déconnecter</span>
-            <span class="admin-out-short" aria-hidden="true">Sortir</span>
           </button>
         </div>
       </div>

@@ -36,10 +36,26 @@ export const article = pgTable(
     slug: text().notNull(),
     title: text().notNull(),
     dek: text(),
+    /**
+     * L'ancien corps, en Markdown.
+     *
+     * Plus écrit depuis la bascule vers l'éditeur : `bodyHtml` est la
+     * source. Conservée le temps d'un déploiement — l'ancien conteneur
+     * tourne encore quand le nouveau schéma est appliqué — et retirée par
+     * une migration ultérieure.
+     */
     bodyMd: text().notNull().default(''),
-    // Sanitised server-side at save time: reading then costs nothing and
-    // the HTML served is safe by construction.
+    // Assaini côté serveur à l'enregistrement : la lecture ne coûte donc
+    // rien, et le HTML servi est sûr par construction.
     bodyHtml: text().notNull().default(''),
+    /**
+     * Le texte brut, dérivé du corps. C'est sur lui que porte la recherche.
+     *
+     * Elle cherchait dans le Markdown : un article contenant
+     * « **souveraineté** » ne répondait pas à « souveraineté », et les
+     * extraits rendaient des `[texte](adresse)`.
+     */
+    bodyText: text().notNull().default(''),
     status: text().$type<ArticleStatus>().notNull().default('draft'),
     publishedAt: timestamp({ withTimezone: true, mode: 'date' }),
     coverMediaId: integer().references(() => media.id, { onDelete: 'set null' }),

@@ -41,7 +41,7 @@ describe('article life cycle', () => {
     const created = await $fetch('/api/admin/articles', {
       method: 'POST',
       headers: auth(),
-      body: { title: 'Mon premier', bodyMd: '## Titre\n\nUn corps.', tags: ['Essai'] },
+      body: { title: 'Mon premier', bodyHtml: '<h2>Titre</h2><p>Un corps.</p>', tags: ['Essai'] },
     })
     expect(created.status).toBe('draft')
     expect(created.publishedAt).toBeNull()
@@ -60,7 +60,8 @@ describe('article life cycle', () => {
       headers: auth(),
       body: {
         title: 'Mon premier',
-        bodyMd: 'Texte <script>alert(1)</script> et [lien](javascript:alert(2)).',
+        bodyHtml:
+          '<p>Texte <script>alert(1)</script> et <a href="javascript:alert(2)">lien</a>.</p>',
         tags: ['Essai'],
         featured: false,
       },
@@ -74,7 +75,12 @@ describe('article life cycle', () => {
     const update = await $fetch('/api/admin/articles/mon-premier', {
       method: 'PUT',
       headers: auth(),
-      body: { title: 'Mon premier', bodyMd: 'x'.repeat(2000), tags: [], featured: false },
+      body: {
+        title: 'Mon premier',
+        bodyHtml: `<p>${'x'.repeat(2000)}</p>`,
+        tags: [],
+        featured: false,
+      },
     })
     expect(update.charCount).toBe(2000)
     expect(update.readingMinutes).toBe(2)
@@ -121,12 +127,12 @@ describe('slugs', () => {
     const a = await $fetch('/api/admin/articles', {
       method: 'POST',
       headers: auth(),
-      body: { title: 'Titre répété', bodyMd: '', tags: [] },
+      body: { title: 'Titre répété', bodyHtml: '', tags: [] },
     })
     const b = await $fetch('/api/admin/articles', {
       method: 'POST',
       headers: auth(),
-      body: { title: 'Titre répété', bodyMd: '', tags: [] },
+      body: { title: 'Titre répété', bodyHtml: '', tags: [] },
     })
     expect(a.slug).toBe('titre-repete')
     // Without this, Max would get a constraint violation in his face.
@@ -139,7 +145,7 @@ describe('tags', () => {
     const a = await $fetch('/api/admin/articles', {
       method: 'POST',
       headers: auth(),
-      body: { title: 'Avec sujets', bodyMd: '', tags: ['Géopolitique', 'Europe'] },
+      body: { title: 'Avec sujets', bodyHtml: '', tags: ['Géopolitique', 'Europe'] },
     })
     expect(a.tags.map((t) => t.slug).sort()).toEqual(['europe', 'geopolitique'])
   })
@@ -149,7 +155,7 @@ describe('tags', () => {
     const update = await $fetch('/api/admin/articles/avec-sujets', {
       method: 'PUT',
       headers: auth(),
-      body: { title: 'Avec sujets', bodyMd: '', tags: ['Europe'], featured: false },
+      body: { title: 'Avec sujets', bodyHtml: '', tags: ['Europe'], featured: false },
     })
     expect(update.tags.map((t) => t.slug)).toEqual(['europe'])
   })
@@ -158,7 +164,7 @@ describe('tags', () => {
     const update = await $fetch('/api/admin/articles/avec-sujets', {
       method: 'PUT',
       headers: auth(),
-      body: { title: 'Avec sujets', bodyMd: '', tags: [], featured: false },
+      body: { title: 'Avec sujets', bodyHtml: '', tags: [], featured: false },
     })
     expect(update.tags).toEqual([])
   })
@@ -169,7 +175,7 @@ describe('preview', () => {
     const a = await $fetch('/api/admin/preview', {
       method: 'POST',
       headers: auth(),
-      body: { bodyMd: '## Titre\n\n<script>x</script>' },
+      body: { bodyHtml: '<h2>Titre</h2><script>x</script>' },
     })
     expect(a.html).toContain('<h2>Titre</h2>')
     expect(a.html).not.toContain('<script')

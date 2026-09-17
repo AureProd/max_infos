@@ -3,7 +3,7 @@ import { strToU8, zipSync } from 'fflate'
 import { useDatabase } from '~~/server/database/client'
 import { articleTag, tag } from '~~/server/database/schema'
 import { requireRole } from '~~/server/utils/auth'
-import { articleToMarkdown, buildExport } from '~~/server/utils/export'
+import { articleToFile, buildExport } from '~~/server/utils/export'
 
 /**
  * Full export, as a ZIP ARCHIVE.
@@ -58,7 +58,7 @@ export default defineEventHandler(async (event) => {
 
   for (const a of archive.articles as Record<string, unknown>[]) {
     const tags = links.filter((l) => l.articleId === a.id).map((l) => l.label)
-    add(`articles/${a.slug}.md`, articleToMarkdown(a, tags))
+    add(`articles/${a.slug}.html`, articleToFile(a, tags))
   }
 
   // A README inside the archive: two years from now, nobody will remember

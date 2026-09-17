@@ -154,28 +154,41 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
 <template>
   <div>
     <div class="admin-title">
-      <div>
-        <h1>{{ draft.title || 'Sans titre' }}</h1>
-        <p class="admin-lede">
-          <NuxtLink to="/admin/articles">← Tous les articles</NuxtLink>
-          ·
-          <span :class="['a-tag', status === 'published' ? 'is-ok' : 'is-draft']">
-            {{ status === 'published' ? 'publié' : 'brouillon' }}
-          </span>
-          ·
-          <!--
-            L'enregistrement est automatique : il n'y a plus de bouton, donc
-            il faut un état. Trois mots et une icône, toujours au même
-            endroit — un indicateur qui apparaît et disparaît se remarque
-            moins qu'un indicateur qui change.
-          -->
-          <SaveState
-            :modified="modified"
-            :saving="record === 'en cours'"
-            :failed="record === 'échec'"
-            :saved="record === 'enregistré'"
-          />
-        </p>
+      <!--
+        Le retour est une FLÈCHE, à gauche du titre : c'est là qu'on la
+        cherche, et « ← Tous les articles » occupait la première ligne d'un
+        écran qui n'en a pas de trop. Les états passent sous le titre, où
+        ils décrivent l'article plutôt que de border un lien.
+      -->
+      <div class="a-head-back">
+        <NuxtLink
+          v-tooltip.bottom="'Tous les articles'"
+          class="a-icon-link"
+          to="/admin/articles"
+          aria-label="Tous les articles"
+        >
+          <i class="pi pi-arrow-left" aria-hidden="true" />
+        </NuxtLink>
+        <div>
+          <h1>{{ draft.title || 'Sans titre' }}</h1>
+          <p class="admin-lede">
+            <span :class="['a-tag', status === 'published' ? 'is-ok' : 'is-draft']">
+              {{ status === 'published' ? 'publié' : 'brouillon' }}
+            </span>
+            <!--
+              L'enregistrement est automatique : il n'y a plus de bouton,
+              donc il faut un état. Toujours au même endroit — un indicateur
+              qui apparaît et disparaît se remarque moins qu'un indicateur
+              qui change.
+            -->
+            <SaveState
+              :modified="modified"
+              :saving="record === 'en cours'"
+              :failed="record === 'échec'"
+              :saved="record === 'enregistré'"
+            />
+          </p>
+        </div>
       </div>
       <div class="admin-actions">
         <Button
@@ -210,7 +223,13 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
           </div>
           <div class="field">
             <label for="a-dek">Sous-titre</label>
-            <input id="a-dek" v-model="draft.dek" type="text" />
+            <!--
+              Sur plusieurs lignes : le sous-titre fait souvent deux lignes
+              sur le site, et un champ d'une seule en cachait la moitié —
+              on écrivait à l'aveugle la phrase qui tient la tête de
+              l'article.
+            -->
+            <textarea id="a-dek" v-model="draft.dek" class="a-dek" rows="2" />
           </div>
           <div class="field">
             <div class="a-label-row">
@@ -305,13 +324,13 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
 
       <div class="admin-card">
         <div class="field">
-          <label for="a-body">
+          <span class="a-label">
             Texte
             <span class="count">
               — {{ preview.charCount }} caractères, {{ preview.readingMinutes }} min
             </span>
-          </label>
-          <textarea id="a-body" v-model="draft.bodyMd" spellcheck="false" rows="30" />
+          </span>
+          <ArticleEditor v-model="draft.bodyHtml" :substack-url="draft.substackUrl" />
         </div>
       </div>
     </div>

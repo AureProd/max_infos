@@ -79,7 +79,9 @@ describe('a post the site does not have', () => {
     await importSubstack(feed(item({ title: 'Titre', slug: 't', body })), { dryRun: false })
 
     const [row] = await db.select().from(article)
-    expect(row?.bodyMd).toBe('Un _mot_ juste.')
+    // Le flux repasse par le Markdown pour nettoyer le balisage de la
+    // plateforme, puis revient en HTML : c'est lui qui est stocké.
+    expect(row?.bodyHtml).toBe('<p>Un <em>mot</em> juste.</p>\n')
     // Rendered and counted by the same functions as a hand-written article:
     // an imported draft is an article like any other.
     expect(row?.bodyHtml).toContain('<em>mot</em>')
@@ -125,7 +127,7 @@ describe('a post the site already has', () => {
     await db.insert(article).values({
       slug: 'ben-mhidi',
       title: 'Ben Mhidi',
-      bodyMd: 'Le texte écrit à la main.',
+      bodyHtml: '<p>Le texte écrit à la main.</p>',
       status: 'published',
       // The `article_published_coherent` constraint refuses a published
       // article without a date — and it is right to.
@@ -143,7 +145,7 @@ describe('a post the site already has', () => {
 
     const [row] = await db.select().from(article)
     // The hand-written text is NOT overwritten: that is the whole point.
-    expect(row?.bodyMd).toBe('Le texte écrit à la main.')
+    expect(row?.bodyHtml).toBe('<p>Le texte écrit à la main.</p>')
     expect(row?.status).toBe('published')
     expect(row?.substackUrl).toContain('/p/ben-mhidi')
   })

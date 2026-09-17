@@ -185,10 +185,6 @@
   border-color: var(--a-accent);
   color: var(--a-accent);
 }
-.admin-out-short {
-  display: none;
-}
-
 /* ---------- corps ---------- */
 .admin-main {
   max-width: 1360px;
@@ -1251,11 +1247,14 @@ a.a-figure:hover {
     padding: 7px 9px;
     font-size: 0.8rem;
   }
+  /* Sur un téléphone, les deux sorties tombent à leur icône : leur libellé
+     à lui seul dépassait la largeur de l'écran. Le nom accessible ne bouge
+     pas, il vient de l'aria-label. */
   .admin-out-long {
     display: none;
   }
-  .admin-out-short {
-    display: inline;
+  .admin-out i {
+    margin-right: 0;
   }
 
   /* ---------- corps ---------- */
@@ -1503,10 +1502,17 @@ a.a-figure:hover {
    L'ancien sélecteur montrait un <select> de NOMS de fichiers. Choisir une
    couverture revenait à lire « 4f2a-bretagne-1080.png » et à espérer, sur
    le seul écran où ce qui compte est à quoi l'image ressemble. */
+/*
+ * Les actions vont en bas à droite du bloc.
+ *
+ * Elles étaient calées en haut, à côté du nom du fichier : le regard part
+ * de l'image, et remontait chercher « Changer ». Une action se pose là où
+ * le regard finit.
+ */
 .a-media {
   display: flex;
   gap: 16px;
-  align-items: flex-start;
+  align-items: stretch;
   padding: 14px;
   border: 1px dashed var(--a-line-strong);
   border-radius: 10px;
@@ -1550,6 +1556,11 @@ a.a-figure:hover {
   flex-direction: column;
   gap: 12px;
   min-width: 0;
+  flex: 1;
+}
+.a-media-side .a-row-act {
+  margin-top: auto;
+  justify-content: flex-end;
 }
 .a-media-name {
   font-size: 0.86rem;
@@ -2098,6 +2109,15 @@ a.a-figure:hover {
 }
 
 /*
+ * La zone d'écriture défile, pas la page.
+ *
+ * C'est ce qui garde la barre d'outils en vue sur un article long, sans
+ * `position: sticky` — qui posait une bande vide entre le haut du bloc et
+ * les boutons, parce que la barre se décalait vers le bas sans que sa place
+ * d'origine ne disparaisse.
+ */
+
+/*
  * Le compteur empile ses boutons.
  *
  * En horizontal, le moins et le plus encadraient le nombre et la commande
@@ -2124,4 +2144,202 @@ a.a-figure:hover {
 .admin-ui .p-inputnumber-vertical .p-inputnumber-button .p-icon,
 .admin-ui .p-inputnumber-vertical .p-inputnumber-button span {
   font-size: 0.6rem;
+}
+
+/* ============================================================
+   L'éditeur d'article
+   ============================================================ */
+
+/*
+ * Une feuille, et une barre au-dessus.
+ *
+ * Max écrivait dans un `<textarea>` de Markdown : il relisait son texte
+ * balisé, des `**` autour des mots gras et des `[texte](adresse)` au milieu
+ * des phrases. Ici, la feuille montre le texte tel qu'il sera lu.
+ */
+.a-writer {
+  border: 1px solid var(--a-line-strong);
+  border-radius: 10px;
+  background: var(--a-panel);
+  overflow: hidden;
+}
+.a-writer-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--a-line);
+  background: var(--a-bg);
+}
+.a-writer-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.a-writer-group + .a-writer-group {
+  padding-left: 10px;
+  border-left: 1px solid var(--a-line);
+}
+.a-writer-undo {
+  margin-left: auto;
+}
+.a-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 7px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: none;
+  color: var(--a-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.a-tool:hover {
+  background: var(--a-panel);
+  border-color: var(--a-line-strong);
+  color: var(--a-text);
+}
+/* L'état d'un bouton de mise en forme dit ce que porte le curseur : sans
+   lui, on ne sait pas si l'on est déjà en gras avant de taper. */
+.a-tool.is-on {
+  background: var(--a-accent-soft);
+  border-color: var(--a-accent);
+  color: var(--a-accent);
+}
+.a-tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.a-tool:disabled:hover {
+  background: none;
+  border-color: transparent;
+  color: var(--a-muted);
+}
+
+.a-writer-page {
+  padding: 26px 30px 40px;
+  min-height: 60vh;
+  max-height: 72vh;
+  overflow-y: auto;
+}
+/* La feuille se lit dans la police et la mesure du SITE : ce qui s'écrit
+   ici doit ressembler à ce qui se lira là-bas. */
+.a-prose {
+  max-width: 44rem;
+  margin-inline: auto;
+  font-family: var(--body);
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: var(--a-text);
+  outline: none;
+}
+.a-prose:focus {
+  outline: none;
+}
+.a-prose > * + * {
+  margin-top: 1.1em;
+}
+.a-prose h2 {
+  font-family: var(--display);
+  font-weight: var(--font-weight-display);
+  font-size: 1.5rem;
+  line-height: 1.2;
+  margin-top: 1.8em;
+}
+.a-prose h3 {
+  font-family: var(--display);
+  font-weight: var(--font-weight-display);
+  font-size: 1.2rem;
+  margin-top: 1.6em;
+}
+.a-prose blockquote {
+  padding-left: 18px;
+  border-left: 3px solid var(--a-accent);
+  color: var(--a-muted);
+  font-style: italic;
+}
+.a-prose ul,
+.a-prose ol {
+  padding-left: 1.3em;
+}
+.a-prose li + li {
+  margin-top: 0.3em;
+}
+.a-prose a {
+  color: var(--a-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.a-prose img {
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+.a-prose hr {
+  border: none;
+  border-top: 1px solid var(--a-line-strong);
+}
+/* Le repère de document vide : une feuille blanche sans indication ne dit
+   pas si l'éditeur est prêt ou cassé. */
+.a-prose p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--a-faint);
+  pointer-events: none;
+}
+/* Les trois liens d'un article venu du Substack, habillés en bouton —
+   comme sur la page publique. */
+.a-prose p.article-cta a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--a-accent);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* Le retour, une flèche à gauche du titre — là où on la cherche. Le lien
+   « ← Tous les articles » prenait la première ligne d'un écran qui n'en a
+   pas de trop. */
+.a-head-back {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+.a-head-back > .a-icon-link {
+  flex: none;
+  margin-top: 4px;
+}
+.a-head-back .admin-lede {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+/* Le sous-titre fait souvent deux lignes sur le site : un champ d'une seule
+   en cachait la moitié, et on écrivait à l'aveugle la phrase qui tient la
+   tête de l'article. */
+.admin-ui textarea.a-dek {
+  font-family: var(--body);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  min-height: 0;
+  resize: vertical;
+}
+
+.admin-out i {
+  font-size: 0.78rem;
+  margin-right: 6px;
 }

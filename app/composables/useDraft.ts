@@ -17,7 +17,7 @@ export function useDraft(slug: Ref<string | null>) {
   const draft = ref<ArticleDraft>({
     title: '',
     dek: '',
-    bodyMd: '',
+    bodyHtml: '',
     tags: [],
     featured: false,
   })
@@ -31,7 +31,7 @@ export function useDraft(slug: Ref<string | null>) {
     const a = await $fetch<{
       title: string
       dek: string | null
-      bodyMd: string
+      bodyHtml: string
       status: 'draft' | 'published'
       featured: boolean
       seoTitle: string | null
@@ -44,7 +44,7 @@ export function useDraft(slug: Ref<string | null>) {
     draft.value = {
       title: a.title,
       dek: a.dek ?? '',
-      bodyMd: a.bodyMd,
+      bodyHtml: a.bodyHtml,
       tags: a.tags.map((t) => t.label),
       featured: a.featured,
       seoTitle: a.seoTitle,
@@ -69,13 +69,13 @@ export function useDraft(slug: Ref<string | null>) {
   async function refreshPreview(): Promise<void> {
     preview.value = await $fetch<Preview>('/api/admin/preview', {
       method: 'POST',
-      body: { bodyMd: draft.value.bodyMd },
+      body: { bodyHtml: draft.value.bodyHtml },
       headers: sessionHeaders(),
     })
   }
 
   watch(
-    () => draft.value.bodyMd,
+    () => draft.value.bodyHtml,
     () => {
       modified.value = true
       // Debounced: we do not send a request on every keystroke.

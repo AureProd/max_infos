@@ -31,7 +31,6 @@ beforeAll(async () => {
     slug: 'article-seo',
     title: 'Un titre & une esperluette',
     dek: 'Le chapô de l’article.',
-    bodyMd: '## Section\n\nDu texte.',
     bodyHtml: '<h2>Section</h2><p>Du texte.</p>',
     status: 'published',
     publishedAt: new Date('2026-09-10T12:00:00Z'),

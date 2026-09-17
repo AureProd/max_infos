@@ -200,6 +200,28 @@ function attributes(raw) {
 }
 
 /**
+ * Les composants qu'un fichier IMPORTE lui-même.
+ *
+ * Tout ce qui est en PascalCase dans un `import` du `<script setup>`. Sans
+ * cela, un composant amené par une bibliothèque — `<EditorContent>` de
+ * Tiptap — était signalé comme inconnu alors qu'il est parfaitement
+ * déclaré, et il n'y avait aucun moyen de le faire taire.
+ *
+ * Volontairement large : le but est d'éviter un faux positif, pas de
+ * vérifier des imports, ce que `vue-tsc` fait déjà.
+ *
+ * @param {string} source
+ * @returns {Set<string>}
+ */
+export function importedComponents(source) {
+  const names = new Set()
+  for (const m of source.matchAll(/^\s*import\s+([\s\S]*?)\s+from\s+['"]/gm)) {
+    for (const n of (m[1] ?? '').matchAll(/\b([A-Z][A-Za-z0-9]*)\b/g)) names.add(n[1])
+  }
+  return names
+}
+
+/**
  * The problems of a set of .vue files, as `{ path, rule, message }`.
  * `fromPrimevue` is a parameter rather than a global read: the function
  * stays pure, and the test decides what is installed.
@@ -219,9 +241,16 @@ export function checkVueTemplates(files, fromPrimevue = new Set()) {
     const tpl = template(f.content)
     if (!tpl) continue
 
+    const imported = importedComponents(f.content)
+
     for (const { tag, attrs } of usages(tpl)) {
       if (BUILT_IN.has(tag)) continue
       if (fromPrimevue.has(tag.toLowerCase())) continue
+      // Déclaré par un `import` dans ce fichier : il est là, et il ne vient
+      // pas de app/components/. C'est le cas d'un composant de bibliothèque
+      // — `<EditorContent>` de Tiptap — que l'auto-import ne fournit pas et
+      // que le fichier amène lui-même.
+      if (imported.has(tag)) continue
 
       if (!components.has(tag)) {
         problems.push({

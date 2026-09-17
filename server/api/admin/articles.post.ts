@@ -1,8 +1,9 @@
 import { articleCreation } from '#shared/schemas/api'
 import { useDatabase } from '~~/server/database/client'
 import { article } from '~~/server/database/schema'
-import { derivedFields, freeSlug, replaceTags, tagsOf } from '~~/server/utils/articles'
+import { freeSlug, replaceTags, tagsOf } from '~~/server/utils/articles'
 import { requireRole } from '~~/server/utils/auth'
+import { derivedFields } from '~~/server/utils/markdown'
 
 /** Creates an article, always as a draft. */
 export default defineEventHandler(async (event) => {
@@ -17,8 +18,7 @@ export default defineEventHandler(async (event) => {
       slug,
       title: body.title,
       dek: body.dek ?? null,
-      bodyMd: body.bodyMd,
-      ...derivedFields(body.bodyMd),
+      ...derivedFields(body.bodyHtml),
       // An article is ALWAYS born a draft: publishing is an explicit act,
       // never a side effect of creation.
       status: 'draft',

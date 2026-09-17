@@ -206,10 +206,21 @@ describe('the PrimeVue auto-import list', () => {
     expect(included.has('Tooltip')).toBe(false)
   })
 
+  /**
+   * Le `<template>`, et lui seul.
+   *
+   * Lire le fichier entier prenait le `<script>` pour du balisage :
+   * `shallowRef<Editor | null>` contient `<Editor `, qui a exactement la
+   * forme d'une balise. C'est le même piège que contourne
+   * scripts/hooks/vue-templates.mjs.
+   */
+  const templateOf = (source: string): string =>
+    /<template>([\s\S]*)<\/template>/.exec(source)?.[1] ?? ''
+
   it('includes every PrimeVue component the templates use', () => {
     const missing = new Set<string>()
     for (const file of files) {
-      const template = read(file)
+      const template = templateOf(read(file))
       for (const match of template.matchAll(/<([A-Z][A-Za-z]*)[\s/>]/g)) {
         const name = match[1] ?? ''
         if (known.has(name.toLowerCase()) && !included.has(name)) missing.add(name)

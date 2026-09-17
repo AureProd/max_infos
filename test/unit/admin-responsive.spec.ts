@@ -51,10 +51,9 @@ describe('the back-office sheet under 640px', () => {
     // Replié, il empilait la marque, le select et les deux sorties sur trois
     // rangées, et mangeait le tiers de l'écran avant le premier mot de la
     // page. Ce qui rentre, c'est ce qui rétrécit : la marque tombe à son
-    // point, les deux sorties à leur libellé court.
+    // point, les deux sorties à leur seule icône.
     expect(declarationsOf(phone ?? '', '.admin-head-in')).toMatch(/flex-wrap:\s*nowrap/)
     expect(declarationsOf(phone ?? '', '.admin-out-long')).toMatch(/display:\s*none/)
-    expect(declarationsOf(phone ?? '', '.admin-out-short')).toMatch(/display:\s*inline/)
   })
 
   it('drops the repeatable rows to a single column', () => {

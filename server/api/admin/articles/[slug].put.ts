@@ -3,8 +3,9 @@ import { z } from 'zod'
 import { articleDraft, slugParam } from '#shared/schemas/api'
 import { useDatabase } from '~~/server/database/client'
 import { article } from '~~/server/database/schema'
-import { derivedFields, replaceTags, tagsOf } from '~~/server/utils/articles'
+import { replaceTags, tagsOf } from '~~/server/utils/articles'
 import { requireRole } from '~~/server/utils/auth'
+import { derivedFields } from '~~/server/utils/markdown'
 
 /** Enregistre un article. Le status ne change PAS here : voir status.put.ts. */
 export default defineEventHandler(async (event) => {
@@ -25,8 +26,7 @@ export default defineEventHandler(async (event) => {
     .set({
       title: body.title,
       dek: body.dek ?? null,
-      bodyMd: body.bodyMd,
-      ...derivedFields(body.bodyMd),
+      ...derivedFields(body.bodyHtml),
       coverMediaId: body.coverMediaId ?? null,
       seoTitle: body.seoTitle ?? null,
       seoDescription: body.seoDescription ?? null,

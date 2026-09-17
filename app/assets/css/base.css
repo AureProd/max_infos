@@ -1319,6 +1319,33 @@ button:not([class]) {
 .prose figure {
   margin: 2em 0;
 }
+/*
+ * Les trois liens d'un article venu du Substack.
+ *
+ * Collés à la main, ils arrivaient en adresses nues au bas du texte — c'est
+ * ce que montre chaque article rapatrié : « S'abonner maintenant »,
+ * « Partager », « Laissez un commentaire », trois lignes bleues sans
+ * relief. L'éditeur les insère désormais comme un paragraphe porteur d'une
+ * classe, et la classe survit à l'assainissement.
+ */
+.prose p.article-cta {
+  margin: 2em 0;
+}
+.prose p.article-cta a {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 20px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+.prose p.article-cta a:hover {
+  background: var(--color-accent-strong);
+}
+
 .prose figcaption {
   font-size: 0.84rem;
   line-height: 1.5;

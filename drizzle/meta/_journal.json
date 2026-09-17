@@ -50,6 +50,13 @@
       "when": 1789663765552,
       "tag": "0006_flashy_mother_askani",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789675537683,
+      "tag": "0007_quick_the_watchers",
+      "breakpoints": true
     }
   ]
 }

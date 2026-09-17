@@ -19,7 +19,7 @@ import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from '../../server/database/schema'
-import { renderMarkdown } from '../../server/utils/markdown'
+import { derivedFromMarkdown } from '../../server/utils/markdown'
 import { DEFAULT_TEMPLATES } from '../../server/utils/templates'
 import { slugify } from '../../shared/utils/slug'
 import { ARTICLES } from './data/articles'
@@ -89,10 +89,10 @@ async function main(): Promise<void> {
         slug: a.id,
         title: a.title,
         dek: a.dek,
-        bodyMd: a.body,
+
         // Rendered by the SAME engine as the back-office: migrated
         // articles are served exactly like those written later.
-        bodyHtml: renderMarkdown(a.body),
+        ...derivedFromMarkdown(a.body),
         status: 'published',
         publishedAt: new Date(`${a.date}T12:00:00Z`),
         coverMediaId: coverId,
@@ -110,8 +110,8 @@ async function main(): Promise<void> {
         set: {
           title: a.title,
           dek: a.dek,
-          bodyMd: a.body,
-          bodyHtml: renderMarkdown(a.body),
+
+          ...derivedFromMarkdown(a.body),
           coverMediaId: coverId,
         },
       })

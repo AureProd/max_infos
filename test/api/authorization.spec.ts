@@ -57,7 +57,7 @@ interface Pending {
 
 const DRAFT = {
   title: 'Article de la matrice',
-  bodyMd: 'Un corps.',
+  bodyHtml: '<p>Un corps.</p>',
   tags: ['matrice'],
   featured: false,
 }
@@ -79,7 +79,7 @@ const EXPECTED: Record<string, Pending> = {
     anonyme: 401,
     editor: 200,
     developer: 200,
-    body: { bodyMd: '## Titre' },
+    body: { bodyHtml: '<h2>Titre</h2>' },
   },
   'GET /api/admin/media': { anonyme: 401, editor: 200, developer: 200 },
   'POST /api/admin/media/upload-url': {
@@ -255,7 +255,7 @@ beforeAll(async () => {
   await db.insert(article).values({
     slug: SLUG_EXISTANT,
     title: 'Article de la matrice',
-    bodyMd: 'Un corps.',
+    bodyHtml: '<p>Un corps.</p>',
   })
 }, 60_000)
 

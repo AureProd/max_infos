@@ -38,7 +38,7 @@ async function create(): Promise<void> {
   try {
     const created = await $fetch<{ slug: string }>('/api/admin/articles', {
       method: 'POST',
-      body: { title: 'Nouvel article', bodyMd: '', tags: [] },
+      body: { title: 'Nouvel article', bodyHtml: '', tags: [] },
     })
     await navigateTo(`/admin/${created.slug}`)
   } catch (e) {

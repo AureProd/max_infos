@@ -2,7 +2,16 @@ import { and, eq, inArray, notInArray } from 'drizzle-orm'
 import { RESERVED_SLUGS, slugify } from '#shared/utils/slug'
 import { useDatabase } from '~~/server/database/client'
 import { article, articleTag, tag } from '~~/server/database/schema'
-import { countCharacters, readingMinutes, renderMarkdown } from './markdown'
+/*
+ * `derivedFields` et `derivedFromMarkdown` vivent dans `markdown.ts`.
+ *
+ * Elles étaient ici, ce qui est leur place logique — mais le script de
+ * semis les appelle, et il tourne sous `tsx`, qui ne connaît pas l'alias
+ * `#shared` dont ce fichier dépend. Même raison que le commentaire de
+ * `server/database/schema/enums.ts`. Les réexporter d'ici ne marche pas non
+ * plus : Nitro auto-importe server/utils, et voit alors deux fois le même
+ * nom.
+ */
 
 /**
  * Attaches an article to a list of tags, creating the missing ones.
@@ -57,20 +66,6 @@ export async function replaceTags(articleId: number, labels: string[]): Promise<
 
   for (const tagId of ids) {
     await db.insert(articleTag).values({ articleId, tagId }).onConflictDoNothing()
-  }
-}
-
-/**
- * The fields derived from the body, recomputed on every save.
- *
- * The HTML is rendered HERE and nowhere else: that is what guarantees no
- * unsanitised markup ever enters the database.
- */
-export function derivedFields(bodyMd: string) {
-  return {
-    bodyHtml: renderMarkdown(bodyMd),
-    charCount: countCharacters(bodyMd),
-    readingMinutes: readingMinutes(bodyMd),
   }
 }
 
