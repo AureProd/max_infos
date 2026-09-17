@@ -1008,6 +1008,25 @@ a.a-figure:hover {
   cursor: pointer;
 }
 
+/*
+ * Le comparatif d'une restauration. Il vivait dans la feuille du site, dont
+ * la palette est sombre : le fond y était noir, le texte hérité du
+ * back-office l'était aussi, et on ne lisait plus rien.
+ */
+.a-diff {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--a-line);
+  background: var(--a-bg);
+}
+.a-diff p {
+  margin: 0 0 6px;
+  font-size: 0.92rem;
+}
+.a-diff p:last-child {
+  margin-bottom: 0;
+}
+
 .a-section-head {
   display: flex;
   align-items: center;
