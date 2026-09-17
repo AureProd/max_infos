@@ -246,6 +246,17 @@ export async function applyImport(
   const wants = (part: ImportPart): boolean =>
     asked.has(part) || (part === 'media' && asked.has('articles'))
 
+  /**
+   * The CV points at a photo and at a PDF — plain integers inside the
+   * `cv` JSON, which no foreign key protects. Restoring the settings
+   * without the media left « À propos » without its portrait, silently.
+   *
+   * Written, therefore, but NOT emptied: truncating `media` cascades into
+   * the articles, and nobody who ticks « Réglages » means to lose them.
+   */
+  const writes = (part: ImportPart): boolean =>
+    wants(part) || (part === 'media' && asked.has('settings'))
+
   if (archive.manifest?.version !== SCHEMA_VERSION) {
     throw createError({
       statusCode: 422,
@@ -253,117 +264,142 @@ export async function applyImport(
     })
   }
 
-  if (options.wipe) {
-    // `secret` is ABSENT from this list, on purpose: an import must not be
-    // able to erase the access tokens of third-party accounts.
-    //
-    // Only what is about to be rewritten is emptied: wiping the articles to
-    // restore the settings alone would destroy content the archive is not
-    // going to put back.
-    const tables: string[] = []
-    if (wants('articles')) tables.push('article_tag', 'article')
-    if (wants('publications')) tables.push('article_social_post', 'social_post', 'social_account')
-    if (wants('views')) tables.push('article_view')
-    if (wants('articles')) tables.push('tag')
-    if (wants('media')) tables.push('media')
-    if (wants('settings')) tables.push('setting')
-    if (wants('users')) tables.push('app_user')
+  /**
+   * One transaction, and nothing in between.
+   *
+   * The restore used to write table by table: a refusal at the last step —
+   * a foreign key, a duplicate — left the database half rewritten, with no
+   * way to tell what had landed. A restore either happens or it does not.
+   */
+  return await db.transaction(async (tx) => {
+    if (options.wipe) {
+      // `secret` is ABSENT from this list, on purpose: an import must not be
+      // able to erase the access tokens of third-party accounts.
+      //
+      // Only what is about to be rewritten is emptied: wiping the articles to
+      // restore the settings alone would destroy content the archive is not
+      // going to put back.
+      const tables: string[] = []
+      if (wants('articles')) tables.push('article_tag', 'article')
+      if (wants('publications')) tables.push('article_social_post', 'social_post', 'social_account')
+      if (wants('views')) tables.push('article_view')
+      if (wants('articles')) tables.push('tag')
+      if (wants('media')) tables.push('media')
+      if (wants('settings')) tables.push('setting')
+      if (wants('users')) tables.push('app_user')
 
-    if (tables.length) {
-      await db.execute(
-        sql`truncate table ${sql.join(
-          [...new Set(tables)].map((t) => sql.identifier(t)),
-          sql`, `,
-        )} restart identity cascade`,
+      if (tables.length) {
+        await tx.execute(
+          sql`truncate table ${sql.join(
+            [...new Set(tables)].map((t) => sql.identifier(t)),
+            sql`, `,
+          )} restart identity cascade`,
+        )
+      }
+    }
+
+    /**
+     * Dates cross the archive as ISO strings; Drizzle expects Date objects.
+     * Without this conversion, the insert fails on every timestamp.
+     */
+    const DATE_FIELDS = new Set([
+      'createdAt',
+      'updatedAt',
+      'publishedAt',
+      'postedAt',
+      'lastLoginAt',
+      'lastSyncAt',
+    ])
+
+    /**
+     * Who wrote a row does not survive the archive.
+     *
+     * `setting.updatedBy` and `media.uploadedBy` reference `app_user.id`,
+     * but the export ships the users by email, WITHOUT their identifiers:
+     * a restore rebuilds the accounts with fresh numbers. Replaying the old
+     * ones broke the settings on a foreign key — the last real step, so
+     * everything came back except « À propos ».
+     *
+     * The schema already says what these columns are worth: `on delete set
+     * null`. A trace, not a datum. Cleared HERE and not at export time, so
+     * that archives already downloaded become restorable again.
+     */
+    const PROVENANCE = new Set(['updatedBy', 'uploadedBy'])
+
+    const replay = <T>(lines: T[]): T[] =>
+      (lines ?? []).map((row) => {
+        const copied = { ...(row as Record<string, unknown>) }
+        for (const [key, value] of Object.entries(copied)) {
+          if (DATE_FIELDS.has(key) && typeof value === 'string') copied[key] = new Date(value)
+          if (PROVENANCE.has(key)) copied[key] = null
+        }
+        return copied as T
+      })
+
+    const written: Record<string, number> = {}
+
+    const insert = async <T>(name: string, table: never, lines: T[]): Promise<void> => {
+      if (!lines?.length) {
+        written[name] = 0
+        return
+      }
+      await tx
+        .insert(table)
+        .values(replay(lines) as never)
+        .onConflictDoNothing()
+      written[name] = lines.length
+    }
+
+    /** Skipped means absent from the report, not « zero written ». */
+    const maybe = async <T>(
+      part: ImportPart,
+      name: string,
+      table: never,
+      lines: T[],
+    ): Promise<void> => {
+      if (writes(part)) await insert(name, table, lines)
+    }
+
+    // The order follows the dependencies: whatever is referenced comes first.
+    await maybe('users', 'users', appUser as never, archive.users as never[])
+    await maybe('media', 'media', media as never, archive.media as never[])
+    await maybe('articles', 'tags', tag as never, archive.tags as never[])
+    await maybe('articles', 'articles', article as never, archive.articles as never[])
+    // Accounts BEFORE posts: the latter reference the former.
+    await maybe(
+      'publications',
+      'socialAccounts',
+      socialAccount as never,
+      archive.socialAccounts as never[],
+    )
+    await maybe('publications', 'socialPosts', socialPost as never, archive.socialPosts as never[])
+    await maybe('articles', 'tagLinks', articleTag as never, archive.tagLinks as never[])
+    // A link needs BOTH ends: restoring it without one would point nowhere.
+    if (wants('articles') && wants('publications'))
+      await insert('socialLinks', articleSocialPost as never, archive.socialLinks as never[])
+    await maybe('settings', 'settings', setting as never, archive.settings as never[])
+    await maybe('views', 'views', articleView as never, archive.views as never[])
+
+    /**
+     * Moves the sequences past the highest imported identifier.
+     *
+     * Without this, the next creation would restart at 1 and collide with a
+     * restored row — a failure that would only surface on the first article
+     * written AFTER the import, long after the operation was believed to have
+     * succeeded.
+     */
+    for (const table of ['article', 'tag', 'media', 'social_account', 'social_post', 'app_user']) {
+      await tx.execute(
+        sql`select setval(
+          pg_get_serial_sequence(${table}, 'id'),
+          coalesce((select max(id) from ${sql.identifier(table)}), 0) + 1,
+          false
+        )`,
       )
     }
-  }
 
-  /**
-   * Dates cross the archive as ISO strings; Drizzle expects Date objects.
-   * Without this conversion, the insert fails on every timestamp.
-   */
-  const DATE_FIELDS = new Set([
-    'createdAt',
-    'updatedAt',
-    'publishedAt',
-    'postedAt',
-    'lastLoginAt',
-    'lastSyncAt',
-  ])
-
-  const replay = <T>(lines: T[]): T[] =>
-    (lines ?? []).map((row) => {
-      const copied = { ...(row as Record<string, unknown>) }
-      for (const [key, value] of Object.entries(copied)) {
-        if (DATE_FIELDS.has(key) && typeof value === 'string') copied[key] = new Date(value)
-      }
-      return copied as T
-    })
-
-  const written: Record<string, number> = {}
-
-  const insert = async <T>(name: string, table: never, lines: T[]): Promise<void> => {
-    if (!lines?.length) {
-      written[name] = 0
-      return
-    }
-    await db
-      .insert(table)
-      .values(replay(lines) as never)
-      .onConflictDoNothing()
-    written[name] = lines.length
-  }
-
-  /** Skipped means absent from the report, not « zero written ». */
-  const maybe = async <T>(
-    part: ImportPart,
-    name: string,
-    table: never,
-    lines: T[],
-  ): Promise<void> => {
-    if (wants(part)) await insert(name, table, lines)
-  }
-
-  // The order follows the dependencies: whatever is referenced comes first.
-  await maybe('users', 'users', appUser as never, archive.users as never[])
-  await maybe('media', 'media', media as never, archive.media as never[])
-  await maybe('articles', 'tags', tag as never, archive.tags as never[])
-  await maybe('articles', 'articles', article as never, archive.articles as never[])
-  // Accounts BEFORE posts: the latter reference the former.
-  await maybe(
-    'publications',
-    'socialAccounts',
-    socialAccount as never,
-    archive.socialAccounts as never[],
-  )
-  await maybe('publications', 'socialPosts', socialPost as never, archive.socialPosts as never[])
-  await maybe('articles', 'tagLinks', articleTag as never, archive.tagLinks as never[])
-  // A link needs BOTH ends: restoring it without one would point nowhere.
-  if (wants('articles') && wants('publications'))
-    await insert('socialLinks', articleSocialPost as never, archive.socialLinks as never[])
-  await maybe('settings', 'settings', setting as never, archive.settings as never[])
-  await maybe('views', 'views', articleView as never, archive.views as never[])
-
-  /**
-   * Moves the sequences past the highest imported identifier.
-   *
-   * Without this, the next creation would restart at 1 and collide with a
-   * restored row — a failure that would only surface on the first article
-   * written AFTER the import, long after the operation was believed to have
-   * succeeded.
-   */
-  for (const table of ['article', 'tag', 'media', 'social_account', 'social_post', 'app_user']) {
-    await db.execute(
-      sql`select setval(
-        pg_get_serial_sequence(${table}, 'id'),
-        coalesce((select max(id) from ${sql.identifier(table)}), 0) + 1,
-        false
-      )`,
-    )
-  }
-
-  return written
+    return written
+  })
 }
 
 export { eq }

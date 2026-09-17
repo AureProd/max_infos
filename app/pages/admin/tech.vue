@@ -179,6 +179,15 @@ useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
           </div>
 
           <!--
+            Le refus se lit là où l'on vient de cliquer. En pied d'écran, il
+            passait inaperçu — et une restauration qui échoue sans se voir
+            laisse croire qu'elle a réussi.
+          -->
+          <p v-if="importMessage" :class="importState === 'échec' ? 'a-err' : 'hint'">
+            {{ importMessage }}
+          </p>
+
+          <!--
             Les deux décomptes côte à côte : c'est la seule façon de voir ce
             qu'on s'apprête à perdre avant de cliquer.
           -->
@@ -188,9 +197,6 @@ useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
           </div>
         </template>
 
-        <p v-if="importMessage" :class="importState === 'échec' ? 'a-err' : 'hint'">
-          {{ importMessage }}
-        </p>
       </section>
 
         <!--
