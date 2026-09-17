@@ -48,6 +48,75 @@ describe('GET /api/admin/tags', () => {
   })
 })
 
+describe('PUT /api/admin/tags/[slug]', () => {
+  it('corrects the spelling, and the address follows', async () => {
+    await db.insert(tag).values({ slug: 'scootisme', label: 'scootisme' })
+    const renamed = await $fetch('/api/admin/tags/scootisme', {
+      method: 'PUT',
+      headers: { cookie },
+      body: { label: 'Scoutisme' },
+    })
+    expect(renamed.label).toBe('Scoutisme')
+    // The slug is what the public filter carries in its URL: leaving the
+    // typo there would keep it visible for good.
+    expect(renamed.slug).toBe('scoutisme')
+  })
+
+  it('keeps the articles that carried it', async () => {
+    // The link is made by identifier, not by label: renaming must not
+    // quietly strip the subject off the articles.
+    await $fetch('/api/admin/tags/geo', {
+      method: 'PUT',
+      headers: { cookie },
+      body: { label: 'Géographie et cartes' },
+    })
+    const tags = await $fetch('/api/admin/tags', { headers: { cookie } })
+    expect(tags.find((t) => t.label === 'Géographie et cartes')?.n).toBe(1)
+  })
+
+  it('REFUSES a name another subject already bears', async () => {
+    // Merging two subjects is another operation entirely. Silently
+    // colliding would lose one of them.
+    await db.insert(tag).values([
+      { slug: 'alpha-un', label: 'Alpha un' },
+      { slug: 'alpha-deux', label: 'Alpha deux' },
+    ])
+    const r = await fetch('/api/admin/tags/alpha-deux', {
+      method: 'PUT',
+      headers: { cookie, 'content-type': 'application/json' },
+      body: JSON.stringify({ label: 'Alpha un' }),
+    })
+    expect(r.status).toBe(409)
+  })
+
+  it('refuses a name that produces no slug at all', async () => {
+    const r = await fetch('/api/admin/tags/alpha-un', {
+      method: 'PUT',
+      headers: { cookie, 'content-type': 'application/json' },
+      body: JSON.stringify({ label: '«  »' }),
+    })
+    expect(r.status).toBe(422)
+  })
+
+  it('answers 404 on a subject that does not exist', async () => {
+    const r = await fetch('/api/admin/tags/jamais-vu', {
+      method: 'PUT',
+      headers: { cookie, 'content-type': 'application/json' },
+      body: JSON.stringify({ label: 'Peu importe' }),
+    })
+    expect(r.status).toBe(404)
+  })
+
+  it('refuses a visitor who is not signed in', async () => {
+    const r = await fetch('/api/admin/tags/geo', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ label: 'Pirate' }),
+    })
+    expect(r.status).toBe(401)
+  })
+})
+
 describe('DELETE /api/admin/tags/[slug]', () => {
   it('removes a subject no article carries', async () => {
     // Inserted straight into the database: no screen creates a bare tag —
@@ -66,11 +135,13 @@ describe('DELETE /api/admin/tags/[slug]', () => {
   it('REFUSES to delete a subject still in use', async () => {
     // Deleting it would strip it off the articles carrying it, without a
     // word and without a way back.
-    const r = await fetch('/api/admin/tags/geo', { method: 'DELETE', headers: { cookie } })
+    // « mem » and not « geo »: the rename test above moves that one, and a
+    // test that depends on the order of another is a test that will lie.
+    const r = await fetch('/api/admin/tags/mem', { method: 'DELETE', headers: { cookie } })
     expect(r.status).toBe(409)
 
     const tags = await $fetch('/api/admin/tags', { headers: { cookie } })
-    expect(tags.some((t) => t.slug === 'geo')).toBe(true)
+    expect(tags.some((t) => t.slug === 'mem')).toBe(true)
   })
 
   it('answers 404 on a subject that does not exist', async () => {

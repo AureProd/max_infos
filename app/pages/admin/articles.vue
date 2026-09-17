@@ -72,6 +72,7 @@ useSeoMeta({ title: 'Articles', robots: 'noindex, nofollow' })
         </p>
       </div>
       <div class="admin-actions">
+        <TagsPanel />
         <SubstackPanel @imported="refresh" />
         <button class="a-btn a-btn-primary" type="button" @click="create">Nouvel article</button>
       </div>
