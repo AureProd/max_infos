@@ -28,6 +28,19 @@ if (error.value || !article.value) {
   })
 }
 
+/**
+ * The publications attached to this article.
+ *
+ * The route existed and nothing called it: Max attached a post from the
+ * back-office and it showed up on no page at all. It is also where a
+ * LinkedIn post belongs — the home page no longer shows the networks it has
+ * no connected account for.
+ */
+const { data: posts } = await useFetch('/api/social-posts', {
+  key: () => `publications-${slug.value}`,
+  query: { article: slug },
+})
+
 useSeoMeta({
   title: () => article.value?.seoTitle ?? article.value?.title,
   description: () => article.value?.seoDescription ?? article.value?.dek,
@@ -127,6 +140,22 @@ onMounted(() => {
       -->
       <div class="prose" v-html="article.bodyHtml" />
 
+      <!--
+        Une section vide est pire que pas de section : l'en-tête ne paraît
+        que s'il y a quelque chose dessous.
+      -->
+      <section v-if="(posts ?? []).length" class="section article-pubs">
+        <div class="section-head">
+          <h2>Sur les réseaux</h2>
+          <span class="rule" />
+        </div>
+        <ul class="pubs">
+          <li v-for="item in posts ?? []" :key="item.id">
+            <PublicationCard :publication="item" :handle="item.accountUsername" />
+          </li>
+        </ul>
+      </section>
+
       <p class="endnote">
         <span>{{ nb(article.charCount) }} caractères</span>
         <span v-if="article.variants.length">
@@ -139,3 +168,19 @@ onMounted(() => {
     </article>
   </div>
 </template>
+
+<style scoped>
+/*
+  Les cartes ne s'étirent pas ici. `.pubs` est réglée pour l'accueil, en
+  `auto-fit` : une seule publication sous un article y occupait toute la
+  largeur, soit une vignette de la hauteur d'un écran. Des pistes de largeur
+  FIXE gardent la carte à sa taille, quel que soit le nombre.
+*/
+.article-pubs {
+  margin-top: 56px;
+}
+.article-pubs .pubs {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 220px));
+  justify-content: start;
+}
+</style>

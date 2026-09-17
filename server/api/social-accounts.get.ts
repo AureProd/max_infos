@@ -19,6 +19,9 @@ export default defineEventHandler(async () => {
   const accounts = await db
     .select({
       id: socialAccount.id,
+      // The home page needs it to decide which hand-added posts it may
+      // show: a network with no account here has no business on the front.
+      network: socialAccount.network,
       username: socialAccount.username,
       displayName: socialAccount.displayName,
       biography: socialAccount.biography,

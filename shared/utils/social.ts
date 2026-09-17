@@ -43,3 +43,23 @@ export function mediaTypeFromUrl(url: string): 'reel' | 'image' | 'post' | null 
   if (/linkedin\.com\//i.test(url)) return 'post'
   return null
 }
+
+/**
+ * Of the posts belonging to no account, the ones the home page shows.
+ *
+ * Both opposite failures have been met. Hand-added posts once had no
+ * section at all and sat invisible in production. Then they all got one —
+ * LinkedIn included, whose posts carry neither title nor image, since no
+ * API will ever hand them over, and which showed up as bare plates.
+ *
+ * So: a loose post appears only if its network is one the site has a
+ * connected account for. A LinkedIn post belongs on the article it
+ * illustrates, not on the front page.
+ */
+export function postsWorthShowing<T extends { network: string }>(
+  posts: readonly T[],
+  networksConnected: readonly string[],
+): T[] {
+  const open = new Set(networksConnected)
+  return posts.filter((p) => open.has(p.network))
+}

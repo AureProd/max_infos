@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nb } from '#shared/utils/format'
+import { postsWorthShowing } from '#shared/utils/social'
 
 /**
  * The Instagram accounts, one section each.
@@ -41,10 +42,16 @@ const { data: loose } = await useFetch('/api/social-posts', {
 const shown = computed(() => (accounts.value ?? []).filter((a) => a.publications.length > 0))
 
 /**
- * Posts added by hand stay visible, even with no account connected: they
- * are what Max published, and their permalink works.
+ * Only the networks the site actually has an account for.
+ *
+ * A LinkedIn post typed in by hand carries neither title nor image — no API
+ * will ever hand them over — and it showed up here as a bare plate. It
+ * belongs on the article it illustrates, which is where the article page
+ * now puts it.
  */
-const looseShown = computed(() => loose.value ?? [])
+const networksConnected = computed(() => [...new Set((accounts.value ?? []).map((a) => a.network))])
+
+const looseShown = computed(() => postsWorthShowing(loose.value ?? [], networksConnected.value))
 </script>
 
 <template>

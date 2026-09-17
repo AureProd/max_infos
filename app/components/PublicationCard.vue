@@ -83,7 +83,12 @@ const caption = computed(() => {
         :alt="caption || kind"
         loading="lazy"
       />
-      <PlateImage v-else :seed="publication.id * 7" :w="400" :h="400" :alt="kind" />
+      <!--
+        Le sigle du réseau, et non plus une plaque abstraite : une
+        publication saisie à la main n'a pas d'image, et un rectangle coloré
+        ne disait pas d'où elle venait.
+      -->
+      <NetworkPlate v-else :network="publication.network" :label="kind" />
 
       <!--
         Un reel n'est pas une photo : il se signale par une pastille de
