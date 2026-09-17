@@ -180,6 +180,19 @@ n'exige plus de page Facebook.
    ```
 5. Ajouter @unmaxdinfo\_ comme testeur Instagram, et accepter l'invitation
    depuis le compte (Paramètres → Applications et sites web).
+6. **App settings → Basic**, les trois URL que la console réclame pour
+   basculer l'app en *Live* :
+
+   | Champ | Valeur |
+   |---|---|
+   | Privacy Policy URL | `https://unmaxdinfo.fr/privacy` |
+   | User data deletion | `https://unmaxdinfo.fr/privacy#data-deletion` |
+   | Terms of Service URL | `https://unmaxdinfo.fr/terms` |
+
+   Les pages doivent être **en ligne avant** de remplir le formulaire : Meta
+   les charge pour vérifier qu'elles répondent. L'ancre `#data-deletion` est
+   tenue par `test/api/legal-pages.spec.ts` — la renommer en passant
+   invaliderait une déclaration faite à Meta sans que rien n'ait l'air cassé.
 
 ```dotenv
 NUXT_INSTAGRAM_APP_ID=<instagram app id>

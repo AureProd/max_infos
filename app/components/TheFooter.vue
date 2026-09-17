@@ -10,6 +10,9 @@ const links = computed(() => site.value?.contact.fields.filter((f) => f.visible)
     <div class="wrap foot-in">
       <span>
         {{ site?.identity.name }} — {{ site?.identity.author }}. Sans publicité ni suivi.
+        <NuxtLink to="/privacy" style="margin-left: 16px">Confidentialité</NuxtLink>
+        <NuxtLink to="/legal" style="margin-left: 16px">Mentions légales</NuxtLink>
+        <NuxtLink to="/terms" style="margin-left: 16px">Conditions</NuxtLink>
       </span>
       <span>
         <a

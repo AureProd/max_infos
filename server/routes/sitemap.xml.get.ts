@@ -25,6 +25,9 @@ export default defineEventHandler(async (event) => {
   const urls = [
     `  <url><loc>${x(base)}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
     `  <url><loc>${x(base)}/about</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`,
+    `  <url><loc>${x(base)}/privacy</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>`,
+    `  <url><loc>${x(base)}/legal</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>`,
+    `  <url><loc>${x(base)}/terms</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>`,
     ...articles.map(
       (a) =>
         `  <url><loc>${x(base)}/article/${a.slug}</loc><lastmod>${day(a.updatedAt)}</lastmod><priority>0.8</priority></url>`,
