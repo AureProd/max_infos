@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { frDate, nb } from '#shared/utils/format'
+import { frDate } from '#shared/utils/format'
 
 const route = useRoute()
 const slug = computed(() => String(route.params.slug))
 
 const { data: site } = await useSite()
+const media = useSiteMedia()
+const portrait = computed(() => media(site.value?.cv.photoMediaId))
 const { data: article, error } = await useFetch(() => `/api/articles/${slug.value}`, {
   key: () => `article-${slug.value}`,
 })
@@ -113,14 +115,38 @@ onMounted(() => {
 
       <header>
         <h1>{{ article.title }}</h1>
-        <p class="dek">{{ article.dek }}</p>
-        <div class="meta">
-          <span class="byline">{{ site?.identity.byline }}</span>
-          <time v-if="article.publishedAt" :datetime="article.publishedAt">
-            le {{ frDate(article.publishedAt) }}
-          </time>
-          <span>{{ article.readingMinutes }} min de lecture</span>
-          <span>{{ article.tags.map((t) => t.label).join(', ') }}</span>
+        <!--
+          Le sous-titre est dans la police d'affichage, pas dans celle du
+          corps : c'est la signature du Substack de Max, et c'est ce qui
+          tient la tête de l'article ensemble quand le titre est court.
+        -->
+        <p v-if="article.dek" class="dek">{{ article.dek }}</p>
+
+        <div class="signature">
+          <img
+            v-if="portrait"
+            class="signature-face"
+            :src="portrait.url"
+            :alt="`Portrait de ${site?.identity.author}`"
+            width="44"
+            height="44"
+          />
+          <div class="signature-who">
+            <span class="signature-name">{{ site?.identity.author }}</span>
+            <span class="signature-when">
+              <time v-if="article.publishedAt" :datetime="article.publishedAt">
+                {{ frDate(article.publishedAt) }}
+              </time>
+              <span>{{ article.readingMinutes }} min de lecture</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="article-bar">
+          <ShareButton :title="article.title" />
+          <ul v-if="article.tags.length" class="article-tags">
+            <li v-for="tag in article.tags" :key="tag.slug">{{ tag.label }}</li>
+          </ul>
         </div>
       </header>
 
@@ -128,6 +154,7 @@ onMounted(() => {
         :src="article.coverUrl"
         :seed="7"
         ratio="3 / 2"
+        :tinted="false"
         :alt="article.coverAlt ?? article.title"
       />
 
@@ -156,31 +183,40 @@ onMounted(() => {
         </ul>
       </section>
 
-      <p class="endnote">
-        <span>{{ nb(article.charCount) }} caractères</span>
-        <span v-if="article.variants.length">
-          {{ article.variants.length }} déclinaison(s) courte(s)
-        </span>
-        <a v-if="article.substackUrl" :href="article.substackUrl" target="_blank" rel="noopener">
-          Lire sur la newsletter ↗
+      <!--
+        Le partage revient au pied : c'est là qu'on a envie de transmettre
+        un article, pas avant de l'avoir lu. Celui du haut sert à celui qui
+        connaît déjà le texte et revient le chercher.
+      -->
+      <footer class="article-foot">
+        <ShareButton :title="article.title" />
+        <a
+          v-if="article.substackUrl"
+          class="article-foot-link"
+          :href="article.substackUrl"
+          target="_blank"
+          rel="noopener"
+        >
+          <i class="pi pi-external-link" aria-hidden="true" />
+          Lire sur la newsletter
         </a>
-      </p>
+      </footer>
     </article>
   </div>
 </template>
 
 <style scoped>
 /*
-  Les cartes ne s'étirent pas ici. `.pubs` est réglée pour l'accueil, en
-  `auto-fit` : une seule publication sous un article y occupait toute la
-  largeur, soit une vignette de la hauteur d'un écran. Des pistes de largeur
-  FIXE gardent la carte à sa taille, quel que soit le nombre.
+  `.pubs` borne désormais ses pistes elle-même — la carte ne s'étire plus
+  nulle part. Ne reste ici que l'écart avec le texte au-dessus, et une
+  largeur un peu plus serrée sous un article que sur l'accueil.
 */
 .article-pubs {
   margin-top: 56px;
+  max-width: var(--read);
+  margin-inline: auto;
 }
 .article-pubs .pubs {
   grid-template-columns: repeat(auto-fill, minmax(190px, 220px));
-  justify-content: start;
 }
 </style>

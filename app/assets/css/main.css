@@ -74,12 +74,24 @@
   --color-gold-soft: #fdf3e3;
 
   /* — typographie — */
-  /* Les deux polices du Substack, toutes deux servies par Google Fonts.
-     BBH Hegarty n'a QU'UNE graisse : c'est pour cela que tous les titres
-     de ses captures pèsent exactement pareil. On s'en sert comme d'une
-     contrainte — la hiérarchie se fait à la taille, pas au gras. */
-  --font-display: 'BBH Hegarty', 'Helvetica Neue', Arial, sans-serif;
+  /*
+   * Lexend pour le corps : c'est exactement celle du Substack.
+   *
+   * Gabarito pour les titres, et NON la BBH Hegarty du Substack. Mesuré,
+   * pas supposé : le fichier servi par Google pour Hegarty contient 121
+   * glyphes et AUCUN caractère accentué — pas de é, pas de à, pas de ô. Le
+   * navigateur va donc chercher chaque accent dans une autre police, et un
+   * titre français se compose dans deux fontes à la fois. Le défaut est
+   * visible sur le Substack de Max lui-même (« sols craquelés »), sauf que
+   * là-bas rien ne permet de le corriger.
+   *
+   * Gabarito tient la même densité géométrique très grasse, et couvre le
+   * français. La hiérarchie reste portée par la TAILLE : une seule graisse
+   * d'affichage sur tout le site, comme sur la référence.
+   */
+  --font-display: 'Gabarito', 'Helvetica Neue', Arial, sans-serif;
   --font-body: 'Lexend', 'Helvetica Neue', Arial, sans-serif;
+  --font-weight-display: 800;
 
   /* — gabarit — */
   --container-wrap: 1240px;

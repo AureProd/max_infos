@@ -69,13 +69,31 @@ describe('the design tokens', () => {
     expect(BASE).not.toMatch(/color-scheme:\s*dark/)
   })
 
-  it('names the two fonts of the Substack, and only those', () => {
-    expect(THEME).toMatch(/--font-display:[^;]*BBH Hegarty/)
+  it('sets the body in Lexend, the very face of the Substack', () => {
     expect(THEME).toMatch(/--font-body:[^;]*Lexend/)
-    expect(CONFIG).toMatch(/family=BBH\+Hegarty/)
     expect(CONFIG).toMatch(/family=Lexend/)
-    // The dark-era pair must not linger in the <head>: an unused font file
-    // is a request paid on every first visit.
+  })
+
+  /**
+   * The display face is NOT the Substack's.
+   *
+   * Measured, not assumed: the file Google serves for BBH Hegarty carries
+   * 121 glyphs and no accented character at all — no é, no à, no ô. A
+   * French headline set in it is composed in two typefaces at once, because
+   * the browser fetches every accent from somewhere else. The defect is
+   * visible on Max's own Substack (« sols craquelés »); here it is fixable.
+   *
+   * Gabarito holds the same very heavy geometric density and covers French.
+   */
+  it('avoids the display face that cannot set French', () => {
+    expect(THEME).toMatch(/--font-display:[^;]*Gabarito/)
+    expect(THEME).not.toMatch(/--font-display:[^;]*BBH Hegarty/)
+    expect(CONFIG).toMatch(/family=Gabarito/)
+    expect(CONFIG).not.toMatch(/BBH\+Hegarty/)
+  })
+
+  it('leaves no font in the <head> that nothing uses', () => {
+    // An unused font file is a request paid on every first visit.
     expect(CONFIG).not.toMatch(/Bricolage\+Grotesque|Newsreader/)
   })
 })

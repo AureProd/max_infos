@@ -6,6 +6,21 @@ const { data: list } = await useFetch('/api/articles', { key: 'accueil', query: 
 const { articles, tags, state, isActive, total, toggleTag, page, pages, goTo } = useFilters()
 
 const all = computed(() => list.value?.items ?? [])
+
+/**
+ * Les tags les plus portés d'abord.
+ *
+ * `/api/tags` renvoie déjà `n`, le nombre d'articles publiés qui portent le
+ * tag, mais il trie par ordre alphabétique — l'ordre qu'il faut au
+ * back-office pour retrouver un sujet, pas celui qu'il faut ici. Le rail ne
+ * montre qu'une ligne : ce qui compte est que les sujets réellement
+ * travaillés soient en tête, pas que « Algérie » précède « sport ».
+ *
+ * Trié ici plutôt que dans l'API pour ne pas déranger l'écran des tags.
+ */
+const ranked = computed(() =>
+  [...tags.value].sort((a, b) => b.n - a.n || a.label.localeCompare(b.label, 'fr')),
+)
 const feature = computed(() => all.value[0])
 const rail = computed(() => all.value.slice(1, 4))
 
@@ -24,17 +39,7 @@ useSeoMeta({
       <h1>{{ site?.identity.tagline }}</h1>
       <p class="strap">{{ site?.identity.pitch }}</p>
       <p class="scroll-cue">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <polyline points="5 9 12 16 19 9" />
-        </svg>
+        <i class="pi pi-angle-down" aria-hidden="true" />
         Défiler
       </p>
     </section>
@@ -47,7 +52,7 @@ useSeoMeta({
           <h2>{{ feature.title }}</h2>
           <p class="dek">{{ feature.dek }}</p>
           <div class="meta">
-            <span class="byline">{{ site?.identity.byline }}</span>
+            <span class="byline">{{ site?.identity.author }}</span>
             <time v-if="feature.publishedAt" :datetime="feature.publishedAt">
               le {{ frDate(feature.publishedAt) }}
             </time>
@@ -84,8 +89,6 @@ useSeoMeta({
     </section>
   </div>
 
-  <ArticleMarquee />
-
   <div class="wrap">
     <InstagramBlock />
 
@@ -100,16 +103,7 @@ useSeoMeta({
 
       <section class="filters">
         <label class="search">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <line x1="16.5" y1="16.5" x2="21" y2="21" />
-          </svg>
+          <i class="pi pi-search" aria-hidden="true" />
           <input
             id="q"
             v-model="state.q"
@@ -120,7 +114,7 @@ useSeoMeta({
         </label>
         <div class="tags" role="group" aria-label="Filtrer par tag">
           <button
-            v-for="tag in tags"
+            v-for="tag in ranked"
             :key="tag.slug"
             class="tag"
             :aria-pressed="state.tag === tag.slug"
@@ -134,7 +128,7 @@ useSeoMeta({
       <p v-if="articles.length === 0" class="empty">Aucun article ne correspond.</p>
       <ul v-else class="cards">
         <li v-for="article in articles" :key="article.slug">
-          <ArticleCard :article="article" :byline="site?.identity.byline" />
+          <ArticleCard :article="article" :byline="site?.identity.author" />
         </li>
       </ul>
 
@@ -150,4 +144,12 @@ useSeoMeta({
       </nav>
     </section>
   </div>
+
+  <!--
+    Le bandeau ferme la page au lieu de la couper en deux. Il était posé
+    entre la une et les réseaux, là où le lecteur venait justement de
+    choisir quoi lire : une seconde liste de titres à cet endroit ne fait
+    que reprendre la décision qu'il vient de prendre.
+  -->
+  <ArticleMarquee />
 </template>

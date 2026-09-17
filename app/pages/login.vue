@@ -8,23 +8,28 @@ useSeoMeta({ title: 'Connexion', robots: 'noindex, nofollow' })
 </script>
 
 <template>
-  <div class="wrap">
-    <section class="about" style="max-width: 560px">
-      <h1>Connexion</h1>
-      <p class="lede">
-        L'accès à la rédaction de {{ site?.identity.name }} est réservé aux comptes autorisés.
-      </p>
+  <!--
+    Un seul geste, et rien d'autre.
 
-      <p v-if="failure" class="err">
-        La connexion a échoué. Si cette adresse devrait avoir accès, demande à JB de l'ajouter.
-      </p>
+    L'écran expliquait auparavant qui a le droit d'entrer et comment
+    demander un accès. C'était dire à un inconnu comment fonctionne la liste
+    d'autorisation — et cela ne servait personne : soit on peut se
+    connecter, soit on ne peut pas.
+  -->
+  <div class="wrap signin-wrap">
+    <section class="signin">
+      <span class="signin-mark" aria-hidden="true" />
+      <h1>{{ site?.identity.name }}</h1>
+      <p class="signin-sub">Rédaction</p>
 
-      <p style="margin-top: 24px">
-        <a class="btn btn-primary" href="/api/auth/google">Se connecter avec Google</a>
-      </p>
+      <a class="signin-google" href="/api/auth/google">
+        <i class="pi pi-google" aria-hidden="true" />
+        Continuer avec Google
+      </a>
 
-      <p class="hint" style="margin-top: 16px">
-        Aucun compte ne se crée tout seul : les adresses autorisées sont inscrites à l'avance.
+      <p v-if="failure" class="signin-failed" role="alert">
+        <i class="pi pi-times-circle" aria-hidden="true" />
+        La connexion a échoué.
       </p>
     </section>
   </div>

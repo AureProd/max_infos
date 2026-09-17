@@ -11,15 +11,9 @@ const { data: list } = await useFetch('/api/articles', { key: 'a-propos', query:
 const links = computed(() => site.value?.contact.fields ?? [])
 
 /** Media identifiers are resolved by /api/site; here we only read. */
-const mediaItems = computed(() => site.value?.mediaItems ?? {})
-const photo = computed(() => {
-  const id = site.value?.cv.photoMediaId
-  return id ? (mediaItems.value[id] ?? null) : null
-})
-const pdf = computed(() => {
-  const id = site.value?.cv.pdfMediaId
-  return id ? (mediaItems.value[id] ?? null) : null
-})
+const media = useSiteMedia()
+const photo = computed(() => media(site.value?.cv.photoMediaId))
+const pdf = computed(() => media(site.value?.cv.pdfMediaId))
 
 type Entry = { title: string; org?: string; start?: string; end?: string; detail?: string }
 type Block = { label: string; entries?: Entry[]; items?: string[] }

@@ -39,3 +39,6 @@ coverage/
 /test-results/
 /playwright-report/
 /blob-report/
+
+# Captures d'écran de travail : outillage jetable, hors du dépôt
+/scripts/.shots/

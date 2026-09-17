@@ -52,6 +52,25 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/*
+ * ONE display weight, everywhere.
+ *
+ * The reference — the Substack — has exactly one, because BBH Hegarty ships
+ * exactly one. Its hierarchy is therefore built on SIZE and MEASURE, never
+ * on weight, and that restraint is a large part of why it reads as
+ * composed rather than shouted. Gabarito has a full range; the site uses a
+ * single step of it on purpose.
+ *
+ * `font-synthesis-weight: none` on top: a browser asked for a cut a face
+ * does not have smears the glyphs sideways to fake one, and on display type
+ * this heavy it reads as a rendering fault.
+ */
+:where(h1, h2, h3, h4, .brand, .kicker, .cap, .marquee a) {
+  font-family: var(--display);
+  font-weight: var(--font-weight-display);
+  font-synthesis-weight: none;
+}
+
 .wrap {
   width: 100%;
   max-width: var(--wrap);
@@ -100,29 +119,19 @@ button {
   overflow: hidden;
   background: var(--surface);
 }
-/* The covers are already built on the logo blue, so they match the theme.
-   Only their light grey background glares against a dark one, and we turn
-   that down without touching the photographs or the blue.
-   Remove the .tinted class on an article to leave it untouched. */
-.frame.tinted .cover {
-  filter: brightness(0.74) contrast(1.06) saturate(0.92);
-}
-.frame.tinted::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: var(--ink);
-  mix-blend-mode: multiply;
-  opacity: 0.34;
-}
+/* Les couvertures de Max sont construites sur le bleu du logo, sur un fond
+   gris clair : sur un thème clair elles n'ont plus rien à corriger. Le
+   `tinted` de l'époque sombre les assombrissait de 26 % et posait un
+   dégradé noir sur le bas — ce qui, ici, salirait simplement l'image.
+   La classe survit pour les emplacements qui posent du TEXTE sur l'image :
+   là, et là seulement, il faut un fond. */
 .frame.tinted::before {
   content: '';
   position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 1;
-  background: linear-gradient(180deg, transparent 45%, rgba(23, 25, 29, 0.6));
+  background: linear-gradient(180deg, transparent 52%, rgba(0, 0, 0, 0.55));
 }
 
 /* ---------- masthead ---------- */
@@ -130,9 +139,11 @@ button {
   position: sticky;
   top: 0;
   z-index: 30;
-  background: rgba(23, 25, 29, 0.9);
+  /* Translucide plutôt qu'opaque : le contenu qui passe dessous se devine,
+     et la barre cesse d'être un bandeau posé sur la page. */
+  background: color-mix(in srgb, var(--color-page) 88%, transparent);
   backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line);
 }
 .mast-in {
   display: flex;
@@ -143,47 +154,64 @@ button {
 }
 .brand {
   font-family: var(--display);
-  font-weight: 700;
-  font-size: 1.06rem;
-  letter-spacing: -0.02em;
+  font-size: 1.12rem;
+  letter-spacing: -0.01em;
   text-decoration: none;
   display: flex;
   align-items: center;
   gap: 10px;
 }
 .brand .dot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   flex: none;
+  border-radius: 2px;
   background: var(--accent);
 }
 .nav {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   align-items: center;
 }
 .nav a {
-  font-family: var(--display);
-  font-size: 0.9rem;
+  font-family: var(--body);
+  font-size: 0.94rem;
   font-weight: 500;
   color: var(--muted);
   text-decoration: none;
   padding: 8px 12px;
+  border-radius: 999px;
   transition: color 0.15s;
+}
+
+/* Le lien vers la rédaction n'est plus un mot : c'est un crayon. Il ne
+   s'adresse qu'à deux personnes, et il prenait la place d'un onglet. */
+.nav a.nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  margin-left: 6px;
+  color: var(--faint);
+}
+.nav a.nav-icon:hover {
+  color: var(--accent);
+  background: var(--accent-lo);
+}
+.nav a.nav-icon i {
+  font-size: 1rem;
 }
 .nav a:hover {
   color: var(--text);
 }
 .nav a.router-link-exact-active {
-  color: var(--text);
+  color: var(--accent);
+  background: var(--accent-lo);
 }
-.nav a.router-link-exact-active::after {
-  content: '';
-  display: block;
-  height: 2px;
-  background: var(--accent);
-  margin-top: 5px;
-}
+/* Pas de soulignement sous l'onglet actif : la pastille le dit déjà, et
+   le trait se glissait aussi sous l'icône, où il n'avait aucun sens. */
 
 /* ---------- hero carried by the type ---------- */
 .hero {
@@ -191,7 +219,7 @@ button {
 }
 .hero h1 {
   font-family: var(--display);
-  font-weight: 700;
+  font-weight: var(--font-weight-display);
   font-size: clamp(2.3rem, 6.2vw, 4.5rem);
   line-height: 0.97;
   letter-spacing: -0.035em;
@@ -258,14 +286,13 @@ button {
   color: var(--faint);
   padding-block: 34px 0;
 }
-.scroll-cue svg {
-  width: 14px;
-  height: 14px;
+.scroll-cue i {
+  font-size: 0.85rem;
 }
 
 /* ---------- scrolling title banner ---------- */
 .marquee {
-  margin-top: 56px;
+  margin-top: 72px;
   border-block: 1px solid var(--line);
   overflow: hidden;
   padding-block: 18px;
@@ -283,7 +310,7 @@ button {
 }
 .marquee a {
   font-family: var(--display);
-  font-weight: 600;
+  font-weight: var(--font-weight-display);
   font-size: clamp(1.05rem, 2.1vw, 1.5rem);
   letter-spacing: -0.02em;
   color: var(--muted);
@@ -351,7 +378,7 @@ button {
 .feature .kicker {
   font-family: var(--display);
   font-size: 0.82rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-display);
   color: var(--gold);
   margin: 0 0 12px;
   display: flex;
@@ -366,7 +393,7 @@ button {
 }
 .feature h2 {
   font-family: var(--display);
-  font-weight: 700;
+  font-weight: var(--font-weight-display);
   font-size: clamp(1.7rem, 2.9vw, 2.3rem);
   line-height: 1.03;
   letter-spacing: -0.032em;
@@ -387,7 +414,7 @@ button {
 
 .rail h3 {
   font-family: var(--display);
-  font-weight: 600;
+  font-weight: var(--font-weight-display);
   font-size: 0.95rem;
   color: var(--muted);
   margin: 0 0 16px;
@@ -425,7 +452,7 @@ button {
 }
 .rail .cap {
   font-family: var(--display);
-  font-weight: 600;
+  font-weight: var(--font-weight-display);
   font-size: 1rem;
   line-height: 1.25;
   letter-spacing: -0.015em;
@@ -454,7 +481,7 @@ button {
 }
 .section-head h2 {
   font-family: var(--display);
-  font-weight: 700;
+  font-weight: var(--font-weight-display);
   font-size: clamp(1.5rem, 3vw, 2.1rem);
   letter-spacing: -0.028em;
   margin: 0;
@@ -493,7 +520,7 @@ button {
 }
 .card h3 {
   font-family: var(--display);
-  font-weight: 600;
+  font-weight: var(--font-weight-display);
   font-size: 1.1rem;
   line-height: 1.2;
   letter-spacing: -0.02em;
@@ -536,7 +563,7 @@ button {
 }
 .lead h2 {
   font-family: var(--display);
-  font-weight: 700;
+  font-weight: var(--font-weight-display);
   font-size: clamp(1.9rem, 3.9vw, 3rem);
   line-height: 1.02;
   letter-spacing: -0.032em;
@@ -557,7 +584,7 @@ button {
 .lead .kicker {
   font-family: var(--display);
   font-size: 0.82rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-display);
   color: var(--gold);
   display: flex;
   align-items: center;
@@ -604,21 +631,22 @@ button {
   display: flex;
   align-items: center;
 }
-.search svg {
+.search i {
   position: absolute;
-  left: 12px;
-  width: 15px;
-  height: 15px;
+  left: 15px;
+  font-size: 0.86rem;
   color: var(--faint);
+  pointer-events: none;
 }
 .search input {
   width: 100%;
-  font-family: var(--display);
-  font-size: 0.92rem;
+  font-family: var(--body);
+  font-size: 0.95rem;
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--line);
-  padding: 11px 12px 11px 34px;
+  border-radius: 999px;
+  padding: 11px 16px 11px 38px;
 }
 .search input::placeholder {
   color: var(--faint);
@@ -628,18 +656,38 @@ button {
   border-color: var(--accent);
 }
 
+/*
+ * UNE ligne de tags, les plus portés d'abord.
+ *
+ * Elles passaient à la ligne, et huit sujets occupaient trois rangées au
+ * milieu de la page. Ici c'est un rail : il ne grandit jamais, et ce qui
+ * dépasse se fait glisser. Le défilement est HORIZONTAL et volontaire —
+ * il ne concerne que ce rail, jamais la page.
+ */
 .tags {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* Le dégradé dit qu'il en reste, sans ajouter une flèche. */
+  -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, #000 88%, transparent);
+}
+.tags::-webkit-scrollbar {
+  display: none;
 }
 .tag {
-  font-family: var(--display);
-  font-size: 0.83rem;
+  flex: none;
+  font-family: var(--body);
+  font-size: 0.85rem;
   font-weight: 500;
   color: var(--muted);
-  padding: 8px 13px;
+  background: var(--surface);
+  padding: 8px 14px;
   border: 1px solid var(--line);
+  border-radius: 999px;
+  white-space: nowrap;
   transition:
     color 0.15s,
     border-color 0.15s,
@@ -647,13 +695,12 @@ button {
 }
 .tag:hover {
   color: var(--text);
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: var(--faint);
 }
 .tag[aria-pressed='true'] {
-  color: var(--ink);
+  color: #fff;
   background: var(--accent);
   border-color: var(--accent);
-  font-weight: 600;
 }
 
 /* ---------- tuned article list ---------- */
@@ -678,7 +725,7 @@ button {
 }
 .entry h3 {
   font-family: var(--display);
-  font-weight: 600;
+  font-weight: var(--font-weight-display);
   font-size: 1.5rem;
   line-height: 1.13;
   letter-spacing: -0.024em;
@@ -752,7 +799,7 @@ button {
   flex-wrap: wrap;
   font-family: var(--display);
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-display);
   letter-spacing: -0.015em;
   text-decoration: none;
 }
@@ -762,14 +809,15 @@ button {
 .igp-follow {
   font-family: var(--display);
   font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--ink);
+  font-weight: var(--font-weight-display);
+  color: #fff;
   background: var(--accent);
+  border-radius: 999px;
   padding: 5px 13px;
   text-decoration: none;
 }
 .igp-follow:hover {
-  background: #6b97f7;
+  background: var(--color-accent-strong);
 }
 .igp-stats {
   display: flex;
@@ -815,7 +863,7 @@ button {
 }
 .cbtn:hover:not(:disabled) {
   color: var(--text);
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: var(--faint);
 }
 .cbtn:disabled {
   opacity: 0.28;
@@ -871,7 +919,7 @@ button {
   transition: opacity 0.18s;
   font-family: var(--display);
   font-size: 0.92rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-display);
   color: #fff;
   font-variant-numeric: tabular-nums;
   text-align: center;
@@ -901,7 +949,7 @@ button {
   gap: 7px;
   font-family: var(--display);
   font-size: 0.74rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-display);
   color: var(--accent);
   border: 1px dashed rgba(74, 129, 245, 0.5);
   padding: 3px 9px;
@@ -929,9 +977,9 @@ button {
 .ig-connect input {
   flex: 1 1 300px;
   min-width: 0;
-  font-family: var(--display);
+  font-family: var(--body);
   font-size: 0.92rem;
-  background: var(--ink);
+  background: var(--surface);
   color: var(--text);
   border: 1px solid var(--line);
   padding: 11px 13px;
@@ -1047,58 +1095,151 @@ button {
   max-width: 44ch;
 }
 
-/* ---------- page article ---------- */
+/* ---------- page article ----------
+   La mise en page du Substack de Max, à l'ordre près : titre, sous-titre,
+   signature, barre d'action, couverture, corps. La colonne de lecture fait
+   728 px — la largeur RÉELLE de son Substack, confirmée par le
+   `resizeWidth: 728` qu'il grave dans l'URL de ses images. */
 .article {
-  padding-block: 44px 80px;
+  padding-block: 32px 80px;
 }
 .back {
-  font-family: var(--display);
+  font-family: var(--body);
   font-size: 0.87rem;
-  color: var(--muted);
+  color: var(--faint);
   text-decoration: none;
-  display: inline-flex;
+  /* `flex` et non `inline-flex` : le lien doit s'aligner sur le bord
+     GAUCHE de la colonne de lecture, ce qu'un élément en ligne ne peut pas
+     faire — il restait collé au bord de la page. */
+  display: flex;
+  justify-content: flex-start;
   gap: 8px;
   align-items: center;
-  margin-bottom: 38px;
+  margin-bottom: 34px;
+  max-width: var(--read);
+  margin-inline: auto;
+  width: 100%;
 }
 .back:hover {
   color: var(--accent);
 }
 .article header {
-  max-width: 62ch;
+  max-width: var(--read);
   margin-inline: auto;
 }
 .article h1 {
   font-family: var(--display);
-  font-weight: 700;
-  font-size: clamp(2.1rem, 5.4vw, 3.6rem);
-  line-height: 1.01;
-  letter-spacing: -0.034em;
-  margin: 0 0 20px;
+  font-size: clamp(2.2rem, 5.4vw, 3.4rem);
+  /* 1.25 : le ratio d'interlignage que le Substack applique à ses titres. */
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0 0 14px;
   text-wrap: balance;
-  max-width: 20ch;
 }
+
+/* Le sous-titre est dans la police d'AFFICHAGE, en gris. C'est la marque
+   du Substack de Max, et ça évite de faire porter la hiérarchie par une
+   graisse que BBH Hegarty n'a pas. */
 .article .dek {
-  font-size: 1.3rem;
-  line-height: 1.48;
+  font-family: var(--display);
+  font-size: clamp(1.15rem, 2.2vw, 1.5rem);
+  line-height: 1.3;
   color: var(--muted);
-  margin: 0 0 24px;
-  font-weight: 300;
-  max-width: 50ch;
+  letter-spacing: -0.01em;
+  margin: 0 0 30px;
 }
-.article > .frame {
-  margin-block: 40px;
-  max-width: 520px;
+
+.signature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.signature-face {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  object-fit: cover;
+  flex: none;
+  border: 1px solid var(--line);
+}
+.signature-who {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.signature-name {
+  font-size: 0.86rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.signature-when {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.82rem;
+  color: var(--faint);
+}
+
+.article-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-top: 22px;
+  padding-block: 16px;
+  border-block: 1px solid var(--line-soft);
+}
+.article-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.article-tags li {
+  font-size: 0.76rem;
+  color: var(--muted);
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.article-foot {
+  max-width: var(--read);
+  margin: 56px auto 0;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+}
+.article-foot-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+}
+.article-foot-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /*
  * The cover follows the reading column: same width, same centring. Left to
- * itself it spreads over the whole 1240px .wrap while the text stays at
- * 66ch, and the two no longer line up.
+ * itself it spreads over the whole 1240px .wrap while the text stays in its
+ * column, and the two no longer line up.
  */
 .article > .frame {
   max-width: var(--read);
-  margin: 40px auto;
+  margin: 36px auto;
 }
 
 /*
@@ -1109,8 +1250,8 @@ button {
 .prose {
   max-width: var(--read);
   margin-inline: auto;
-  font-size: 1.2rem;
-  line-height: 1.8;
+  font-size: 1.11rem;
+  line-height: 1.78;
   text-align: justify;
   text-justify: inter-word;
   hyphens: auto;
@@ -1131,9 +1272,10 @@ button {
   text-align: justify;
 }
 /* premier paragraphe en attaque, faute d'intertitres dans la source */
+/* Premier paragraphe en attaque, faute d'intertitres dans la source. */
 .prose > p:first-of-type {
-  font-size: 1.3rem;
-  line-height: 1.6;
+  font-size: 1.24rem;
+  line-height: 1.62;
   color: var(--text);
 }
 .prose p {
@@ -1141,7 +1283,6 @@ button {
 }
 .prose h2 {
   font-family: var(--display);
-  font-weight: 600;
   font-size: 1.6rem;
   line-height: 1.18;
   letter-spacing: -0.022em;
@@ -1150,7 +1291,6 @@ button {
 }
 .prose h3 {
   font-family: var(--display);
-  font-weight: 600;
   font-size: 1.2rem;
   margin: 2em 0 0.5em;
 }
@@ -1173,7 +1313,7 @@ button {
 }
 .prose strong {
   font-weight: 600;
-  color: #fff;
+  color: var(--text);
 }
 .prose em {
   font-style: italic;
@@ -1193,9 +1333,10 @@ button {
 .prose code {
   font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
   font-size: 0.86em;
-  background: var(--raised);
+  background: var(--accent-lo);
   padding: 0.15em 0.4em;
-  color: #c8d8f5;
+  border-radius: 4px;
+  color: var(--color-accent-strong);
 }
 .prose pre {
   background: var(--surface);
@@ -1209,12 +1350,30 @@ button {
   padding: 0;
   font-size: 0.88rem;
   line-height: 1.6;
-  color: #cfd6de;
+  color: var(--text);
 }
 .prose hr {
   border: none;
   border-top: 1px solid var(--line);
   margin: 2.6em 0;
+}
+/* Les images du corps viennent de Substack avec un width="728" en dur :
+   sur un téléphone elles sortaient de la colonne. */
+.prose img {
+  width: 100%;
+  height: auto;
+  margin: 2em 0;
+  border-radius: 4px;
+}
+.prose figure {
+  margin: 2em 0;
+}
+.prose figcaption {
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--faint);
+  text-align: left;
+  margin-top: 8px;
 }
 
 .endnote {
@@ -1331,7 +1490,7 @@ button {
 }
 .about h1 {
   font-family: var(--display);
-  font-weight: 700;
+  font-weight: var(--font-weight-display);
   font-size: clamp(2.2rem, 5vw, 3.4rem);
   line-height: 1.01;
   letter-spacing: -0.034em;
@@ -1357,7 +1516,7 @@ button {
 .skillset h4 {
   font-family: var(--display);
   font-size: 0.88rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-display);
   color: var(--muted);
   margin: 0 0 10px;
 }
@@ -1410,7 +1569,7 @@ button {
 .btn {
   font-family: var(--display);
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: var(--font-weight-display);
   padding: 9px 16px;
   border: 1px solid var(--line);
   color: var(--text);
@@ -1419,12 +1578,12 @@ button {
     background-color 0.15s;
 }
 .btn:hover {
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: var(--faint);
   background: var(--line-soft);
 }
 .btn-primary {
   background: var(--accent);
-  color: var(--ink);
+  color: #fff;
   border-color: var(--accent);
   font-weight: 600;
 }
@@ -1626,10 +1785,14 @@ button {
   gap: 18px;
   /*
    * auto-FIT et non auto-fill : avec trois publications, auto-fill gardait
-   * les pistes vides et laissait 60 % de la largeur en blanc. auto-fit
-   * replie les pistes vides, les cartes occupent la largeur.
+   * les pistes vides et laissait 60 % de la largeur en blanc.
+   *
+   * Mais la piste a désormais un MAXIMUM. En `1fr`, deux publications se
+   * partageaient les 1240 px et donnaient deux vignettes hautes comme un
+   * écran — le bloc des réseaux mangeait la page d'accueil entière.
    */
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(230px, 300px));
+  justify-content: start;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1671,7 +1834,7 @@ button {
 .pub-handle {
   font-family: var(--display);
   font-size: 0.83rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-display);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1788,8 +1951,8 @@ button {
 }
 
 .cnav a:hover {
-  color: var(--text, #dbdee1);
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  background: var(--raised);
 }
 
 /* `.current` and NOT `.router-link-active`: the latter matches by prefix, so
@@ -1900,4 +2063,203 @@ button {
 }
 .a-tagdrop {
   margin-left: auto;
+}
+
+/* ---------- partager (lot 2) ----------
+   La fenêtre est un <dialog> natif : modale, fond, piège de focus et Échap
+   sont fournis par le navigateur. Le site public ne charge rien de
+   PrimeVue — il ne doit pas ressembler à un tableau de bord. */
+.share-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--body);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 15px;
+  background: var(--surface);
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.share-open:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.share-open i {
+  font-size: 0.85rem;
+}
+
+.share-box {
+  width: min(460px, calc(100vw - 32px));
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 22px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.14);
+}
+.share-box::backdrop {
+  background: rgba(0, 0, 0, 0.42);
+}
+.share-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.share-head h2 {
+  font-family: var(--display);
+  font-size: 1.15rem;
+  margin: 0;
+}
+.share-close {
+  color: var(--faint);
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+}
+.share-close:hover {
+  color: var(--text);
+  background: var(--raised);
+}
+
+.share-grid {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+}
+.share-grid a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 0.82rem;
+  color: var(--muted);
+  transition:
+    border-color 0.15s,
+    color 0.15s;
+}
+.share-grid a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.share-grid i {
+  font-size: 1.15rem;
+}
+
+.share-copy {
+  display: flex;
+  gap: 8px;
+}
+.share-copy input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--muted);
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--raised);
+}
+.share-copy button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: #fff;
+  background: var(--accent);
+  border-radius: 8px;
+  padding: 9px 14px;
+  white-space: nowrap;
+}
+.share-copy button:hover {
+  background: var(--color-accent-strong);
+}
+.share-note {
+  margin: 12px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--faint);
+}
+
+/* ---------- connexion (lot 2) ---------- */
+.signin-wrap {
+  /* Centré sur la hauteur restante : l'en-tête fait 66 px. */
+  min-height: calc(100vh - 66px);
+  display: grid;
+  place-items: center;
+}
+.signin {
+  width: min(360px, 100%);
+  text-align: center;
+  padding-bottom: 66px;
+}
+.signin-mark {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--accent);
+  margin-bottom: 26px;
+}
+.signin h1 {
+  font-family: var(--display);
+  font-weight: var(--font-weight-display);
+  font-size: 1.7rem;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+.signin-sub {
+  font-size: 0.92rem;
+  color: var(--faint);
+  margin: 4px 0 32px;
+}
+.signin-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  width: 100%;
+  font-size: 0.97rem;
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 13px 20px;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.signin-google:hover {
+  border-color: var(--faint);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+.signin-google i {
+  font-size: 1.05rem;
+  color: var(--accent);
+}
+.signin-failed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--color-danger);
+  margin: 18px 0 0;
 }

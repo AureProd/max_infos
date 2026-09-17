@@ -76,14 +76,14 @@ test.describe('the theme', () => {
     expect(scheme).toBe('light')
   })
 
-  test('loads both Substack fonts, and actually paints with them', async ({ page }) => {
+  test('loads both faces, and actually paints with them', async ({ page }) => {
     await page.goto('/')
     await page.evaluate(() => document.fonts.ready)
 
     const loaded = await page.evaluate(() =>
       [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family),
     )
-    expect(loaded).toContain('BBH Hegarty')
+    expect(loaded).toContain('Gabarito')
     expect(loaded).toContain('Lexend')
 
     // Loaded is not painted: a heading still wearing Arial means the token
@@ -91,7 +91,57 @@ test.describe('the theme', () => {
     const heading = page.locator('h1').first()
     await expect(heading).toBeVisible()
     const family = await heading.evaluate((el) => getComputedStyle(el).fontFamily)
-    expect(family).toContain('BBH Hegarty')
+    expect(family).toContain('Gabarito')
+  })
+
+  /**
+   * Every accent of a French headline is drawn by the SAME face.
+   *
+   * This is the whole reason the display face is not the Substack's. A
+   * missing glyph does not fail — it falls back, silently and per
+   * character — and « Contrôler » comes out set in two typefaces. Measured
+   * with `document.fonts.check`, which answers whether the loaded face can
+   * actually render the text, rather than whether it was requested.
+   */
+  test('sets accented characters in the display face, not a fallback', async ({ page }) => {
+    await page.goto('/')
+    await page.evaluate(() => document.fonts.ready)
+
+    const fallen = await page.evaluate(async () => {
+      const LETTERS = [...'éèêàâçôûïœÉÀÔÇŒ']
+
+      const measure = (family: string) => {
+        const probe = document.createElement('span')
+        probe.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font:800 64px ${family}`
+        document.body.append(probe)
+        const widths = LETTERS.map((ch) => {
+          probe.textContent = ch
+          return probe.getBoundingClientRect().width
+        })
+        probe.remove()
+        return widths
+      }
+
+      // Le texte doit être DANS la page avant la mesure : les sous-ensembles
+      // Google sont découpés par plage Unicode, et le navigateur ne
+      // télécharge un fichier que s'il rencontre un caractère qui l'exige.
+      const warm = document.createElement('span')
+      warm.textContent = LETTERS.join('')
+      warm.style.cssText = 'position:absolute;visibility:hidden;font:800 64px Gabarito'
+      document.body.append(warm)
+      await document.fonts.ready
+      warm.remove()
+
+      // Un glyphe absent ne fait pas échouer le rendu : il est dessiné par
+      // une AUTRE police, silencieusement, caractère par caractère. Deux
+      // fontes ne donnent pas la même chasse — si la largeur est celle du
+      // repli, c'est que le glyphe manque.
+      const display = measure("'Gabarito'")
+      const fallback = measure("'PoliceQuiNExistePas'")
+      return LETTERS.filter((_, i) => display[i] === fallback[i])
+    })
+
+    expect(fallen, 'caractères dessinés par une police de repli').toEqual([])
   })
 })
 
