@@ -67,7 +67,7 @@ async function run(dryRun: boolean): Promise<void> {
       severity="secondary"
       outlined
       :icon="open ? 'pi pi-times' : 'pi pi-download'"
-      :label="open ? 'Fermer' : 'Rapatrier depuis Substack'"
+      :label="open ? 'Fermer' : 'Importer'"
       @click="open = !open"
     />
 
@@ -80,7 +80,7 @@ async function run(dryRun: boolean): Promise<void> {
       <div v-if="open" class="sp-backdrop" @click.self="open = false">
         <section class="sp-box admin-ui">
           <header class="sp-head">
-            <h2>Rapatrier depuis Substack</h2>
+            <h2>Importer depuis Substack</h2>
             <button class="a-btn" type="button" @click="open = false">Fermer ✕</button>
           </header>
       <p class="hint">
@@ -100,7 +100,7 @@ async function run(dryRun: boolean): Promise<void> {
             placeholder="https://exemple.substack.com/feed"
           />
           <button class="a-btn" type="submit" :disabled="busy">
-            {{ busy ? 'Lecture…' : 'Simuler' }}
+            {{ busy ? 'Lecture…' : 'Voir ce qui serait importé' }}
           </button>
           <button
             class="a-btn a-btn-primary"
@@ -109,7 +109,7 @@ async function run(dryRun: boolean): Promise<void> {
             :title="report?.dryRun ? '' : 'Simule d’abord : tu verras ce qui serait écrit.'"
             @click="run(false)"
           >
-            Rapatrier
+            Importer
           </button>
         </div>
       </form>

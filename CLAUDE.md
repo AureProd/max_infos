@@ -73,6 +73,11 @@ migration appliquant un jeu périmé tout en répondant « applied successfully 
 | **Tiptap ne garde que ce que son schéma décrit** : un attribut inséré tel quel disparaît à la sérialisation | Étendre le nœud (`ParagraphWithCta`), et n'admettre que la valeur voulue |
 | Tailwind v4 ne génère **que les classes trouvées dans les fichiers source** | Une classe ajoutée depuis JavaScript est simplement absente de la feuille — ce qui se lit exactement comme perdre la cascade |
 | Les trois projets Playwright tournent **en parallèle contre la même base** | Deux tests qui visent « la première ligne » se marchent dessus, et publier change `updatedAt`, donc l'ordre. Viser par titre, pas par rang |
+| `useRequestHeaders()` — donc `sessionHeaders()` — appelée **après un `await`** dans une fonction ordinaire tombe sur `NUXT_E1001`, « Nuxt instance unavailable » | L'écran d'édition sortait en **500**, mais seulement sous charge : le contexte survit parfois à un await. Capturer les en-têtes dans le `setup`, une fois |
+| Un serveur Nuxt laissé tourner **sur une construction précédente** sert un `buildId` périmé : le client recharge la page de force, en plein test | `/_nuxt/builds/meta/<id>.json` en 404 dans le journal. Redémarrer le serveur après chaque `pnpm build` |
+| Un clic Playwright envoyé **avant l'hydratation** tombe sur du HTML sans gestionnaire et ne fait rien — sans erreur | `await page.waitForLoadState('networkidle')` après un `goto` sur un écran qui charge ses données côté client |
+| Une barre d'outils d'éditeur **vole le focus** au clic, et la sélection se perd avant la commande | `@mousedown.prevent` sur chaque bouton |
+| `editor.isActive()` lit l'état de ProseMirror, qui vit **hors de Vue** : rien ne prévient le composant | Un compteur touché à chaque transaction, relu par la fonction — sans quoi les boutons ne se rallument qu'au prochain rendu |
 
 ## Décisions arrêtées
 

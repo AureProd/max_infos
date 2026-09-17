@@ -170,29 +170,38 @@ test.describe('the cascade', () => {
     await page.goto('/admin/articles')
     await expect(page.locator('.admin-shell')).toBeVisible()
 
-    const declared = await page.evaluate(() => {
-      const lists: string[][] = []
-      for (const sheet of [...document.styleSheets]) {
-        let rules: CSSRuleList
-        try {
-          rules = sheet.cssRules
-        } catch {
-          // A cross-origin sheet — Google Fonts — refuses to be read.
-          continue
+    /*
+     * `expect.poll` et non une lecture unique : PrimeVue injecte sa feuille
+     * — et donc l'instruction `@layer` — À L'EXÉCUTION. La lire au premier
+     * rendu revenait à la chercher avant qu'elle n'existe, ce qui passait
+     * sur une machine au repos et échouait sur une machine chargée.
+     */
+    const read = () =>
+      page.evaluate(() => {
+        const lists: string[][] = []
+        for (const sheet of [...document.styleSheets]) {
+          let rules: CSSRuleList
+          try {
+            rules = sheet.cssRules
+          } catch {
+            // A cross-origin sheet — Google Fonts — refuses to be read.
+            continue
+          }
+          for (const rule of [...rules]) {
+            // CSSLayerStatementRule: the `@layer a, b, c;` form, the only one
+            // that decides precedence. `@layer x { … }` blocks are a
+            // different rule type and say nothing about order.
+            const names = (rule as CSSLayerStatementRule).nameList
+            if (names) lists.push([...names])
+          }
         }
-        for (const rule of [...rules]) {
-          // CSSLayerStatementRule: the `@layer a, b, c;` form, the only one
-          // that decides precedence. `@layer x { … }` blocks are a
-          // different rule type and say nothing about order.
-          const names = (rule as CSSLayerStatementRule).nameList
-          if (names) lists.push([...names])
-        }
-      }
-      return lists
-    })
+        return lists
+      })
 
-    const order = declared.find((l) => l.includes('primevue'))
-    expect(order, "aucune instruction @layer ne nomme 'primevue'").toBeDefined()
-    expect(order).toEqual(['theme', 'base', 'primevue', 'site', 'components', 'utilities'])
+    await expect
+      .poll(async () => (await read()).find((l) => l.includes('primevue')), {
+        message: "aucune instruction @layer ne nomme 'primevue'",
+      })
+      .toEqual(['theme', 'base', 'primevue', 'site', 'components', 'utilities'])
   })
 })

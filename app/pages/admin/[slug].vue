@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { reason } from '#shared/utils/errors'
 import { addTagLabel, normalizeTagLabel, toggleTag } from '#shared/utils/tags'
 
 definePageMeta({ middleware: 'admin', layout: 'admin' })
@@ -7,8 +8,6 @@ const route = useRoute()
 const slug = ref<string | null>(String(route.params.slug))
 
 const { draft, preview, status, record, modified, load, save, changeStatus } = useDraft(slug)
-
-await load()
 
 /**
  * The tags already in use.
@@ -147,6 +146,32 @@ const coverUrl = computed(
 )
 
 const { data: site } = await useSite()
+
+/*
+ * Le chargement vient EN DERNIER, après tous les composables.
+ *
+ * Vue ne rétablit le contexte Nuxt qu'autour de ses propres `await` de
+ * premier niveau ; un `useFetch` ou un `useConfirm` appelé APRÈS un `await`
+ * qui n'en fait pas partie tombe sur « Nuxt instance unavailable »
+ * (NUXT_E1001) — et l'écran sort en 500, de façon intermittente, seulement
+ * quand la machine est chargée. Tout ce qui a besoin du contexte est donc
+ * demandé avant.
+ *
+ * Le filet, lui, reste : une requête qui échoue — un article supprimé entre
+ * deux clics, une base qui hoquette — sortait en 500 nu, un grand chiffre
+ * sur fond blanc. Le message de l'API vaut mieux que ça.
+ */
+try {
+  await load()
+} catch (e) {
+  const code = (e as { statusCode?: number }).statusCode ?? 500
+  throw createError({
+    statusCode: code,
+    statusMessage:
+      code === 404 ? 'Article introuvable' : `Cet article ne s’ouvre pas — ${reason(e)}`,
+    fatal: true,
+  })
+}
 
 useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noindex, nofollow' })
 </script>

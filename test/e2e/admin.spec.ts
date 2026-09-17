@@ -10,42 +10,49 @@ import { SESSION_FILE } from './helpers'
  */
 test.use({ storageState: SESSION_FILE })
 
+/**
+ * Chaque test qui ÉCRIT se fabrique son article.
+ *
+ * Les trois largeurs tournent en parallèle contre la même base, et la liste
+ * est triée sur `updatedAt` — que publier comme écrire change. Viser « la
+ * première ligne », puis « la ligne portant ce titre », revenait toujours à
+ * viser quelque chose qu'un test voisin déplaçait ou réécrivait. Un article
+ * à soi ne se dispute avec personne.
+ */
+async function ownArticle(page: import('@playwright/test').Page, what: string) {
+  const title = `${what} ${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+  const created = await page.request.post('/api/admin/articles', {
+    data: { title, bodyHtml: '<p>Un corps de test.</p>', tags: [] },
+  })
+  expect(created.ok(), 'la création de l’article de test a échoué').toBe(true)
+  return { title, slug: ((await created.json()) as { slug: string }).slug }
+}
+
 test.describe('the article list', () => {
   test('opens the editor from anywhere on the row', async ({ page }) => {
+    const { title, slug } = await ownArticle(page, 'Ouvrir la ligne')
     await page.goto('/admin/articles')
-    const row = page.locator('tbody tr').first()
+    // L'HYDRATATION, et non le rendu : un clic envoyé avant elle tombe sur
+    // du HTML sans gestionnaire, et ne fait simplement rien.
+    await page.waitForLoadState('networkidle')
+
+    const row = page.locator('tbody tr').filter({ hasText: title })
     await expect(row).toBeVisible()
 
     // Une cellule de DATE, aussi loin que possible du titre : c'est le clic
     // qui ne faisait rien, parce qu'il fallait viser le lien.
     await row.locator('td.a-date').first().click()
-    await expect(page).toHaveURL(/\/admin\/[^/]+$/)
-    await expect(page).not.toHaveURL(/\/admin\/articles$/)
+    await expect(page).toHaveURL(new RegExp(`/admin/${slug}$`))
   })
 
-  /**
-   * Un SEUL test touche cette ligne.
-   *
-   * L'action et le retour étaient éprouvés séparément, et les deux
-   * publiaient le même article : exécutés en parallèle contre une base
-   * partagée, ils se marchaient dessus une fois sur trois. C'est le même
-   * geste, il se mesure d'un coup.
-   */
-  test('acts on the row without leaving, and says that it worked', async ({ page, viewport }) => {
+  test('acts on the row without leaving, and says that it worked', async ({ page }) => {
+    const { title } = await ownArticle(page, 'Publier depuis la liste')
     await page.goto('/admin/articles')
+    await page.waitForLoadState('networkidle')
 
-    /*
-     * Chaque largeur agit sur SA ligne.
-     *
-     * Les trois projets tournent en parallèle contre la même base. Visant
-     * tous la première ligne, ils publiaient le même article en même temps
-     * — et publier change `updatedAt`, donc l'ordre de la liste : la ligne
-     * changeait sous le curseur. Un titre est stable, un rang ne l'est pas.
-     */
-    const rows = page.locator('tbody tr')
-    const mine = rows.nth(({ 390: 0, 820: 1 } as Record<number, number>)[viewport?.width ?? 0] ?? 2)
-    await expect(mine).toBeVisible()
-    await mine.getByRole('button', { name: /Publier|Dépublier/ }).click()
+    const row = page.locator('tbody tr').filter({ hasText: title })
+    await expect(row).toBeVisible()
+    await row.getByRole('button', { name: /Publier|Dépublier/ }).click()
 
     // Le bouton agit ; il n'emmène pas ailleurs.
     await expect(page).toHaveURL(/\/admin\/articles$/)

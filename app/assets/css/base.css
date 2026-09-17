@@ -2010,16 +2010,26 @@ button:not([class]) {
 }
 
 /* ---------- connexion (lot 2) ---------- */
+/*
+ * Centré sur la hauteur restante — l'en-tête fait 66 px — mais JAMAIS collé
+ * à lui.
+ *
+ * Le centrage seul suffit sur un grand écran ; sur une fenêtre courte, le
+ * bloc venait buter sous la barre. Le rembourrage haut est donc un minimum,
+ * pas une décoration : c'est lui qui garantit l'air au-dessus quelle que
+ * soit la hauteur. `dvh` et non `vh` : la barre d'adresse mobile est
+ * comptée dans `vh`, et la page dépassait sous le bord de l'écran.
+ */
 .signin-wrap {
-  /* Centré sur la hauteur restante : l'en-tête fait 66 px. */
-  min-height: calc(100vh - 66px);
+  min-height: calc(100dvh - 66px);
   display: grid;
-  place-items: center;
+  align-content: center;
+  justify-items: center;
+  padding-block: clamp(56px, 14vh, 160px) clamp(56px, 14vh, 160px);
 }
 .signin {
   width: min(360px, 100%);
   text-align: center;
-  padding-bottom: 66px;
 }
 .signin-mark {
   display: inline-block;

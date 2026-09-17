@@ -2343,3 +2343,219 @@ a.a-figure:hover {
   font-size: 0.78rem;
   margin-right: 6px;
 }
+
+/*
+ * Le champ de recherche occupe sa barre, icône comprise.
+ *
+ * `IconField` pose l'icône en position absolue DANS le champ. Sans largeur
+ * explicite, le conteneur se dimensionnait sur son contenu, l'`<input>`
+ * gardait sa largeur par défaut et l'icône se retrouvait sous le champ, au
+ * milieu d'une barre d'outils — visible sur un téléphone, invisible sur un
+ * grand écran où le hasard des largeurs la remettait en place.
+ */
+.admin-ui .p-iconfield {
+  display: block;
+  width: 100%;
+}
+.admin-ui .p-iconfield .p-inputtext {
+  width: 100%;
+  /* La place de l'icône, réservée explicitement : elle est posée EN
+     ABSOLU dans le champ, et sans ce retrait elle se superposait au texte
+     de substitution. */
+  padding-left: 2.35rem;
+}
+.admin-ui .p-iconfield .p-inputicon {
+  left: 0.8rem;
+  color: var(--a-faint);
+}
+.a-grow {
+  flex: 1 1 240px;
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  /* Une barre d'outils s'empile plutôt que de se serrer : deux contrôles
+     à 140 px ne se lisent ni ne se visent. */
+  .admin-ui .a-toolbar > * {
+    flex: 1 1 100%;
+  }
+  .admin-ui .a-seg {
+    width: 100%;
+  }
+  .admin-ui .a-seg button {
+    flex: 1;
+  }
+}
+
+/* ============================================================
+   Finitions : les icônes, les en-têtes, le téléphone
+   ============================================================ */
+
+/*
+ * Une icône dans un bouton est CENTRÉE.
+ *
+ * Les boutons icône seuls tiraient leur largeur d'un rembourrage prévu pour
+ * du texte : l'icône se retrouvait décalée à gauche, et deux boutons voisins
+ * n'avaient pas leur symbole au même endroit.
+ */
+.admin-ui .p-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-ui .p-button-icon-only {
+  padding: 0;
+  aspect-ratio: 1;
+}
+.admin-ui .p-button-icon-only .p-button-icon {
+  margin: 0;
+}
+.a-icon-link i,
+.a-btn i,
+.admin-out i {
+  line-height: 1;
+}
+
+/*
+ * L'en-tête d'une colonne triée ne passe plus en bleu.
+ *
+ * PrimeVue peint la colonne active de la couleur primaire — un bandeau bleu
+ * en travers du tableau, pour dire quelque chose que la flèche dit déjà.
+ */
+.admin-ui .p-datatable-column-sorted,
+.admin-ui .p-datatable-column-sorted .p-datatable-sort-icon {
+  background: transparent;
+  color: var(--a-text);
+}
+.admin-ui .p-datatable-sort-icon {
+  color: var(--a-faint);
+}
+
+@media (max-width: 640px) {
+  /*
+   * Les actions d'un écran tiennent sous le titre, sur UNE ligne.
+   *
+   * Elles s'empilaient l'une sous l'autre, alignées à droite : deux boutons
+   * prenaient trois rangées avec le titre, avant le premier mot du contenu.
+   */
+  .admin-title {
+    display: block;
+  }
+  .admin-actions {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    margin-top: 14px;
+  }
+  .admin-actions > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  /*
+   * Une action secondaire tombe à son icône.
+   *
+   * « Rapatrier depuis Substack » se composait sur trois lignes dans la
+   * moitié d'une barre de 390 px. L'action principale garde son libellé :
+   * c'est celle qu'on vient faire.
+   */
+  .admin-actions .p-button-outlined .p-button-label {
+    display: none;
+  }
+  .admin-actions .p-button-outlined {
+    flex: 0 0 auto;
+    aspect-ratio: 1;
+    padding: 0;
+  }
+  .admin-actions .p-button-outlined .p-button-icon {
+    margin: 0;
+  }
+
+  /*
+   * Une carte d'article compacte.
+   *
+   * Chaque cellule prenait deux lignes — son libellé en majuscules, puis sa
+   * valeur — pour une date. Les libellés disparaissent là où une icône ou
+   * une pastille dit déjà de quoi il s'agit, et les actions se rangent en
+   * bas à droite.
+   */
+  .a-table td[data-label='État']::before,
+  .a-table td[data-label='Publié le']::before,
+  .a-table td[data-label='Modifié le']::before,
+  .a-table td[data-label='Actions']::before {
+    content: none;
+  }
+  .a-table td[data-label='Publié le']::after,
+  .a-table td[data-label='Modifié le']::after {
+    font-family: 'primeicons';
+    color: var(--a-faint);
+    font-size: 0.8rem;
+    order: -1;
+    margin-right: 8px;
+  }
+  /* \e927 : pi-calendar — la date de mise en ligne. \e942 : pi-pencil —
+     la retouche. Relevés dans primeicons.css, pas devinés. */
+  .a-table td[data-label='Publié le']::after {
+    content: '\e927';
+  }
+  .a-table td[data-label='Modifié le']::after {
+    content: '\e942';
+  }
+  .a-table td[data-label='Publié le'],
+  .a-table td[data-label='Modifié le'] {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .a-table td[data-label='Actions'] {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .a-table td[data-label='État'] {
+    display: flex;
+    justify-content: flex-start;
+  }
+}
+
+/*
+ * L'en-tête du back-office : tout y mesure pareil.
+ *
+ * Les deux sorties sont des `<a>` et des `<button>` maison, pas des
+ * contrôles de la bibliothèque : ils ne recevaient donc aucune des règles
+ * d'alignement posées plus haut, et leur icône flottait à gauche du
+ * libellé, à une hauteur qui n'était celle de personne. Le select du menu,
+ * lui, portait un rembourrage prévu pour un champ de formulaire.
+ */
+.admin-out {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  line-height: 1;
+}
+.admin-out i {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;
+  margin: 0;
+}
+.admin-menu-select {
+  min-height: 34px;
+  padding-block: 0;
+  line-height: 1.2;
+}
+
+/*
+ * Un bouton secondaire est BLANC, pas transparent.
+ *
+ * `outlined` laisse le fond de la page traverser : posé sur une carte
+ * blanche il passait inaperçu, posé sur le gris de l'outil il changeait de
+ * couleur d'un écran à l'autre. Un bouton est un objet, il a une surface.
+ */
+.admin-ui .p-button-outlined:not(:disabled),
+.admin-ui .p-button-outlined:not(:disabled):focus {
+  background: var(--a-panel);
+}
+.admin-ui .p-button-outlined:disabled {
+  background: var(--a-panel);
+}

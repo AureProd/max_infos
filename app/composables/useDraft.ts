@@ -14,6 +14,19 @@ interface Preview {
  * published, and Max would see something other than his readers.
  */
 export function useDraft(slug: Ref<string | null>) {
+  /*
+   * Les en-têtes de session, capturées UNE FOIS, ici.
+   *
+   * `sessionHeaders()` appelle `useRequestHeaders()`, qui a besoin de
+   * l'instance Nuxt. Appelée depuis `refreshPreview()` — donc après un
+   * `await` dans une fonction ordinaire —, elle tombait sur « Nuxt instance
+   * unavailable » (NUXT_E1001) et l'écran d'édition sortait en 500. De
+   * façon intermittente : le contexte survit parfois à un await, selon ce
+   * qui s'est exécuté entre-temps. Ici le composable est appelé dans le
+   * `setup`, où le contexte est garanti.
+   */
+  const headers = sessionHeaders()
+
   const draft = ref<ArticleDraft>({
     title: '',
     dek: '',
@@ -39,7 +52,7 @@ export function useDraft(slug: Ref<string | null>) {
       substackUrl: string | null
       coverMediaId: number | null
       tags: { slug: string; label: string }[]
-    }>(`/api/admin/articles/${slug.value}`, { headers: sessionHeaders() })
+    }>(`/api/admin/articles/${slug.value}`, { headers })
 
     draft.value = {
       title: a.title,
@@ -70,7 +83,7 @@ export function useDraft(slug: Ref<string | null>) {
     preview.value = await $fetch<Preview>('/api/admin/preview', {
       method: 'POST',
       body: { bodyHtml: draft.value.bodyHtml },
-      headers: sessionHeaders(),
+      headers,
     })
   }
 

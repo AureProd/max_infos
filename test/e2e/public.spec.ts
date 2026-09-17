@@ -64,9 +64,23 @@ test.describe('the home page', () => {
 
 test.describe('an article', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/')
-    await page.locator('a[href^="/article/"]').first().click()
-    await expect(page).toHaveURL(/\/article\//)
+    /*
+     * Un article COMPLET, et non « le premier venu ».
+     *
+     * Ces tests décrivent la tête d'un article : son titre, son sous-titre,
+     * sa signature, ses tags. Prendre le premier de la liste, c'était les
+     * faire porter sur ce que les tests du back-office venaient de publier —
+     * un brouillon jetable, sans sous-titre ni tag, qui n'a rien à décrire.
+     */
+    const list = await page.request.get('/api/articles?size=20')
+    const { items } = (await list.json()) as {
+      items: { slug: string; dek: string | null; tags: unknown[] }[]
+    }
+    const complete = items.find((a) => a.dek && a.tags.length > 0)
+    expect(complete, 'aucun article complet à décrire').toBeTruthy()
+
+    await page.goto(`/article/${complete?.slug}`)
+    await expect(page.locator('.article h1')).toBeVisible()
   })
 
   test('opens the reading column at the width of the Substack', async ({ page }) => {

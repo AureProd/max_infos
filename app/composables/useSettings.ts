@@ -8,6 +8,11 @@ import { reason } from '#shared/utils/errors'
  * nothing, it merely makes writing convenient and reports the save.
  */
 export function useSetting<K extends SettingKey>(key: K) {
+  // Capturées ICI, où le contexte Nuxt est garanti : `useRequestHeaders()`
+  // appelée depuis `load()` — après un await — tombe sur « Nuxt instance
+  // unavailable ». Voir le commentaire de useDraft.ts.
+  const headers = sessionHeaders()
+
   const value = ref<SettingValue<K> | null>(null)
   const state = ref<'repos' | 'chargement' | 'enregistrement' | 'enregistré' | 'échec'>('repos')
   /**
@@ -23,7 +28,7 @@ export function useSetting<K extends SettingKey>(key: K) {
     state.value = 'chargement'
     try {
       const all = await $fetch<Record<string, unknown>>('/api/admin/settings', {
-        headers: sessionHeaders(),
+        headers,
       })
       value.value = (all[key] ?? null) as SettingValue<K> | null
       state.value = 'repos'

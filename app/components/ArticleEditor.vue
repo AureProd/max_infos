@@ -52,6 +52,19 @@ const props = withDefaults(defineProps<{ substackUrl?: string | null }>(), { sub
 const { fail } = useNotify()
 
 const editor = shallowRef<Editor | null>(null)
+
+/**
+ * Ce qui rend la barre d'outils réactive.
+ *
+ * `editor.isActive()` lit l'état de ProseMirror, qui vit HORS de Vue : rien
+ * ne prévient le composant qu'il a changé. Les boutons ne se rallumaient
+ * donc qu'au prochain rendu déclenché par autre chose — le gras s'appliquait
+ * bien, mais le bouton restait éteint, de façon intermittente.
+ *
+ * Ce compteur est touché à chaque transaction et relu par `on()` : c'est la
+ * dépendance qui manquait.
+ */
+const tick = ref(0)
 const linkOpen = ref(false)
 const linkHref = ref('')
 const sending = ref(false)
@@ -141,6 +154,11 @@ onMounted(() => {
     onUpdate: ({ editor: e }) => {
       model.value = e.getHTML()
     },
+    // Toute transaction, y compris un simple déplacement du curseur : c'est
+    // ce qui décide de l'état des boutons.
+    onTransaction: () => {
+      tick.value += 1
+    },
   })
 })
 
@@ -159,8 +177,11 @@ watch(model, (next) => {
 onBeforeUnmount(() => editor.value?.destroy())
 
 /** Est-ce actif là où se trouve le curseur ? */
-const on = (name: string, attrs?: Record<string, unknown>): boolean =>
-  editor.value?.isActive(name, attrs) ?? false
+const on = (name: string, attrs?: Record<string, unknown>): boolean => {
+  // Lu pour la dépendance : sans elle, Vue ne sait pas que l'état a changé.
+  void tick.value
+  return editor.value?.isActive(name, attrs) ?? false
+}
 
 function openLink(): void {
   linkHref.value = editor.value?.getAttributes('link').href ?? ''
@@ -211,11 +232,21 @@ function insertCta(href: string, label: string): void {
 
 <template>
   <div class="a-writer">
+    <!--
+      La barre ne prend PAS le focus.
+
+      Un `<button>` cliqué le vole à l'éditeur, et la sélection se perd avant
+      que la commande ne s'exécute : le gras s'appliquait au mot, ou à rien,
+      selon l'ordre dans lequel le navigateur avait traité les évènements.
+      `mousedown.prevent` laisse la sélection où elle est — c'est le geste
+      standard d'une barre d'outils de traitement de texte.
+    -->
     <div class="a-writer-bar" role="toolbar" aria-label="Mise en forme">
       <div class="a-writer-group">
         <button
           v-tooltip.bottom="'Gras (Ctrl+B)'"
           type="button"
+          @mousedown.prevent
           :class="['a-tool', on('bold') && 'is-on']"
           aria-label="Gras"
           @click="editor?.chain().focus().toggleBold().run()"
@@ -225,6 +256,7 @@ function insertCta(href: string, label: string): void {
         <button
           v-tooltip.bottom="'Italique (Ctrl+I)'"
           type="button"
+          @mousedown.prevent
           :class="['a-tool', on('italic') && 'is-on']"
           aria-label="Italique"
           @click="editor?.chain().focus().toggleItalic().run()"
@@ -234,6 +266,7 @@ function insertCta(href: string, label: string): void {
         <button
           v-tooltip.bottom="'Barré'"
           type="button"
+          @mousedown.prevent
           :class="['a-tool', on('strike') && 'is-on']"
           aria-label="Barré"
           @click="editor?.chain().focus().toggleStrike().run()"
@@ -246,6 +279,7 @@ function insertCta(href: string, label: string): void {
         <button
           v-tooltip.bottom="'Intertitre'"
           type="button"
+          @mousedown.prevent
           :class="['a-tool', on('heading', { level: 2 }) && 'is-on']"
           aria-label="Intertitre"
           @click="editor?.chain().focus().toggleHeading({ level: 2 }).run()"
@@ -255,6 +289,7 @@ function insertCta(href: string, label: string): void {
         <button
           v-tooltip.bottom="'Sous-intertitre'"
           type="button"
+          @mousedown.prevent
           :class="['a-tool', on('heading', { level: 3 }) && 'is-on']"
           aria-label="Sous-intertitre"
           @click="editor?.chain().focus().toggleHeading({ level: 3 }).run()"
@@ -267,6 +302,7 @@ function insertCta(href: string, label: string): void {
         <button
           v-tooltip.bottom="'Liste à puces'"
           type="button"
+          @mousedown.prevent
           :class="['a-tool', on('bulletList') && 'is-on']"
           aria-label="Liste à puces"
           @click="editor?.chain().focus().toggleBulletList().run()"
@@ -276,6 +312,7 @@ function insertCta(href: string, label: string): void {
         <button
           v-tooltip.bottom="'Liste numérotée'"
           type="button"
+          @mousedown.prevent
           :class="['a-tool', on('orderedList') && 'is-on']"
           aria-label="Liste numérotée"
           @click="editor?.chain().focus().toggleOrderedList().run()"
@@ -285,6 +322,7 @@ function insertCta(href: string, label: string): void {
         <button
           v-tooltip.bottom="'Citation'"
           type="button"
+          @mousedown.prevent
           :class="['a-tool', on('blockquote') && 'is-on']"
           aria-label="Citation"
           @click="editor?.chain().focus().toggleBlockquote().run()"
@@ -294,6 +332,7 @@ function insertCta(href: string, label: string): void {
         <button
           v-tooltip.bottom="'Séparateur'"
           type="button"
+          @mousedown.prevent
           class="a-tool"
           aria-label="Séparateur"
           @click="editor?.chain().focus().setHorizontalRule().run()"
@@ -306,6 +345,7 @@ function insertCta(href: string, label: string): void {
         <button
           v-tooltip.bottom="'Lien'"
           type="button"
+          @mousedown.prevent
           :class="['a-tool', on('link') && 'is-on']"
           aria-label="Lien"
           @click="openLink"
@@ -324,6 +364,7 @@ function insertCta(href: string, label: string): void {
           :key="l.href"
           v-tooltip.bottom="l.label"
           type="button"
+          @mousedown.prevent
           class="a-tool"
           :aria-label="l.label"
           @click="insertCta(l.href, l.label)"
@@ -336,9 +377,10 @@ function insertCta(href: string, label: string): void {
         <button
           v-tooltip.bottom="'Annuler (Ctrl+Z)'"
           type="button"
+          @mousedown.prevent
           class="a-tool"
           aria-label="Annuler"
-          :disabled="!editor?.can().undo()"
+          :disabled="!(tick >= 0 && editor?.can().undo())"
           @click="editor?.chain().focus().undo().run()"
         >
           <i class="pi pi-undo" aria-hidden="true" />
@@ -346,9 +388,10 @@ function insertCta(href: string, label: string): void {
         <button
           v-tooltip.bottom="'Rétablir (Ctrl+Maj+Z)'"
           type="button"
+          @mousedown.prevent
           class="a-tool"
           aria-label="Rétablir"
-          :disabled="!editor?.can().redo()"
+          :disabled="!(tick >= 0 && editor?.can().redo())"
           @click="editor?.chain().focus().redo().run()"
         >
           <i class="pi pi-refresh" aria-hidden="true" />
