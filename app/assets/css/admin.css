@@ -1039,3 +1039,266 @@ a.a-figure:hover {
 .a-section-head h3 {
   margin: 0;
 }
+
+/* ---------- onglets (écran À propos) ---------- */
+/*
+ * Ceux de PrimeVue, et non un `.a-seg` : le clavier, le roving tabindex et
+ * les aria-controls viennent avec, et un groupe de boutons n'en a rien.
+ *
+ * Le panneau porte la carte ; la section qu'il contient la perd, sinon deux
+ * cadres s'emboîtent pour ne rien séparer.
+ */
+.admin-ui .p-tablist-tab-list {
+  background: transparent;
+  border-bottom-color: var(--a-line);
+}
+.admin-ui .p-tabpanels {
+  background: var(--a-panel);
+  border: 1px solid var(--a-line);
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  padding: 20px;
+}
+.admin-ui .p-tabpanels .field-group {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin-bottom: 0;
+}
+.admin-ui .p-tabpanels .field-group > h2:first-child {
+  margin-top: 0;
+}
+
+/* ============================================================
+   Le téléphone — sous 640px
+   ============================================================
+
+   Le point de rupture est celui de `base.css` : le site public y
+   remonte déjà son corps de texte à 16px. Les blocs 820px et 900px
+   au-dessus couvrent la tablette ; celui-ci les complète par le bas.
+
+   Ce qu'il vise tient en une phrase, celle de docs/PLAN.md : à
+   375px, aucun débordement horizontal. Le reste — la taille des
+   caractères, celle des cibles — découle de ce qu'on tient l'écran
+   à bout de bras et qu'on le touche du pouce.
+
+   Tenu par test/unit/admin-responsive.spec.ts. */
+
+/* Ce qu'un tableau PrimeVue ne sait pas empiler défile dans son
+   cadre, pour que la PAGE, elle, ne défile jamais. La v4 n'a plus de
+   `responsiveLayout`, et n'émet aucun data-label : la mise en cartes
+   du §tableau ci-dessous ne s'y applique pas. */
+.a-scroll-x {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Les largeurs de colonne des tableaux PrimeVue. Des classes, et non
+   des `style=` : un style en ligne ne se surcharge pas, donc aucune
+   media query ne peut le relâcher — ce qui est exactement ce qui
+   poussait l'écran Réseaux hors de l'écran. */
+.a-col-sm {
+  width: 110px;
+}
+.a-col-md {
+  width: 130px;
+}
+.a-col-lg {
+  width: 200px;
+}
+.a-col-fit {
+  width: 1%;
+}
+
+@media (max-width: 640px) {
+  /* Le corps du back-office, à la taille du site public. C'est aussi
+     ce qui empêche iOS de zoomer sur un champ qui prend le focus. */
+  .admin-ui {
+    font-size: 16px;
+  }
+
+  /* ---------- en-tête ---------- */
+  /* `.admin-who` est en nowrap et porte quatre éléments : sans repli,
+     il mange la barre entière et les six écrans disparaissent. Le nom
+     et le badge de rôle s'effacent — ils se relisent dans le menu de
+     l'appareil, pas ici. */
+  .admin-head-in {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 8px 16px;
+  }
+  .admin-menu {
+    order: 3;
+    flex-basis: 100%;
+    margin: 0 -16px;
+    padding: 0 16px;
+  }
+  .admin-who {
+    margin-left: auto;
+  }
+  .admin-user,
+  .admin-tag {
+    display: none;
+  }
+
+  /* ---------- corps ---------- */
+  .admin-main {
+    padding: 20px 16px 64px;
+  }
+  .admin-main h1 {
+    font-size: 1.35rem;
+  }
+  .admin-card {
+    padding: 14px;
+    border-radius: 10px;
+    /* Le défilement latéral que pose le bloc 820px n'a plus lieu d'être :
+       le tableau qu'il servait est empilé plus bas. */
+    overflow-x: visible;
+  }
+
+  /* ---------- contrôles ---------- */
+  /* Une cible d'au moins 40px de haut : c'est la largeur d'un pouce,
+     et les boutons d'action sont côte à côte. */
+  .a-btn {
+    padding: 10px 14px;
+    font-size: 0.92rem;
+  }
+  .a-input,
+  .a-select {
+    padding: 10px 12px;
+    font-size: 1rem;
+  }
+
+  /* Empilée, pas repliée : trois champs qui passent à la ligne les uns
+     après les autres donnent trois moignons de largeurs différentes. */
+  .a-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .a-toolbar .a-input,
+  .a-toolbar .a-select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Le groupe segmenté prend la largeur, ses segments la partagent. */
+  .a-seg {
+    display: flex;
+    width: 100%;
+  }
+  .a-seg button {
+    flex: 1;
+    padding: 10px 8px;
+  }
+
+  /* ---------- tableaux écrits à la main ---------- */
+  /*
+   * Ils deviennent des cartes empilées. Le défilement latéral dans la
+   * carte, que le bloc 820px installe, se lit encore sur une tablette ;
+   * sur un téléphone il cache la moitié de chaque ligne derrière un
+   * geste que rien n'annonce.
+   *
+   * L'en-tête ayant disparu, chaque cellule dit ce qu'elle est par son
+   * `data-label` — repris mot pour mot du `<th>` correspondant.
+   */
+  .a-table {
+    display: block;
+    min-width: 0;
+  }
+  .a-table thead {
+    display: none;
+  }
+  .a-table tbody,
+  .a-table tr,
+  .a-table td {
+    display: block;
+    width: auto;
+  }
+  .a-table tr {
+    margin-bottom: 12px;
+    padding: 12px;
+    border: 1px solid var(--a-line);
+    border-radius: 10px;
+  }
+  .a-table tr:last-child {
+    margin-bottom: 0;
+  }
+  .a-table td {
+    padding: 6px 0;
+    border-bottom: 0;
+  }
+  .a-table td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 3px;
+    color: var(--a-faint);
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  /* La première cellule porte le titre : son étiquette n'apprend rien. */
+  .a-table td:first-child::before {
+    display: none;
+  }
+  .a-table tbody tr:hover {
+    background: transparent;
+  }
+
+  /* Les actions sont désormais en bas d'une carte, pas au bout d'une
+     ligne : elles se lisent de gauche à droite comme le reste. */
+  .a-row-act {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .a-row-act .a-btn {
+    flex: 1;
+    justify-content: center;
+    min-width: 120px;
+  }
+
+  /* Le bouton de rattachement occupait 240px au plus pour ne pas
+     pousser sa colonne ; il n'y a plus de colonne. */
+  .a-link-btn {
+    max-width: 100%;
+  }
+
+  /* ---------- lignes de réglage ---------- */
+  /* Le bloc 900px les arrête à `1fr 1fr`, soit deux colonnes de 170px
+     dans lesquelles ni un libellé ni une organisation ne tiennent. */
+  .a-row-grid,
+  .a-row-grid.is-cv {
+    grid-template-columns: 1fr;
+  }
+  .a-row-add {
+    flex-wrap: wrap;
+  }
+  .a-row-add .a-short {
+    flex: 1 0 120px;
+  }
+
+  /* ---------- tableaux PrimeVue ---------- */
+  /* Les largeurs de colonne se relâchent : elles sont là pour aligner
+     un tableau large, pas pour en imposer un. */
+  .a-col-sm,
+  .a-col-md,
+  .a-col-lg {
+    width: auto;
+    min-width: 110px;
+  }
+}
+
+/* La barre d'onglets défile plutôt que de passer à la ligne — même
+   mécanique que le menu de l'en-tête, et même raison : la hauteur du
+   bloc reste constante. PrimeVue pose déjà les boutons de défilement. */
+@media (max-width: 640px) {
+  .admin-ui .p-tabpanels {
+    padding: 14px;
+  }
+  .admin-ui .p-tab {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+  }
+}

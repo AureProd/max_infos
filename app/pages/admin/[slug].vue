@@ -199,7 +199,7 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
             v-model:visible="picking"
             modal
             header="Sujets de l'article"
-            :style="{ width: '32rem' }"
+            :style="{ width: '32rem', maxWidth: 'calc(100vw - 2rem)' }"
           >
             <p class="hint">
               Coche ceux qui existent déjà. Un sujet ne se crée que s'il ne ressemble à aucun

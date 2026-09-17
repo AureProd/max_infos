@@ -137,130 +137,132 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
         dans une rangée en flex — seul écran du back-office resté ainsi.
         Pas de tri : l'ordre des lignes EST celui de la page d'accueil.
       -->
-      <DataTable :value="accounts ?? []" data-key="id" size="small" striped-rows>
-        <template #empty>
-          <p class="a-empty">
-            Aucun compte connecté. « Connecter un compte » ouvre l'autorisation Instagram.
-          </p>
-        </template>
+      <div class="a-scroll-x">
+        <DataTable :value="accounts ?? []" data-key="id" size="small" striped-rows>
+          <template #empty>
+            <p class="a-empty">
+              Aucun compte connecté. « Connecter un compte » ouvre l'autorisation Instagram.
+            </p>
+          </template>
 
-        <Column header="Compte">
-          <template #body="{ data }">
-            <div class="cluster">
-              <img
-                v-if="data.avatarUrl"
-                class="avatar"
-                :src="data.avatarUrl"
-                :alt="`@${data.username}`"
-              />
-              <div>
-                <a class="a-title" :href="data.url ?? undefined" target="_blank" rel="noopener">
-                  @{{ data.username }}
-                </a>
-                <div class="a-sub">
-                  <span v-if="data.displayName">{{ data.displayName }}</span>
-                  <span>{{ nb(data.nbPublications) }} publication(s)</span>
-                  <span v-if="data.followers">{{ nb(data.followers) }} abonné(e)s</span>
+          <Column header="Compte">
+            <template #body="{ data }">
+              <div class="cluster">
+                <img
+                  v-if="data.avatarUrl"
+                  class="avatar"
+                  :src="data.avatarUrl"
+                  :alt="`@${data.username}`"
+                />
+                <div>
+                  <a class="a-title" :href="data.url ?? undefined" target="_blank" rel="noopener">
+                    @{{ data.username }}
+                  </a>
+                  <div class="a-sub">
+                    <span v-if="data.displayName">{{ data.displayName }}</span>
+                    <span>{{ nb(data.nbPublications) }} publication(s)</span>
+                    <span v-if="data.followers">{{ nb(data.followers) }} abonné(e)s</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </template>
-        </Column>
+            </template>
+          </Column>
 
-        <Column header="Jeton" style="width: 200px">
-          <template #body="{ data }">
-            <Tag v-if="!data.signedIn" severity="danger" value="absent — reconnecter" />
-            <Tag
-              v-else-if="data.jetonAlerte"
-              severity="warn"
-              :value="`${data.jetonAgeJours} jours — à renouveler`"
-            />
-            <Tag v-else-if="data.jetonAgeJours === null" severity="success" value="connecté" />
-            <Tag v-else severity="success" :value="`${data.jetonAgeJours} jours`" />
-          </template>
-        </Column>
-
-        <Column header="Synchronisé" style="width: 130px">
-          <template #body="{ data }">
-            <time v-if="data.lastSyncAt" class="a-date" :datetime="data.lastSyncAt">
-              {{ frDate(data.lastSyncAt.slice(0, 10)) }}
-            </time>
-            <span v-else class="a-nil">jamais</span>
-          </template>
-        </Column>
-
-        <Column header="Sur l'accueil" style="width: 120px">
-          <template #body="{ data }">
-            <ToggleSwitch
-              :model-value="data.visible"
-              aria-label="Afficher ce compte sur l'accueil"
-              @update:model-value="(v: boolean) => set(data.id, { visible: v })"
-            />
-          </template>
-        </Column>
-
-        <Column header="Publications" style="width: 130px">
-          <template #body="{ data }">
-            <InputNumber
-              :model-value="data.postsOnHome"
-              :min="1"
-              :max="50"
-              show-buttons
-              button-layout="horizontal"
-              :input-style="{ width: '2.5rem' }"
-              aria-label="Nombre de publications sur l'accueil"
-              @update:model-value="(v: number) => set(data.id, { postsOnHome: v })"
-            />
-          </template>
-        </Column>
-
-        <Column header="Ordre" style="width: 110px">
-          <template #body="{ data, index }">
-            <div class="a-row-act">
-              <Button
-                severity="secondary"
-                outlined
-                size="small"
-                label="↑"
-                :disabled="index === 0"
-                aria-label="Monter"
-                @click="move(index, -1)"
+          <Column header="Jeton" class="a-col-lg">
+            <template #body="{ data }">
+              <Tag v-if="!data.signedIn" severity="danger" value="absent — reconnecter" />
+              <Tag
+                v-else-if="data.jetonAlerte"
+                severity="warn"
+                :value="`${data.jetonAgeJours} jours — à renouveler`"
               />
-              <Button
-                severity="secondary"
-                outlined
-                size="small"
-                label="↓"
-                :disabled="index === (accounts ?? []).length - 1"
-                aria-label="Descendre"
-                @click="move(index, 1)"
-              />
-            </div>
-          </template>
-        </Column>
+              <Tag v-else-if="data.jetonAgeJours === null" severity="success" value="connecté" />
+              <Tag v-else severity="success" :value="`${data.jetonAgeJours} jours`" />
+            </template>
+          </Column>
 
-        <Column style="width: 1%">
-          <template #body="{ data }">
-            <div class="a-row-act">
-              <Button
-                severity="secondary"
-                outlined
-                size="small"
-                :label="syncTask === data.id ? 'Synchronisation…' : 'Synchroniser'"
-                :disabled="syncTask !== null"
-                @click="syncPosts(data.id)"
+          <Column header="Synchronisé" class="a-col-md">
+            <template #body="{ data }">
+              <time v-if="data.lastSyncAt" class="a-date" :datetime="data.lastSyncAt">
+                {{ frDate(data.lastSyncAt.slice(0, 10)) }}
+              </time>
+              <span v-else class="a-nil">jamais</span>
+            </template>
+          </Column>
+
+          <Column header="Sur l'accueil" class="a-col-md">
+            <template #body="{ data }">
+              <ToggleSwitch
+                :model-value="data.visible"
+                aria-label="Afficher ce compte sur l'accueil"
+                @update:model-value="(v: boolean) => set(data.id, { visible: v })"
               />
-              <Button
-                severity="danger"
-                outlined
-                size="small"
-                label="Déconnecter"
-                @click="signOut(data)"
+            </template>
+          </Column>
+
+          <Column header="Publications" class="a-col-md">
+            <template #body="{ data }">
+              <InputNumber
+                :model-value="data.postsOnHome"
+                :min="1"
+                :max="50"
+                show-buttons
+                button-layout="horizontal"
+                :input-style="{ width: '2.5rem' }"
+                aria-label="Nombre de publications sur l'accueil"
+                @update:model-value="(v: number) => set(data.id, { postsOnHome: v })"
               />
-            </div>
-          </template>
-        </Column>
-      </DataTable>
+            </template>
+          </Column>
+
+          <Column header="Ordre" class="a-col-sm">
+            <template #body="{ data, index }">
+              <div class="a-row-act">
+                <Button
+                  severity="secondary"
+                  outlined
+                  size="small"
+                  label="↑"
+                  :disabled="index === 0"
+                  aria-label="Monter"
+                  @click="move(index, -1)"
+                />
+                <Button
+                  severity="secondary"
+                  outlined
+                  size="small"
+                  label="↓"
+                  :disabled="index === (accounts ?? []).length - 1"
+                  aria-label="Descendre"
+                  @click="move(index, 1)"
+                />
+              </div>
+            </template>
+          </Column>
+
+          <Column class="a-col-fit">
+            <template #body="{ data }">
+              <div class="a-row-act">
+                <Button
+                  severity="secondary"
+                  outlined
+                  size="small"
+                  :label="syncTask === data.id ? 'Synchronisation…' : 'Synchroniser'"
+                  :disabled="syncTask !== null"
+                  @click="syncPosts(data.id)"
+                />
+                <Button
+                  severity="danger"
+                  outlined
+                  size="small"
+                  label="Déconnecter"
+                  @click="signOut(data)"
+                />
+              </div>
+            </template>
+          </Column>
+        </DataTable>
+      </div>
 
   </div>
 </template>

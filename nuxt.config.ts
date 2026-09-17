@@ -49,6 +49,15 @@ export default defineNuxtConfig({
         'ToggleSwitch',
         'Dialog',
         'Checkbox',
+        // Les onglets de l'écran À propos. Absents d'ici, ils ne sont PAS
+        // auto-importés : l'écran rend du vide, sans message — et
+        // scripts/hooks/vue-templates.mjs ne le voit pas non plus, puisqu'il
+        // lit node_modules/primevue et non cette liste.
+        'Tabs',
+        'TabList',
+        'Tab',
+        'TabPanels',
+        'TabPanel',
       ],
     },
     options: {

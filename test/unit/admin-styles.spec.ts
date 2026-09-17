@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { rules } from './helpers/css'
 
 /**
  * Two palettes coexist in the cascade, and the back-office pays for it.
@@ -22,17 +23,6 @@ const PUBLIC_PALETTE = /var\(--(surface|ink|text|line|muted|raised|accent)\b/
 
 /** A property that would make something visible — or invisible. */
 const PAINTS = /^\s*(color|background|background-color|border|border-[a-z-]+)\s*:/
-
-/** Every rule of the sheet, as { selector, body }. */
-function rules(css: string): { selector: string; body: string }[] {
-  const out: { selector: string; body: string }[] = []
-  // Comments first: a selector quoted in one is not a rule.
-  const cleaned = css.replace(/\/\*[\s\S]*?\*\//g, '')
-  for (const match of cleaned.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    out.push({ selector: (match[1] ?? '').trim(), body: match[2] ?? '' })
-  }
-  return out
-}
 
 /** A rule that dresses a back-office screen, by its class prefix. */
 const isAdmin = (selector: string): boolean => /(^|[\s,>])\.(a-|admin-)/.test(selector)

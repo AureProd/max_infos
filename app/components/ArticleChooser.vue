@@ -99,12 +99,15 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
   z-index: 90;
   display: grid;
   place-items: center;
-  padding: 24px;
+  /* 24px de chaque côté, sur 375, c'est un huitième de l'écran perdu. */
+  padding: clamp(12px, 4vw, 24px);
   background: rgba(15, 18, 22, 0.5);
 }
 .ac-box {
   width: min(640px, 100%);
-  max-height: 80vh;
+  /* dvh, non vh : la barre d'adresse mobile est comptée dans vh, et la
+     fenêtre dépassait donc sous le bord de l'écran. */
+  max-height: min(80dvh, 100%);
   display: flex;
   flex-direction: column;
   background: #fff;

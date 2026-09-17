@@ -76,65 +76,67 @@ function drop(slug: string, label: string): void {
 
     <p v-if="failure" class="a-err">{{ failure }}</p>
 
-    <DataTable :value="tags ?? []" data-key="slug" size="small" striped-rows sort-field="label" :sort-order="1">
-      <template #empty>
-        <p class="a-empty">Aucun sujet pour l'instant.</p>
-      </template>
+    <div class="a-scroll-x">
+      <DataTable :value="tags ?? []" data-key="slug" size="small" striped-rows sort-field="label" :sort-order="1">
+        <template #empty>
+          <p class="a-empty">Aucun sujet pour l'instant.</p>
+        </template>
 
-      <Column field="label" header="Sujet" sortable>
-        <template #body="{ data }">
-          <div v-if="editing === data.slug" class="a-toolbar">
-            <InputText v-model="draft" autofocus @keydown.enter.prevent="rename(data.slug)" />
-            <Button size="small" label="Renommer" :disabled="busy" @click="rename(data.slug)" />
-            <Button
-              severity="secondary"
-              text
-              size="small"
-              label="Annuler"
-              @click="editing = null"
-            />
-          </div>
-          <template v-else>
-            <span class="a-title">{{ data.label }}</span>
-            <div class="a-sub"><span>/{{ data.slug }}</span></div>
+        <Column field="label" header="Sujet" sortable>
+          <template #body="{ data }">
+            <div v-if="editing === data.slug" class="a-toolbar">
+              <InputText v-model="draft" autofocus @keydown.enter.prevent="rename(data.slug)" />
+              <Button size="small" label="Renommer" :disabled="busy" @click="rename(data.slug)" />
+              <Button
+                severity="secondary"
+                text
+                size="small"
+                label="Annuler"
+                @click="editing = null"
+              />
+            </div>
+            <template v-else>
+              <span class="a-title">{{ data.label }}</span>
+              <div class="a-sub"><span>/{{ data.slug }}</span></div>
+            </template>
           </template>
-        </template>
-      </Column>
+        </Column>
 
-      <Column field="n" header="Articles" sortable style="width: 110px">
-        <template #body="{ data }">
-          <Tag :value="String(data.n)" :severity="data.n === 0 ? 'warn' : 'success'" />
-        </template>
-      </Column>
+        <Column field="n" header="Articles" sortable class="a-col-sm">
+          <template #body="{ data }">
+            <Tag :value="String(data.n)" :severity="data.n === 0 ? 'warn' : 'success'" />
+          </template>
+        </Column>
 
-      <Column style="width: 1%">
-        <template #body="{ data }">
-          <div v-if="editing !== data.slug" class="a-row-act">
-            <Button
-              severity="secondary"
-              outlined
-              size="small"
-              label="Renommer"
-              :disabled="busy"
-              @click="start(data.slug, data.label)"
-            />
-            <!--
-              Seulement sur un sujet orphelin : ailleurs, supprimer voudrait
-              dire le retirer des articles qui le portent.
-            -->
-            <Button
-              v-if="data.n === 0"
-              severity="danger"
-              outlined
-              size="small"
-              label="Supprimer"
-              :disabled="busy"
-              @click="drop(data.slug, data.label)"
-            />
-          </div>
-        </template>
-      </Column>
-    </DataTable>
+        <Column class="a-col-fit">
+          <template #body="{ data }">
+            <div v-if="editing !== data.slug" class="a-row-act">
+              <Button
+                severity="secondary"
+                outlined
+                size="small"
+                label="Renommer"
+                :disabled="busy"
+                @click="start(data.slug, data.label)"
+              />
+              <!--
+                Seulement sur un sujet orphelin : ailleurs, supprimer voudrait
+                dire le retirer des articles qui le portent.
+              -->
+              <Button
+                v-if="data.n === 0"
+                severity="danger"
+                outlined
+                size="small"
+                label="Supprimer"
+                :disabled="busy"
+                @click="drop(data.slug, data.label)"
+              />
+            </div>
+          </template>
+        </Column>
+      </DataTable>
+    </div>
 
     <template #footer>
       <Button label="Fermer" @click="open = false" />

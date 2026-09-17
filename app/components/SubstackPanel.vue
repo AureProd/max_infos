@@ -148,14 +148,14 @@ async function run(dryRun: boolean): Promise<void> {
   z-index: 90;
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding: clamp(12px, 4vw, 24px);
   background: rgba(15, 18, 22, 0.5);
 }
 .sp-box {
   width: min(680px, 100%);
-  max-height: 82vh;
+  max-height: min(82dvh, 100%);
   overflow-y: auto;
-  padding: 0 22px 22px;
+  padding: 0 clamp(14px, 4vw, 22px) 22px;
   background: #fff;
   border-radius: 14px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);

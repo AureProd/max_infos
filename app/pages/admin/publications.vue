@@ -161,10 +161,22 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
       <form @submit.prevent="add">
         <label class="a-label" for="p-url">Coller l'adresse d'une publication</label>
         <div class="a-toolbar">
-          <select v-model="input.network" class="a-select" aria-label="Réseau">
-            <option value="linkedin">LinkedIn</option>
-            <option value="instagram">Instagram</option>
-          </select>
+          <!--
+            Deux options, donc deux segments visibles plutôt qu'un menu à
+            dérouler : le réseau se change d'un geste, et l'on voit celui
+            qui est choisi sans ouvrir quoi que ce soit.
+          -->
+          <div class="a-seg" role="group" aria-label="Réseau">
+            <button
+              v-for="r in (['linkedin', 'instagram'] as const)"
+              :key="r"
+              type="button"
+              :aria-pressed="input.network === r"
+              @click="input.network = r"
+            >
+              {{ networkLabel(r) }}
+            </button>
+          </div>
           <input
             id="p-url"
             v-model="input.url"
@@ -232,7 +244,7 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
         </thead>
         <tbody>
           <tr v-for="p in visible" :key="p.id">
-            <td>
+            <td data-label="Publication">
               <!--
                 La vignette, le compte et la légende : l'écran n'affichait
                 qu'un identifiant brut (« instagram DdGUF5XJbhE »), qui ne
@@ -266,16 +278,16 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
                 </div>
               </div>
             </td>
-            <td>
+            <td data-label="Réseau">
               <span class="a-tag is-info">{{ networkLabel(p.network) }}</span>
             </td>
-            <td class="a-date">
+            <td class="a-date" data-label="Publiée le">
               <time v-if="p.postedAt" :datetime="p.postedAt">
                 {{ frDate(p.postedAt.slice(0, 10)) }}
               </time>
               <span v-else class="a-nil">—</span>
             </td>
-            <td>
+            <td data-label="Article rattaché">
               <button class="a-link-btn" type="button" @click="chooserFor = p.id">
                 <template v-if="p.articleSlug">
                   {{ titleOf(p.articleSlug) }}
@@ -283,7 +295,7 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
                 <span v-else class="a-nil">— rattacher —</span>
               </button>
             </td>
-            <td>
+            <td data-label="Actions">
               <div class="a-row-act">
                 <button class="a-btn" type="button" @click="toggleVisibility(p.id, !p.hidden)">
                   {{ p.hidden ? 'Afficher' : 'Masquer' }}

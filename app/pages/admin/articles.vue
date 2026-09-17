@@ -111,24 +111,24 @@ useSeoMeta({ title: 'Articles', robots: 'noindex, nofollow' })
         </thead>
         <tbody>
           <tr v-for="a in rows" :key="a.slug">
-            <td>
+            <td data-label="Titre">
               <NuxtLink class="a-title" :to="`/admin/${a.slug}`">{{ a.title }}</NuxtLink>
             </td>
-            <td>
+            <td data-label="État">
               <!-- Deux couleurs, pas deux mots de la même couleur : l'état
                    doit se lire sans être lu. -->
               <span :class="['a-tag', a.status === 'published' ? 'is-ok' : 'is-draft']">
                 {{ a.status === 'published' ? 'publié' : 'brouillon' }}
               </span>
             </td>
-            <td class="a-date">
+            <td class="a-date" data-label="Publié le">
               <time v-if="a.publishedAt" :datetime="a.publishedAt">
                 {{ frDate(a.publishedAt.slice(0, 10)) }}
               </time>
               <span v-else class="a-nil">—</span>
             </td>
-            <td class="a-date">{{ frDate(a.updatedAt.slice(0, 10)) }}</td>
-            <td>
+            <td class="a-date" data-label="Modifié le">{{ frDate(a.updatedAt.slice(0, 10)) }}</td>
+            <td data-label="Actions">
               <div class="a-row-act">
                 <button class="a-btn" type="button" @click="toggle(a.slug, a.status)">
                   {{ a.status === 'published' ? 'Dépublier' : 'Publier' }}

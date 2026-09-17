@@ -124,83 +124,85 @@ function remove(id: number, email: string): void {
     liste précédente les empilait dans une ligne de méta, où rien ne se
     comparait.
   -->
-  <DataTable
-    :value="accounts ?? []"
-    data-key="id"
-    sort-field="email"
-    :sort-order="1"
-    size="small"
-    striped-rows
-  >
-    <template #empty>
-      <p class="a-empty">Aucun compte autorisé pour l'instant.</p>
-    </template>
-
-    <Column field="name" header="Compte" sortable>
-      <template #body="{ data }">
-        <span class="a-title">{{ data.name ?? data.email }}</span>
-        <div class="a-sub">
-          <span>{{ data.email }}</span>
-          <span v-if="isMe(data.id)" class="a-tag is-info">vous</span>
-        </div>
+  <div class="a-scroll-x">
+    <DataTable
+      :value="accounts ?? []"
+      data-key="id"
+      sort-field="email"
+      :sort-order="1"
+      size="small"
+      striped-rows
+    >
+      <template #empty>
+        <p class="a-empty">Aucun compte autorisé pour l'instant.</p>
       </template>
-    </Column>
 
-    <Column field="role" header="Rôle" sortable style="width: 170px">
-      <template #body="{ data }">
-        <Select
-          :model-value="data.role"
-          :options="ROLES"
-          option-label="label"
-          option-value="value"
-          :disabled="busy || isMe(data.id)"
-          aria-label="Rôle"
-          @update:model-value="(v: Role) => change(data.id, { role: v })"
-        />
-      </template>
-    </Column>
+      <Column field="name" header="Compte" sortable>
+        <template #body="{ data }">
+          <span class="a-title">{{ data.name ?? data.email }}</span>
+          <div class="a-sub">
+            <span>{{ data.email }}</span>
+            <span v-if="isMe(data.id)" class="a-tag is-info">vous</span>
+          </div>
+        </template>
+      </Column>
 
-    <Column field="active" header="État" sortable style="width: 120px">
-      <template #body="{ data }">
-        <Tag
-          :value="data.active ? 'actif' : 'désactivé'"
-          :severity="data.active ? 'success' : 'warn'"
-        />
-      </template>
-    </Column>
-
-    <Column field="lastLoginAt" header="Dernière visite" sortable style="width: 170px">
-      <template #body="{ data }">
-        <time v-if="data.lastLoginAt" class="a-date" :datetime="data.lastLoginAt">
-          {{ frDate(data.lastLoginAt.slice(0, 10)) }}
-        </time>
-        <span v-else class="a-nil">jamais connecté</span>
-      </template>
-    </Column>
-
-    <Column style="width: 1%">
-      <template #body="{ data }">
-        <div class="a-row-act">
-          <Button
-            severity="secondary"
-            outlined
-            size="small"
-            :label="data.active ? 'Désactiver' : 'Réactiver'"
+      <Column field="role" header="Rôle" sortable class="a-col-lg">
+        <template #body="{ data }">
+          <Select
+            :model-value="data.role"
+            :options="ROLES"
+            option-label="label"
+            option-value="value"
             :disabled="busy || isMe(data.id)"
-            :title="why(data.id)"
-            @click="change(data.id, { active: !data.active })"
+            aria-label="Rôle"
+            @update:model-value="(v: Role) => change(data.id, { role: v })"
           />
-          <Button
-            severity="danger"
-            outlined
-            size="small"
-            label="Supprimer"
-            :disabled="busy || isMe(data.id)"
-            :title="why(data.id)"
-            @click="remove(data.id, data.email)"
+        </template>
+      </Column>
+
+      <Column field="active" header="État" sortable class="a-col-md">
+        <template #body="{ data }">
+          <Tag
+            :value="data.active ? 'actif' : 'désactivé'"
+            :severity="data.active ? 'success' : 'warn'"
           />
-        </div>
-      </template>
-    </Column>
-  </DataTable>
+        </template>
+      </Column>
+
+      <Column field="lastLoginAt" header="Dernière visite" sortable class="a-col-lg">
+        <template #body="{ data }">
+          <time v-if="data.lastLoginAt" class="a-date" :datetime="data.lastLoginAt">
+            {{ frDate(data.lastLoginAt.slice(0, 10)) }}
+          </time>
+          <span v-else class="a-nil">jamais connecté</span>
+        </template>
+      </Column>
+
+      <Column class="a-col-fit">
+        <template #body="{ data }">
+          <div class="a-row-act">
+            <Button
+              severity="secondary"
+              outlined
+              size="small"
+              :label="data.active ? 'Désactiver' : 'Réactiver'"
+              :disabled="busy || isMe(data.id)"
+              :title="why(data.id)"
+              @click="change(data.id, { active: !data.active })"
+            />
+            <Button
+              severity="danger"
+              outlined
+              size="small"
+              label="Supprimer"
+              :disabled="busy || isMe(data.id)"
+              :title="why(data.id)"
+              @click="remove(data.id, data.email)"
+            />
+          </div>
+        </template>
+      </Column>
+    </DataTable>
+  </div>
 </template>

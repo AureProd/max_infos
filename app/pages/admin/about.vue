@@ -112,239 +112,263 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
       </div>
     </div>
 
-    <section class="field-group">
-      <h2>Identité du site</h2>
-      <div v-if="identity.value.value">
-        <div class="field">
-          <label for="i-name">Nom du site</label>
-          <input id="i-name" v-model="identity.value.value.name" type="text" />
-        </div>
-        <div class="field">
-          <label for="i-author">Auteur</label>
-          <input id="i-author" v-model="identity.value.value.author" type="text" />
-        </div>
-        <div class="field">
-          <label for="i-byline">Signature courte</label>
-          <input id="i-byline" v-model="identity.value.value.byline" type="text" />
-        </div>
-        <div class="field">
-          <label for="i-tagline">Accroche</label>
-          <input id="i-tagline" v-model="identity.value.value.tagline" type="text" />
-        </div>
-        <div class="field">
-          <label for="i-pitch">Présentation</label>
-          <textarea id="i-pitch" v-model="identity.value.value.pitch" rows="3" />
-        </div>
-      </div>
-    </section>
+    <!--
+      Trois onglets plutôt qu'un empilement de 250 lignes. L'écran demandait
+      de faire défiler à l'aveugle pour trouver le curriculum, et il le
+      demandait autant sur un téléphone que sur un grand écran : le découpage
+      vaut aux deux largeurs, ce qui évite d'en faire dépendre le rendu de la
+      taille de la fenêtre — une media query en JavaScript casserait
+      l'hydratation.
+    -->
+    <Tabs value="identite">
+      <TabList>
+        <Tab value="identite">Identité</Tab>
+        <Tab value="contact">Contact</Tab>
+        <Tab value="cv">Curriculum</Tab>
+      </TabList>
 
-    <section class="field-group">
-      <h2>Contact</h2>
-      <p class="hint">
-        Chaque champ a son propre interrupteur. Un champ ajouté est masqué par défaut.
-      </p>
-      <!--
-        Une grille plutôt qu'une rangée en flex : les trois champs
-        s'alignent d'une ligne à l'autre, au lieu de se serrer les uns
-        contre les autres selon la longueur de ce qu'on y tape.
-      -->
-      <ul v-if="contact.value.value" class="a-rows">
-        <li v-for="(field, i) in contact.value.value.fields" :key="i">
-          <div class="a-row-grid">
-            <input v-model="field.label" class="a-input" type="text" placeholder="Libellé" />
-            <input v-model="field.value" class="a-input" type="text" placeholder="Valeur" />
-            <input
-              v-model="field.href"
-              class="a-input"
-              type="text"
-              placeholder="Lien (facultatif)"
-            />
-
-            <!-- Un interrupteur se voit ; une case dans une pastille bleue,
-                 non. -->
-            <label class="a-switch">
-              <ToggleSwitch v-model="field.visible" />
-              <span>{{ field.visible ? 'visible' : 'masqué' }}</span>
-            </label>
-
-            <Button
-              severity="danger"
-              outlined
-              size="small"
-              label="Retirer"
-              @click="contact.value.value?.fields.splice(i, 1)"
-            />
-          </div>
-          <p v-if="isSensitive(field) && field.visible" class="a-err">
-            ⚠ Cette donnée personnelle sera publique et indexée par les moteurs de
-            recherche. Elle restera consultable même après l'avoir retirée.
-          </p>
-        </li>
-      </ul>
-      <button class="a-btn" type="button" @click="addContact">+ Ajouter un champ</button>
-    </section>
-
-    <section v-if="cv.value.value" class="field-group">
-      <h2>Curriculum</h2>
-        <div class="field">
-          <label for="cv-headline">Titre</label>
-          <input id="cv-headline" v-model="cv.value.value.headline" type="text" />
-        </div>
-        <div class="field">
-          <label for="cv-intro">Introduction</label>
-          <textarea id="cv-intro" v-model="cv.value.value.intro" rows="4" />
-        </div>
-
-        <MediaPicker v-model="cv.value.value.photoMediaId" label="Photo du CV" />
-        <MediaPicker v-model="cv.value.value.pdfMediaId" kind="pdf" label="CV en PDF" />
-        <p class="hint">
-          Le PDF est proposé au téléchargement en bas de la page « À propos ». Sans photo, la page
-          s'affiche sans encadré : rien ne casse.
-        </p>
-
-      <template v-for="r in CV_SECTIONS" :key="r.key">
-          <div class="a-section-head">
-            <h3>{{ r.label }}</h3>
-            <label class="a-switch">
-              <ToggleSwitch v-model="cv.value.value[r.key].visible" />
-              <span>{{ cv.value.value[r.key].visible ? 'rubrique visible' : 'rubrique masquée' }}</span>
-            </label>
-          </div>
-          <ul class="a-rows">
-            <li v-for="(e, i) in cv.value.value[r.key].entries" :key="i">
-              <div class="a-row-grid is-cv">
-                <input v-model="e.title" class="a-input" type="text" placeholder="Intitulé" />
-                <input v-model="e.org" class="a-input" type="text" placeholder="Organisation" />
-                <input v-model="e.start" class="a-input a-short" type="text" placeholder="Début" />
-                <input v-model="e.end" class="a-input a-short" type="text" placeholder="Fin" />
-                <label class="a-switch">
-                  <ToggleSwitch v-model="e.visible" />
-                </label>
-                <Button
-                  severity="danger"
-                  outlined
-                  size="small"
-                  label="Retirer"
-                  @click="removeEntry(r.key, i)"
-                />
+      <TabPanels>
+        <TabPanel value="identite">
+          <section class="field-group">
+            <h2>Identité du site</h2>
+            <div v-if="identity.value.value">
+              <div class="field">
+                <label for="i-name">Nom du site</label>
+                <input id="i-name" v-model="identity.value.value.name" type="text" />
               </div>
-            </li>
-          </ul>
-          <button class="a-btn" type="button" @click="addEntry(r.key)">+ Ajouter</button>
-        </template>
+              <div class="field">
+                <label for="i-author">Auteur</label>
+                <input id="i-author" v-model="identity.value.value.author" type="text" />
+              </div>
+              <div class="field">
+                <label for="i-byline">Signature courte</label>
+                <input id="i-byline" v-model="identity.value.value.byline" type="text" />
+              </div>
+              <div class="field">
+                <label for="i-tagline">Accroche</label>
+                <input id="i-tagline" v-model="identity.value.value.tagline" type="text" />
+              </div>
+              <div class="field">
+                <label for="i-pitch">Présentation</label>
+                <textarea id="i-pitch" v-model="identity.value.value.pitch" rows="3" />
+              </div>
+            </div>
+          </section>
 
-      <div class="a-section-head">
-        <h3>Compétences</h3>
-      </div>
-      <p class="hint">
-        Un groupe porte le nom qui s'affichera sur le site — « Journalisme »,
-        « Domaines », « Diffusion » — puis ses éléments. Un groupe sans nom ou sans
-        élément n'est pas enregistré.
-      </p>
-      <ul class="a-rows">
-        <li v-for="(set, g) in cv.value.value.skills" :key="g">
-          <div class="a-row-add">
-            <input v-model="set.group" class="a-input" type="text" placeholder="Nom du groupe" />
-            <Button
-              severity="danger"
-              outlined
-              size="small"
-              label="Retirer le groupe"
-              @click="cv.value.value?.skills.splice(g, 1)"
-            />
-          </div>
-          <div class="a-chosen">
+        </TabPanel>
+        <TabPanel value="contact">
+          <section class="field-group">
+            <h2>Contact</h2>
+            <p class="hint">
+              Chaque champ a son propre interrupteur. Un champ ajouté est masqué par défaut.
+            </p>
+            <!--
+              Une grille plutôt qu'une rangée en flex : les trois champs
+              s'alignent d'une ligne à l'autre, au lieu de se serrer les uns
+              contre les autres selon la longueur de ce qu'on y tape.
+            -->
+            <ul v-if="contact.value.value" class="a-rows">
+              <li v-for="(field, i) in contact.value.value.fields" :key="i">
+                <div class="a-row-grid">
+                  <input v-model="field.label" class="a-input" type="text" placeholder="Libellé" />
+                  <input v-model="field.value" class="a-input" type="text" placeholder="Valeur" />
+                  <input
+                    v-model="field.href"
+                    class="a-input"
+                    type="text"
+                    placeholder="Lien (facultatif)"
+                  />
+
+                  <!-- Un interrupteur se voit ; une case dans une pastille bleue,
+                       non. -->
+                  <label class="a-switch">
+                    <ToggleSwitch v-model="field.visible" />
+                    <span>{{ field.visible ? 'visible' : 'masqué' }}</span>
+                  </label>
+
+                  <Button
+                    severity="danger"
+                    outlined
+                    size="small"
+                    label="Retirer"
+                    @click="contact.value.value?.fields.splice(i, 1)"
+                  />
+                </div>
+                <p v-if="isSensitive(field) && field.visible" class="a-err">
+                  ⚠ Cette donnée personnelle sera publique et indexée par les moteurs de
+                  recherche. Elle restera consultable même après l'avoir retirée.
+                </p>
+              </li>
+            </ul>
+            <button class="a-btn" type="button" @click="addContact">+ Ajouter un champ</button>
+          </section>
+
+        </TabPanel>
+        <TabPanel value="cv">
+          <section v-if="cv.value.value" class="field-group">
+            <h2>Curriculum</h2>
+              <div class="field">
+                <label for="cv-headline">Titre</label>
+                <input id="cv-headline" v-model="cv.value.value.headline" type="text" />
+              </div>
+              <div class="field">
+                <label for="cv-intro">Introduction</label>
+                <textarea id="cv-intro" v-model="cv.value.value.intro" rows="4" />
+              </div>
+
+              <MediaPicker v-model="cv.value.value.photoMediaId" label="Photo du CV" />
+              <MediaPicker v-model="cv.value.value.pdfMediaId" kind="pdf" label="CV en PDF" />
+              <p class="hint">
+                Le PDF est proposé au téléchargement en bas de la page « À propos ». Sans photo, la page
+                s'affiche sans encadré : rien ne casse.
+              </p>
+
+            <template v-for="r in CV_SECTIONS" :key="r.key">
+                <div class="a-section-head">
+                  <h3>{{ r.label }}</h3>
+                  <label class="a-switch">
+                    <ToggleSwitch v-model="cv.value.value[r.key].visible" />
+                    <span>{{ cv.value.value[r.key].visible ? 'rubrique visible' : 'rubrique masquée' }}</span>
+                  </label>
+                </div>
+                <ul class="a-rows">
+                  <li v-for="(e, i) in cv.value.value[r.key].entries" :key="i">
+                    <div class="a-row-grid is-cv">
+                      <input v-model="e.title" class="a-input" type="text" placeholder="Intitulé" />
+                      <input v-model="e.org" class="a-input" type="text" placeholder="Organisation" />
+                      <input v-model="e.start" class="a-input a-short" type="text" placeholder="Début" />
+                      <input v-model="e.end" class="a-input a-short" type="text" placeholder="Fin" />
+                      <label class="a-switch">
+                        <ToggleSwitch v-model="e.visible" />
+                      </label>
+                      <Button
+                        severity="danger"
+                        outlined
+                        size="small"
+                        label="Retirer"
+                        @click="removeEntry(r.key, i)"
+                      />
+                    </div>
+                  </li>
+                </ul>
+                <button class="a-btn" type="button" @click="addEntry(r.key)">+ Ajouter</button>
+              </template>
+
+            <div class="a-section-head">
+              <h3>Compétences</h3>
+            </div>
+            <p class="hint">
+              Un groupe porte le nom qui s'affichera sur le site — « Journalisme »,
+              « Domaines », « Diffusion » — puis ses éléments. Un groupe sans nom ou sans
+              élément n'est pas enregistré.
+            </p>
+            <ul class="a-rows">
+              <li v-for="(set, g) in cv.value.value.skills" :key="g">
+                <div class="a-row-add">
+                  <input v-model="set.group" class="a-input" type="text" placeholder="Nom du groupe" />
+                  <Button
+                    severity="danger"
+                    outlined
+                    size="small"
+                    label="Retirer le groupe"
+                    @click="cv.value.value?.skills.splice(g, 1)"
+                  />
+                </div>
+                <div class="a-chosen">
+                  <button
+                    v-for="(item, k) in set.items"
+                    :key="k"
+                    class="a-chip is-on"
+                    type="button"
+                    :title="`Retirer « ${item} »`"
+                    @click="set.items.splice(k, 1)"
+                  >
+                    {{ item }} ×
+                  </button>
+                </div>
+                <div class="a-row-add">
+                  <input
+                    v-model="typed[g]"
+                    class="a-input"
+                    type="text"
+                    placeholder="Ajouter un élément"
+                    @keydown.enter.prevent="addItem(g)"
+                  />
+                  <button class="a-btn" type="button" @click="addItem(g)">+ Ajouter</button>
+                </div>
+              </li>
+            </ul>
             <button
-              v-for="(item, k) in set.items"
-              :key="k"
-              class="a-chip is-on"
+              class="a-btn"
               type="button"
-              :title="`Retirer « ${item} »`"
-              @click="set.items.splice(k, 1)"
+              @click="cv.value.value?.skills.push({ group: '', items: [] })"
             >
-              {{ item }} ×
+              + Ajouter un groupe
             </button>
-          </div>
-          <div class="a-row-add">
-            <input
-              v-model="typed[g]"
-              class="a-input"
-              type="text"
-              placeholder="Ajouter un élément"
-              @keydown.enter.prevent="addItem(g)"
-            />
-            <button class="a-btn" type="button" @click="addItem(g)">+ Ajouter</button>
-          </div>
-        </li>
-      </ul>
-      <button
-        class="a-btn"
-        type="button"
-        @click="cv.value.value?.skills.push({ group: '', items: [] })"
-      >
-        + Ajouter un groupe
-      </button>
 
-      <div class="a-section-head">
-        <h3>{{ listLabel('languages') }}</h3>
-      </div>
-      <ul class="a-rows">
-        <li v-for="(lang, i) in cv.value.value.languages" :key="i">
-          <div class="a-row-add">
-            <input v-model="lang.label" class="a-input" type="text" placeholder="Langue" />
-            <!-- Le niveau reste facultatif : laissé vide, il repart en `null`,
-                 jamais en chaîne vide, que le schéma refuserait. -->
-            <input
-              v-model="lang.level"
-              class="a-input a-short"
-              type="text"
-              placeholder="Niveau (facultatif)"
-            />
-            <Button
-              severity="danger"
-              outlined
-              size="small"
-              label="Retirer"
-              @click="cv.value.value?.languages.splice(i, 1)"
-            />
-          </div>
-        </li>
-      </ul>
-      <button
-        class="a-btn"
-        type="button"
-        @click="cv.value.value?.languages.push({ label: '', level: null })"
-      >
-        + Ajouter une langue
-      </button>
+            <div class="a-section-head">
+              <h3>{{ listLabel('languages') }}</h3>
+            </div>
+            <ul class="a-rows">
+              <li v-for="(lang, i) in cv.value.value.languages" :key="i">
+                <div class="a-row-add">
+                  <input v-model="lang.label" class="a-input" type="text" placeholder="Langue" />
+                  <!-- Le niveau reste facultatif : laissé vide, il repart en `null`,
+                       jamais en chaîne vide, que le schéma refuserait. -->
+                  <input
+                    v-model="lang.level"
+                    class="a-input a-short"
+                    type="text"
+                    placeholder="Niveau (facultatif)"
+                  />
+                  <Button
+                    severity="danger"
+                    outlined
+                    size="small"
+                    label="Retirer"
+                    @click="cv.value.value?.languages.splice(i, 1)"
+                  />
+                </div>
+              </li>
+            </ul>
+            <button
+              class="a-btn"
+              type="button"
+              @click="cv.value.value?.languages.push({ label: '', level: null })"
+            >
+              + Ajouter une langue
+            </button>
 
-      <template v-for="l in (['certifications', 'interests'] as const)" :key="l">
-        <div class="a-section-head">
-          <h3>{{ listLabel(l) }}</h3>
-        </div>
-        <div class="a-chosen">
-          <button
-            v-for="(item, k) in cv.value.value[l]"
-            :key="k"
-            class="a-chip is-on"
-            type="button"
-            :title="`Retirer « ${item} »`"
-            @click="cv.value.value?.[l].splice(k, 1)"
-          >
-            {{ item }} ×
-          </button>
-        </div>
-        <div class="a-row-add">
-          <input
-            v-model="typed[l]"
-            class="a-input"
-            type="text"
-            placeholder="Ajouter"
-            @keydown.enter.prevent="addEntryTo(l)"
-          />
-          <button class="a-btn" type="button" @click="addEntryTo(l)">+ Ajouter</button>
-        </div>
-      </template>
-    </section>
+            <template v-for="l in (['certifications', 'interests'] as const)" :key="l">
+              <div class="a-section-head">
+                <h3>{{ listLabel(l) }}</h3>
+              </div>
+              <div class="a-chosen">
+                <button
+                  v-for="(item, k) in cv.value.value[l]"
+                  :key="k"
+                  class="a-chip is-on"
+                  type="button"
+                  :title="`Retirer « ${item} »`"
+                  @click="cv.value.value?.[l].splice(k, 1)"
+                >
+                  {{ item }} ×
+                </button>
+              </div>
+              <div class="a-row-add">
+                <input
+                  v-model="typed[l]"
+                  class="a-input"
+                  type="text"
+                  placeholder="Ajouter"
+                  @keydown.enter.prevent="addEntryTo(l)"
+                />
+                <button class="a-btn" type="button" @click="addEntryTo(l)">+ Ajouter</button>
+              </div>
+            </template>
+          </section>
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
   </div>
 </template>
