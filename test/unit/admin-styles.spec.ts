@@ -47,3 +47,33 @@ describe('the sheet of the public site', () => {
     expect(found.some((r) => r.selector.includes('.chip'))).toBe(true)
   })
 })
+
+/**
+ * The filled PrimeVue controls wear the blue of the site, not Aura's.
+ *
+ * Aura's `primary` palette is emerald. Every `<Button>` without a severity
+ * — « Inviter », « Rattacher », « Fermer » — therefore came out GREEN in a
+ * back-office whose every other action is the logo blue, and so did the
+ * checked ToggleSwitch and the active tab. Nothing said so: it is a default
+ * of the library, not a line of this repository.
+ */
+describe('the theme of the back-office controls', () => {
+  const CONFIG = readFileSync(join(process.cwd(), 'nuxt.config.ts'), 'utf8')
+  const ADMIN = readFileSync(join(process.cwd(), 'app/assets/css/admin.css'), 'utf8')
+
+  /** The accent the sheet gives to `.admin-ui`, which everything else uses. */
+  const accent = /--a-accent:\s*(#[0-9a-f]{6})/i.exec(ADMIN)?.[1]?.toLowerCase()
+
+  it('reads an accent from the sheet at all', () => {
+    expect(accent).toMatch(/^#[0-9a-f]{6}$/)
+  })
+
+  it('overrides Aura’s primary palette rather than inheriting emerald', () => {
+    expect(CONFIG).toMatch(/primary:\s*\{/)
+  })
+
+  it('anchors that palette on the very accent of the sheet', () => {
+    const palette = /primary:\s*\{([\s\S]*?)\}/.exec(CONFIG)?.[1] ?? ''
+    expect(palette.toLowerCase()).toContain(accent)
+  })
+})

@@ -9,6 +9,7 @@
 //   2. The only exceptions are the development server settings below: they
 //      only serve dev, where there is no build.
 
+import { definePreset } from '@primevue/themes'
 import Aura from '@primevue/themes/aura'
 // The version is a BUILD constant, unlike the secrets: freezing it into
 // the image is exactly what we want, so that /api/health says which image
@@ -62,7 +63,34 @@ export default defineNuxtConfig({
     },
     options: {
       theme: {
-        preset: Aura,
+        preset: definePreset(Aura, {
+          semantic: {
+            /*
+             * Aura's `primary` is EMERALD. Every Button without a severity
+             * came out green — « Inviter », « Rattacher », « Fermer » — in a
+             * back-office whose every other action is the logo blue, and so
+             * did a checked ToggleSwitch and the active tab. It is a default
+             * of the library, so nothing in this repository said it.
+             *
+             * The ramp is anchored on the two blues the sheet already uses:
+             * `--a-accent` at 500, and the hover of `.a-btn-primary` at 600.
+             * Tenu par test/unit/admin-styles.spec.ts.
+             */
+            primary: {
+              50: '#eaf0fe',
+              100: '#d5e1fd',
+              200: '#b0c6fa',
+              300: '#85a5f6',
+              400: '#5484f1',
+              500: '#2462e9',
+              600: '#1d51c4',
+              700: '#1a44a0',
+              800: '#17387f',
+              900: '#142e66',
+              950: '#0d1c3f',
+            },
+          },
+        }),
         options: {
           // Le back-office est en clair. Sans sélecteur, PrimeVue suivrait
           // prefers-color-scheme et repeindrait l'administration selon le

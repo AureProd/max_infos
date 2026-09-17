@@ -21,6 +21,15 @@ mockNuxtImport('useUser', () => () => ({
 
 const nav = async () => (await mountSuspended(AdminLayout)).findAll('a')
 
+/** The same screens, as the options of the narrow-window menu. */
+const choices = async () => {
+  const menu = (await mountSuspended(AdminLayout)).find('.admin-menu-select')
+  return menu.findAll('option').map((o) => ({
+    value: o.attributes('value'),
+    label: o.text(),
+  }))
+}
+
 /**
  * Which entry is lit is proved in test/unit/admin-nav.spec.ts, on a pure
  * function: the routing cannot be exercised from here, since the `admin`
@@ -41,5 +50,36 @@ describe('what the menu offers', () => {
     const links = await nav()
     expect(links.map((a) => a.attributes('href'))).not.toContain('/admin/tech')
     role.value = 'tech'
+  })
+})
+
+/**
+ * Sous 900px le menu devient UN select.
+ *
+ * Les deux coexistent dans le document, et c'est le CSS qui montre l'un ou
+ * l'autre : brancher sur la largeur en JavaScript casserait l'hydratation,
+ * le serveur ne connaissant pas la taille de la fenêtre. D'où ce test — la
+ * liste dupliquée est le risque, et il faut qu'elle ne diverge jamais.
+ */
+describe('le menu des petites fenêtres', () => {
+  it('offre exactement les écrans que les liens offrent', async () => {
+    role.value = 'tech'
+    const links = (await nav()).map((a) => a.attributes('href'))
+    const options = (await choices()).map((o) => o.value)
+    // Les liens comprennent la marque, qui pointe aussi vers /admin, et les
+    // deux boutons de droite : on ne compare que ce que le menu propose.
+    for (const option of options) expect(links).toContain(option)
+    expect(options).toContain('/admin/tech')
+  })
+
+  it("ne propose pas non plus à un éditeur l'écran technique", async () => {
+    role.value = 'editor'
+    expect((await choices()).map((o) => o.value)).not.toContain('/admin/tech')
+    role.value = 'tech'
+  })
+
+  it('nomme les écrans comme le menu les nomme', async () => {
+    role.value = 'tech'
+    expect((await choices()).map((o) => o.label)).toContain('Tableau de bord')
   })
 })

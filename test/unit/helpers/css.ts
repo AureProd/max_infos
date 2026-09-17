@@ -26,24 +26,42 @@ export function rules(css: string): Rule[] {
  * `rules()` above cannot serve here: it flattens everything, so a rule
  * written for the phone is indistinguishable from one written for the desk —
  * which is the whole question a responsive test asks.
+ *
+ * Toutes les occurrences de la requête sont réunies : une feuille en écrit
+ * plusieurs, près de ce qu'elles corrigent, et n'en lire qu'une ferait
+ * échouer une assertion sur une règle pourtant présente.
  */
 export function mediaBlock(css: string, query: string): string | null {
   const cleaned = css.replace(/\/\*[\s\S]*?\*\//g, '')
-  const start = cleaned.indexOf(`@media ${query}`)
-  if (start === -1) return null
+  const found: string[] = []
 
-  const open = cleaned.indexOf('{', start)
-  if (open === -1) return null
+  let from = 0
+  while (true) {
+    const start = cleaned.indexOf(`@media ${query}`, from)
+    if (start === -1) break
 
-  let depth = 0
-  for (let i = open; i < cleaned.length; i++) {
-    if (cleaned[i] === '{') depth++
-    else if (cleaned[i] === '}') {
-      depth--
-      if (depth === 0) return cleaned.slice(open + 1, i)
+    const open = cleaned.indexOf('{', start)
+    if (open === -1) break
+
+    let depth = 0
+    let close = -1
+    for (let i = open; i < cleaned.length; i++) {
+      if (cleaned[i] === '{') depth++
+      else if (cleaned[i] === '}') {
+        depth--
+        if (depth === 0) {
+          close = i
+          break
+        }
+      }
     }
+    if (close === -1) break
+
+    found.push(cleaned.slice(open + 1, close))
+    from = close + 1
   }
-  return null
+
+  return found.length ? found.join('\n') : null
 }
 
 /** The declarations a selector carries inside a block, joined. */

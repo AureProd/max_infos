@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { declarationsOf, mediaBlock } from './helpers/css'
+import { declarationsOf, mediaBlock, rules } from './helpers/css'
 
 /**
  * The back-office on a phone.
@@ -47,10 +47,14 @@ describe('the back-office sheet under 640px', () => {
     expect(declarationsOf(phone ?? '', '.admin-ui')).toMatch(/font-size:\s*16px/)
   })
 
-  it('lets the header fold instead of crushing the menu', () => {
-    // `.admin-who` is `white-space: nowrap` and carries four items: without
-    // a wrap, it eats the whole bar and the six screens vanish.
-    expect(declarationsOf(phone ?? '', '.admin-head-in')).toMatch(/flex-wrap:\s*wrap/)
+  it('garde l’en-tête sur UNE ligne', () => {
+    // Replié, il empilait la marque, le select et les deux sorties sur trois
+    // rangées, et mangeait le tiers de l'écran avant le premier mot de la
+    // page. Ce qui rentre, c'est ce qui rétrécit : la marque tombe à son
+    // point, les deux sorties à leur libellé court.
+    expect(declarationsOf(phone ?? '', '.admin-head-in')).toMatch(/flex-wrap:\s*nowrap/)
+    expect(declarationsOf(phone ?? '', '.admin-out-long')).toMatch(/display:\s*none/)
+    expect(declarationsOf(phone ?? '', '.admin-out-short')).toMatch(/display:\s*inline/)
   })
 
   it('drops the repeatable rows to a single column', () => {
@@ -133,5 +137,64 @@ describe('the back-office templates', () => {
     expect(TEMPLATES.length).toBeGreaterThan(8)
     expect(TEMPLATES).toContain('app/pages/admin/social.vue')
     expect(TEMPLATES).toContain('app/components/UsersPanel.vue')
+  })
+})
+
+/**
+ * Ce qui pousse la page hors de l'écran.
+ *
+ * Un `width: 100%` ne contraint PAS la taille minimale automatique d'un
+ * élément de flex ou de grille : pendant le calcul intrinsèque, un
+ * pourcentage est indéfini, donc ni `width` ni `max-width` ne bornent quoi
+ * que ce soit. Ce qui borne, c'est `min-width: 0`.
+ *
+ * Le `<select>` de MediaPicker en est le cas d'école : sa largeur
+ * min-content est celle de son option la plus longue — un nom de fichier
+ * téléversé. Elle remonte de `.cluster` à `.admin-card`, de là à la piste
+ * `1fr` de `.a-editor`, et la page entière défile latéralement.
+ *
+ * `.a-input` et `.a-select` portaient déjà `min-width: 0`. Les contrôles
+ * NUS, eux, avaient été oubliés.
+ */
+describe('ce qui peut pousser la page hors de l’écran', () => {
+  const controls = rules(ADMIN_CSS).filter(
+    (r) =>
+      /\b(select|textarea|input\[)/.test(r.selector) && /(^|[^-\w])width:\s*100%/m.test(r.body),
+  )
+
+  it('trouve la règle qui dimensionne les contrôles', () => {
+    expect(controls.length).toBeGreaterThan(0)
+  })
+
+  it('borne tout contrôle dimensionné en pourcentage', () => {
+    const guilty = controls.filter((r) => !/min-width:\s*0/.test(r.body)).map((r) => r.selector)
+    expect(guilty).toEqual([])
+  })
+
+  it('laisse les cartes de l’éditeur rétrécir sous leur contenu', () => {
+    // Un élément de grille vaut `min-width: auto` par défaut : il ne
+    // descend jamais sous la largeur min-content de ce qu'il contient.
+    expect(declarationsOf(ADMIN_CSS, '.a-editor > *')).toMatch(/min-width:\s*0/)
+  })
+})
+
+/**
+ * Les deux formes du menu, et laquelle se voit.
+ *
+ * La bascule est en CSS parce qu'elle ne peut pas être ailleurs : le rendu
+ * serveur ne connaît pas la largeur de la fenêtre. Ce que le test garde,
+ * c'est qu'exactement une des deux est visible de chaque côté de 900px —
+ * une bascule à moitié écrite affiche les deux, ou aucune.
+ */
+describe('le menu de l’en-tête', () => {
+  const narrow = mediaBlock(ADMIN_CSS, '(max-width: 900px)') ?? ''
+
+  it('cache le select tant que la fenêtre est large', () => {
+    expect(declarationsOf(ADMIN_CSS, '.admin-menu-select')).toMatch(/display:\s*none/)
+  })
+
+  it('échange les deux sous 900px', () => {
+    expect(declarationsOf(narrow, '.admin-menu')).toMatch(/display:\s*none/)
+    expect(declarationsOf(narrow, '.admin-menu-select')).toMatch(/display:\s*block/)
   })
 })

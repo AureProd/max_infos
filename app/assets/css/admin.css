@@ -104,6 +104,46 @@
   font-weight: 600;
 }
 
+/*
+ * Le même menu, en UN select, pour les fenêtres étroites.
+ *
+ * Les deux formes vivent dans le document et c'est ici que l'on choisit
+ * laquelle se voit : le rendu serveur ne connaît pas la largeur de la
+ * fenêtre, donc y brancher du JavaScript casserait l'hydratation.
+ * `display: none` retire aussi la forme cachée de l'arbre d'accessibilité,
+ * de sorte que rien n'est annoncé deux fois.
+ *
+ * Tenu par test/unit/admin-responsive.spec.ts et test/nuxt/admin-layout.spec.ts.
+ */
+.admin-menu-select {
+  display: none;
+  width: auto;
+  min-width: 0;
+  max-width: 220px;
+  padding: 7px 10px;
+  border: 1px solid var(--a-line-strong);
+  border-radius: 8px;
+  background: var(--a-panel);
+  color: var(--a-text);
+  font: inherit;
+  font-size: 0.93rem;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  /* Six entrées qui défilent horizontalement se parcourent mal quand rien
+     n'annonce le défilement : le select, lui, dit d'emblée combien il y a
+     d'écrans et lequel on regarde. */
+  .admin-menu {
+    display: none;
+  }
+  .admin-menu-select {
+    display: block;
+    flex: 1;
+    max-width: none;
+  }
+}
+
 .admin-who {
   display: flex;
   align-items: center;
@@ -136,6 +176,9 @@
 .admin-out:hover {
   border-color: var(--a-accent);
   color: var(--a-accent);
+}
+.admin-out-short {
+  display: none;
 }
 
 /* ---------- corps ---------- */
@@ -216,6 +259,30 @@ a.a-btn-primary,
 .a-btn-danger:hover {
   border-color: var(--a-danger);
   color: var(--a-danger);
+}
+
+/* Une action qui occupe sa ligne : elle termine un formulaire, elle ne se
+   range pas à côté d'autre chose. */
+.a-btn-block {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+}
+
+/* Le bouton bleu restait bleu pendant l'envoi : rien ne disait qu'il
+   n'écoutait plus. */
+.a-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.a-btn:disabled:hover {
+  border-color: var(--a-line-strong);
+  color: inherit;
+}
+.a-btn-primary:disabled:hover {
+  background: var(--a-accent);
+  border-color: var(--a-accent);
+  color: #fff;
 }
 
 .a-input,
@@ -421,6 +488,10 @@ a.a-btn-primary,
 .a-select-wide {
   width: 100%;
   max-width: 260px;
+  /* `width` et `max-width` en pourcentage ne bornent PAS la taille minimale
+     automatique d'un élément de flex ou de grille : pendant le calcul
+     intrinsèque, un pourcentage est indéfini. Seul `min-width: 0` borne. */
+  min-width: 0;
 }
 
 /* ---------- tableau de bord ---------- */
@@ -665,6 +736,22 @@ a.a-figure:hover {
 .admin-ui textarea {
   width: 100%;
   max-width: 100%;
+  /*
+   * Sans cela, la page défile latéralement.
+   *
+   * Un pourcentage ne contraint pas la taille minimale AUTOMATIQUE d'un
+   * élément de flex ou de grille : pendant le calcul intrinsèque il est
+   * indéfini, donc ni `width` ni `max-width` ne bornent rien. Ce qui borne,
+   * c'est `min-width: 0` — que `.a-input` et `.a-select` portaient déjà, et
+   * que les contrôles NUS n'avaient pas.
+   *
+   * Le `<select>` de MediaPicker en est le cas d'école : sa largeur
+   * min-content est celle de son option la plus longue, c'est-à-dire d'un
+   * nom de fichier téléversé. Elle remontait de `.cluster` à `.admin-card`,
+   * de là à la piste `1fr` de `.a-editor`, et poussait l'écran de rédaction
+   * tout entier hors de la fenêtre.
+   */
+  min-width: 0;
   padding: 8px 11px;
   border: 1px solid var(--a-line-strong);
   border-radius: 8px;
@@ -844,6 +931,12 @@ a.a-figure:hover {
   .a-editor {
     grid-template-columns: 1fr;
   }
+}
+/* Un élément de grille vaut `min-width: auto` : il ne descend jamais sous la
+   largeur min-content de ce qu'il contient. Les deux cartes de l'éditeur
+   doivent pouvoir rétrécir, sinon c'est la piste qui s'élargit. */
+.a-editor > * {
+  min-width: 0;
 }
 .a-editor textarea {
   min-height: 60vh;
@@ -1123,23 +1216,38 @@ a.a-figure:hover {
      il mange la barre entière et les six écrans disparaissent. Le nom
      et le badge de rôle s'effacent — ils se relisent dans le menu de
      l'appareil, pas ici. */
+  /*
+   * UNE ligne, et pas trois.
+   *
+   * Replié, l'en-tête empilait la marque, le select et les deux sorties, et
+   * mangeait le tiers de l'écran avant le premier mot de la page. Ce qui
+   * rentre, c'est donc ce qui rétrécit : la marque tombe à son point, les
+   * deux sorties à leur libellé court.
+   */
   .admin-head-in {
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 8px 16px;
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 8px 12px;
   }
-  .admin-menu {
-    order: 3;
-    flex-basis: 100%;
-    margin: 0 -16px;
-    padding: 0 16px;
+  .admin-brand span:last-child {
+    display: none;
   }
   .admin-who {
-    margin-left: auto;
+    gap: 6px;
   }
   .admin-user,
   .admin-tag {
     display: none;
+  }
+  .admin-out {
+    padding: 7px 9px;
+    font-size: 0.8rem;
+  }
+  .admin-out-long {
+    display: none;
+  }
+  .admin-out-short {
+    display: inline;
   }
 
   /* ---------- corps ---------- */

@@ -35,6 +35,19 @@ const screens = computed(() =>
     { to: '/admin/tech', label: 'Technique', tech: true },
   ].filter((e) => !e.tech || seesTech.value),
 )
+
+/**
+ * Sous 900px, les six écrans tiennent dans UN select.
+ *
+ * Les deux formes coexistent dans le document et c'est le CSS qui montre
+ * l'une ou l'autre : brancher sur la largeur en JavaScript demanderait de
+ * connaître la fenêtre au rendu serveur, qui ne la connaît pas — et
+ * l'hydratation casserait. `display: none` retire aussi la forme cachée de
+ * l'arbre d'accessibilité, donc rien n'est annoncé deux fois.
+ */
+const here = computed(
+  () => screens.value.find((e) => isCurrentScreen(route.path, e.to))?.to ?? '/admin',
+)
 </script>
 
 <template>
@@ -57,13 +70,39 @@ const screens = computed(() =>
           </NuxtLink>
         </nav>
 
+        <select
+          class="admin-menu-select"
+          aria-label="Sections du back-office"
+          :value="here"
+          @change="navigateTo(($event.target as HTMLSelectElement).value)"
+        >
+          <option v-for="e in screens" :key="e.to" :value="e.to">{{ e.label }}</option>
+        </select>
+
         <div class="admin-who">
           <span class="admin-user">{{ user?.name ?? user?.email }}</span>
           <!-- The role, shown rather than guessed: which screens are
                missing from the menu is otherwise a puzzle. -->
           <span v-if="seesTech" class="admin-tag">technique</span>
-          <NuxtLink class="admin-out" to="/" target="_blank">Voir le site ↗</NuxtLink>
-          <button class="admin-out" type="button" @click="signOut">Se déconnecter</button>
+          <!--
+            Deux libellés, un long et un court : sur un téléphone, « Voir le
+            site ↗ » et « Se déconnecter » à eux seuls dépassent la largeur
+            de l'écran. Le nom accessible, lui, ne change pas — il vient de
+            l'aria-label, et non du texte qui se voit.
+          -->
+          <NuxtLink class="admin-out" to="/" target="_blank" aria-label="Voir le site">
+            <span class="admin-out-long">Voir le site ↗</span>
+            <span class="admin-out-short" aria-hidden="true">↗</span>
+          </NuxtLink>
+          <button
+            class="admin-out"
+            type="button"
+            aria-label="Se déconnecter"
+            @click="signOut"
+          >
+            <span class="admin-out-long">Se déconnecter</span>
+            <span class="admin-out-short" aria-hidden="true">Sortir</span>
+          </button>
         </div>
       </div>
     </header>

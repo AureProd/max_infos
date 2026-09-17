@@ -112,7 +112,11 @@ function remove(id: number, email: string): void {
         option-value="value"
         aria-label="Rôle de l’invité"
       />
-      <Button type="submit" label="Inviter" :disabled="busy" />
+      <!-- Le bleu de « Enregistrer », et non le rempli de PrimeVue : les
+           actions principales du back-office portent toutes .a-btn-primary. -->
+      <button class="a-btn a-btn-primary a-btn-block" type="submit" :disabled="busy">
+        Inviter
+      </button>
     </div>
   </form>
 
