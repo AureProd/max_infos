@@ -2,7 +2,7 @@
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const { peut } = useUser()
-const seesTech = peut('tech')
+const seesTech = peut('developer')
 
 const importState = ref<'repos' | 'en cours' | 'échec'>('repos')
 const importMessage = ref('')
@@ -110,7 +110,7 @@ useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
       </div>
     </div>
 
-    <p v-if="!seesTech" class="a-empty">Cet écran est réservé au rôle technique.</p>
+    <p v-if="!seesTech" class="a-empty">Cet écran est réservé au rôle développeur.</p>
 
     <template v-else>
         <!--

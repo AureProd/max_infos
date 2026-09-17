@@ -34,3 +34,8 @@ coverage/
 .output/
 .data/
 *.tsbuildinfo
+
+# Playwright : traces, captures et rapports d'exécution
+/test-results/
+/playwright-report/
+/blob-report/

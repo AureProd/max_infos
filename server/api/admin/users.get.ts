@@ -4,13 +4,13 @@ import { appUser } from '~~/server/database/schema'
 import { requireRole } from '~~/server/utils/auth'
 
 /**
- * The authorized accounts. Role `tech` REQUIRED.
+ * The authorized accounts. Role `developer` REQUIRED.
  *
  * This is exactly the screen Max must never see: knowing who has access,
  * and with which role, belongs to the infrastructure.
  */
 export default defineEventHandler(async (event) => {
-  await requireRole(event, 'tech')
+  await requireRole(event, 'developer')
 
   return await useDatabase()
     .select({

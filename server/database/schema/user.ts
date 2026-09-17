@@ -7,8 +7,9 @@ import { oneOf, USER_ROLE, type UserRole } from './enums'
  * The authorized accounts. An allow list: nobody signs themselves up, JB
  * adds an address.
  *
- * Two roles with opposite powers: `tech` (JB) sees the infrastructure,
- * `editor` (Max) must NEVER see a technical field.
+ * Two roles with opposite powers: `developer` (JB) sees the infrastructure,
+ * `editor` (Max) must NEVER see a technical field. The column also still
+ * accepts `tech`, the former name of `developer` — see STORED_ROLES.
  */
 export const appUser = pgTable(
   'app_user',
@@ -17,7 +18,7 @@ export const appUser = pgTable(
     email: text().notNull(),
     name: text(),
     avatarUrl: text(),
-    role: text().$type<UserRole>().notNull().default('editor'),
+    role: text().$type<UserRole | 'tech'>().notNull().default('editor'),
     active: boolean().notNull().default(true),
     lastLoginAt: timestamp({ withTimezone: true, mode: 'date' }),
     ...timestamps,

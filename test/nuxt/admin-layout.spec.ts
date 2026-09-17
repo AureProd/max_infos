@@ -9,12 +9,12 @@ import AdminLayout from '~/layouts/admin.vue'
  * anyway. What the menu owes the reader is simpler: saying where they are.
  */
 
-const { role } = vi.hoisted(() => ({ role: { value: 'tech' as 'editor' | 'tech' } }))
+const { role } = vi.hoisted(() => ({ role: { value: 'developer' as 'editor' | 'developer' } }))
 
 mockNuxtImport('useUser', () => () => ({
   user: computed(() => ({ id: 1, email: 'jb@exemple.test', name: 'JB', role: role.value })),
   signedIn: computed(() => true),
-  peut: (required: string) => computed(() => role.value === 'tech' || required === 'editor'),
+  peut: (required: string) => computed(() => role.value === 'developer' || required === 'editor'),
   refresh: async () => {},
   signOut: async () => {},
 }))
@@ -38,7 +38,7 @@ const choices = async () => {
  */
 describe('what the menu offers', () => {
   it('shows the technical screen to a tech', async () => {
-    role.value = 'tech'
+    role.value = 'developer'
     const links = await nav()
     expect(links.map((a) => a.attributes('href'))).toContain('/admin/tech')
   })
@@ -49,7 +49,7 @@ describe('what the menu offers', () => {
     role.value = 'editor'
     const links = await nav()
     expect(links.map((a) => a.attributes('href'))).not.toContain('/admin/tech')
-    role.value = 'tech'
+    role.value = 'developer'
   })
 })
 
@@ -63,7 +63,7 @@ describe('what the menu offers', () => {
  */
 describe('le menu des petites fenêtres', () => {
   it('offre exactement les écrans que les liens offrent', async () => {
-    role.value = 'tech'
+    role.value = 'developer'
     const links = (await nav()).map((a) => a.attributes('href'))
     const options = (await choices()).map((o) => o.value)
     // Les liens comprennent la marque, qui pointe aussi vers /admin, et les
@@ -75,11 +75,11 @@ describe('le menu des petites fenêtres', () => {
   it("ne propose pas non plus à un éditeur l'écran technique", async () => {
     role.value = 'editor'
     expect((await choices()).map((o) => o.value)).not.toContain('/admin/tech')
-    role.value = 'tech'
+    role.value = 'developer'
   })
 
   it('nomme les écrans comme le menu les nomme', async () => {
-    role.value = 'tech'
+    role.value = 'developer'
     expect((await choices()).map((o) => o.label)).toContain('Tableau de bord')
   })
 })

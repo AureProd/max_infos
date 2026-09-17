@@ -100,15 +100,15 @@ describe('requireSignIn', () => {
 
 describe('requireRole', () => {
   it('lets a tech through everywhere', async () => {
-    session = { user: { id: await insert({ email: 't@exemple.test', role: 'tech' }) } }
-    await expect(requireRole(event, 'editor')).resolves.toMatchObject({ role: 'tech' })
-    await expect(requireRole(event, 'tech')).resolves.toMatchObject({ role: 'tech' })
+    session = { user: { id: await insert({ email: 't@exemple.test', role: 'developer' }) } }
+    await expect(requireRole(event, 'editor')).resolves.toMatchObject({ role: 'developer' })
+    await expect(requireRole(event, 'developer')).resolves.toMatchObject({ role: 'developer' })
   })
 
   it('answers 403 to an editor asking for the technical scope', async () => {
     session = { user: { id: await insert({ email: 'e@exemple.test', role: 'editor' }) } }
     await expect(requireRole(event, 'editor')).resolves.toMatchObject({ role: 'editor' })
-    await expect(requireRole(event, 'tech')).rejects.toMatchObject({ statusCode: 403 })
+    await expect(requireRole(event, 'developer')).rejects.toMatchObject({ statusCode: 403 })
   })
 
   it('answers 401 without a session, before even looking at the role', async () => {
@@ -136,7 +136,7 @@ describe('signInOrReject', () => {
     bootstrapTechEmail = 'JB@exemple.test'
     const user = await signInOrReject({ email: 'jb@exemple.test', name: 'JB' })
 
-    expect(user).toMatchObject({ email: 'jb@exemple.test', role: 'tech', name: 'JB' })
+    expect(user).toMatchObject({ email: 'jb@exemple.test', role: 'developer', name: 'JB' })
     expect(await db.select().from(appUser)).toHaveLength(1)
   })
 

@@ -11,6 +11,7 @@
 
 import { definePreset } from '@primevue/themes'
 import Aura from '@primevue/themes/aura'
+import tailwindcss from '@tailwindcss/vite'
 // The version is a BUILD constant, unlike the secrets: freezing it into
 // the image is exactly what we want, so that /api/health says which image
 // is running.
@@ -59,7 +60,30 @@ export default defineNuxtConfig({
         'Tab',
         'TabPanels',
         'TabPanel',
+        // Le retour à l'utilisateur, jusqu'ici absent : six machines d'état
+        // « repos / enregistré / échec » recopiées d'un écran à l'autre, et
+        // sept window.confirm().
+        'Toast',
+        'ConfirmDialog',
+        'ConfirmPopup',
+        'Message',
+        // Les écrans repensés : graphiques du tableau de bord, rubriques
+        // repliables du CV, recherche à icône, texte long.
+        'Chart',
+        'Accordion',
+        'AccordionPanel',
+        'AccordionHeader',
+        'AccordionContent',
+        'IconField',
+        'InputIcon',
+        'Textarea',
       ],
+    },
+    // `Tooltip` est une DIRECTIVE, pas un composant : rangée dans
+    // `components.include`, elle n'est jamais enregistrée et `v-tooltip`
+    // ne fait rien — sans message.
+    directives: {
+      include: ['Tooltip'],
     },
     options: {
       theme: {
@@ -72,22 +96,23 @@ export default defineNuxtConfig({
              * did a checked ToggleSwitch and the active tab. It is a default
              * of the library, so nothing in this repository said it.
              *
-             * The ramp is anchored on the two blues the sheet already uses:
-             * `--a-accent` at 500, and the hover of `.a-btn-primary` at 600.
+             * The ramp is anchored on the two blues of the @theme block:
+             * `--color-accent` at 500 and `--color-accent-strong` at 600 —
+             * the accent measured on Max's Substack.
              * Tenu par test/unit/admin-styles.spec.ts.
              */
             primary: {
-              50: '#eaf0fe',
-              100: '#d5e1fd',
-              200: '#b0c6fa',
-              300: '#85a5f6',
-              400: '#5484f1',
-              500: '#2462e9',
-              600: '#1d51c4',
-              700: '#1a44a0',
-              800: '#17387f',
-              900: '#142e66',
-              950: '#0d1c3f',
+              50: '#eff5ff',
+              100: '#e8effd',
+              200: '#bed2fa',
+              300: '#93b4f7',
+              400: '#5d8ef2',
+              500: '#2563eb',
+              600: '#1555e2',
+              700: '#1544b4',
+              800: '#163a91',
+              900: '#173575',
+              950: '#102147',
             },
           },
         }),
@@ -96,16 +121,23 @@ export default defineNuxtConfig({
           // prefers-color-scheme et repeindrait l'administration selon le
           // réglage du système.
           darkModeSelector: '.primevue-dark',
-          cssLayer: { name: 'primevue', order: 'primevue, theme, base' },
+          // C'est PrimeVue qui ÉCRIT l'instruction `@layer …;` — d'où
+          // l'ordre complet ici, couches de Tailwind comprises. `site`
+          // porte base.css et admin.css : après `primevue`, qu'elles
+          // surchargent, avant `utilities`, qui les surcharge.
+          cssLayer: {
+            name: 'primevue',
+            order: 'theme, base, primevue, site, components, utilities',
+          },
         },
       },
       ripple: false,
     },
   },
 
-  // The whole design lives in this file. It is loaded globally, as before,
-  // and excluded from the formatter (see biome.jsonc).
-  css: ['~/assets/css/base.css'],
+  // The entry sheet: layer order, Tailwind, the @theme palette, then
+  // base.css. Loaded globally, and excluded from the formatter (biome.jsonc).
+  css: ['~/assets/css/main.css'],
 
   app: {
     head: {
@@ -124,7 +156,7 @@ export default defineNuxtConfig({
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {
           rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap',
+          href: 'https://fonts.googleapis.com/css2?family=BBH+Hegarty&family=Lexend:wght@300..700&display=swap',
         },
       ],
     },
@@ -233,6 +265,13 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    // Tailwind v4 n'a plus de fichier de configuration : il lit le bloc
+    // `@theme` de app/assets/css/main.css. Le plugin doit vivre DANS cette
+    // clé et pas dans une seconde `vite:` — un objet en double n'est pas
+    // fusionné, il écrase, et Tailwind ne tourne alors jamais : le
+    // `@tailwind utilities` part tel quel dans la feuille servie.
+    plugins: [tailwindcss()],
+
     server: {
       // Vite already allows `localhost` and `.localhost` domains. Explicit
       // anyway, for the day URL_HOST becomes a real staging domain.

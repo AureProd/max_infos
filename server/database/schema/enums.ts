@@ -43,7 +43,15 @@ export type SettingScope = (typeof SETTING_SCOPE)[number]
 // must describe exactly the same set. A relative import rather than
 // `#shared`, because this file is also read by the seed script, which runs
 // under tsx and knows nothing of Nuxt's aliases.
-export { ROLES as USER_ROLE, type Role as UserRole } from '../../../shared/utils/roles'
+//
+// The CHECK is built from STORED_ROLES, not ROLES: it must still accept
+// `tech`, the former name of `developer`, for the length of one deployment
+// — the old container keeps writing it while the new schema is applied.
+export {
+  asRole,
+  type Role as UserRole,
+  STORED_ROLES as USER_ROLE,
+} from '../../../shared/utils/roles'
 
 /**
  * Builds the `column in ('a', 'b')` expression of a CHECK constraint from

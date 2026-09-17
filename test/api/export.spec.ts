@@ -21,7 +21,7 @@ beforeAll(async () => {
   await migrate(sqlClient)
   db = database(sqlClient)
   await seedTestData(db)
-  await db.insert(appUser).values({ email: 'jb@exemple.test', role: 'tech' })
+  await db.insert(appUser).values({ email: 'jb@exemple.test', role: 'developer' })
   // An encrypted token, to check it NEVER leaves.
   await db.insert(secret).values({
     key: 'instagram_access_token',

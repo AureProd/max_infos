@@ -1,0 +1,90 @@
+/* ============================================================
+   Un Max d'info — entry sheet
+   Layer order, Tailwind imports, and the ONE palette everything
+   else aliases. Loaded globally by nuxt.config.ts.
+   ============================================================ */
+
+/*
+ * The cascade.
+ *
+ * Tailwind v4 emits its own layers — `theme, base, components, utilities` —
+ * and PrimeVue is told, in nuxt.config.ts, to slip `primevue` between them.
+ * PrimeVue writes that `@layer` statement itself: an order declared here
+ * instead would be compiled away by Tailwind and the layers would fall back
+ * to order of appearance, with PrimeVue injected LAST at runtime, quietly
+ * beating every utility on a PrimeVue control.
+ *
+ * The two hand-written sheets go in a `site` layer of their own, after
+ * `primevue` and before `utilities`: they keep overriding the component
+ * library, and a Tailwind class written today overrides THEM — which is what
+ * lets them be emptied progressively instead of all at once.
+ */
+@import 'tailwindcss';
+@import 'primeicons/primeicons.css';
+
+/*
+ * The hand-written sheet of the public site, in the `site` layer.
+ *
+ * Up here with the other imports, and not at the foot of this file where it
+ * would read more naturally: `@import` must precede every other rule, or
+ * the browser ignores it outright. Tailwind inlines it either way, which is
+ * exactly what makes the mistake invisible until a sheet is served raw.
+ */
+@import './base.css' layer(site);
+
+/*
+ * THE PALETTE — measured on Max's Substack, not guessed.
+ *
+ * Read out of the HTML it actually serves (`--color_theme_accent`,
+ * `--print_on_web_bg_color`, …). Worth saying once: that Substack is NOT on
+ * the platform's default orange `#FF6719`; Max set it to a blue two points
+ * away from the logo's own `#2462e9`.
+ *
+ * One deliberate departure. The Substack paints its whole page `#d9d9d9`
+ * and compensates by putting the article body on white. A portfolio is read
+ * at length, so the page here is `#f2f2f2` and the reading column white:
+ * same hues, more contrast under the text.
+ */
+@theme {
+  /* — couleurs — */
+  --color-accent: #2563eb; /* l'accent du Substack */
+  --color-accent-strong: #1555e2; /* son survol */
+  --color-accent-soft: #e8effd;
+  --color-accent-line: #bed2fa;
+
+  --color-ink: #363737; /* le texte */
+  --color-muted: #777878; /* le texte secondaire */
+  --color-faint: #9b9c9c;
+
+  --color-line: #c3c3c3; /* le filet du Substack */
+  --color-line-soft: #e6e6e6;
+
+  --color-page: #f2f2f2; /* le fond de page */
+  --color-surface: #ffffff; /* ce qui porte du texte */
+  --color-raised: #fafafa;
+
+  /* États. Le back-office en avait sa propre série ; il n'y en a plus qu'une. */
+  --color-ok: #0f7b46;
+  --color-warn: #b45309;
+  --color-danger: #b91c1c;
+
+  /* Le complément ambre, assombri pour tenir sur un fond clair : le
+     #e9ab24 de la feuille sombre passait sous le seuil de contraste. */
+  --color-gold: #b45309;
+  --color-gold-soft: #fdf3e3;
+
+  /* — typographie — */
+  /* Les deux polices du Substack, toutes deux servies par Google Fonts.
+     BBH Hegarty n'a QU'UNE graisse : c'est pour cela que tous les titres
+     de ses captures pèsent exactement pareil. On s'en sert comme d'une
+     contrainte — la hiérarchie se fait à la taille, pas au gras. */
+  --font-display: 'BBH Hegarty', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Lexend', 'Helvetica Neue', Arial, sans-serif;
+
+  /* — gabarit — */
+  --container-wrap: 1240px;
+  /* 728px : la largeur RÉELLE de la colonne du Substack, confirmée par le
+     `resizeWidth: 728` qu'il grave dans les URL de ses images. */
+  --container-read: 728px;
+}
+

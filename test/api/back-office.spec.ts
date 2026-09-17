@@ -13,7 +13,7 @@ import { connection, database, migrate, seedTestData, type TestDatabase } from '
  */
 let sqlClient: postgres.Sql
 let db: TestDatabase
-const cookies: Record<'editor' | 'tech', string> = { editor: '', tech: '' }
+const cookies: Record<'editor' | 'developer', string> = { editor: '', developer: '' }
 
 beforeAll(async () => {
   sqlClient = connection()
@@ -22,7 +22,7 @@ beforeAll(async () => {
   await seedTestData(db)
   await db.insert(appUser).values([
     { email: 'max@bo.test', role: 'editor' },
-    { email: 'jb@bo.test', role: 'tech' },
+    { email: 'jb@bo.test', role: 'developer' },
   ])
 }, 60_000)
 
@@ -35,7 +35,7 @@ await setup({ server: true, browser: false })
 beforeAll(async () => {
   const accounts = await db.select({ id: appUser.id, role: appUser.role }).from(appUser)
   for (const c of accounts) {
-    if (c.role !== 'editor' && c.role !== 'tech') continue
+    if (c.role !== 'editor' && c.role !== 'developer') continue
     const r = await fetch('/api/test/session', {
       method: 'POST',
       body: JSON.stringify({ id: c.id }),
@@ -79,15 +79,15 @@ describe('rendering for an editor', () => {
   })
 })
 
-describe('rendering for a tech', () => {
+describe('rendering for a developer', () => {
   it('the tech screen renders', async () => {
-    const r = await fetch('/admin/tech', { headers: { cookie: cookies.tech } })
+    const r = await fetch('/admin/tech', { headers: { cookie: cookies.developer } })
     expect(r.status).toBe(200)
     expect(await r.text()).toContain('admin-shell')
   })
 
   it('the menu offers the tech screen', async () => {
-    const html = await (await fetch('/admin', { headers: { cookie: cookies.tech } })).text()
+    const html = await (await fetch('/admin', { headers: { cookie: cookies.developer } })).text()
     expect(html).toContain('/admin/tech')
   })
 })

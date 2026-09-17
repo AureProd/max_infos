@@ -343,26 +343,49 @@ altération du message.
 
 ---
 
-## L'habillage — deux feuilles, et rien d'autre
+## L'habillage — une palette, quatre couches
 
-**Ni Tailwind ni PrimeVue.** Les deux ont été essayés le 16/09/2026, puis
-retirés le jour même : le rendu voulu était assez particulier pour que tout
-soit écrit à la main — tableau, fenêtres, boutons, pastilles. Il ne restait
-que le poids des paquets, un avertissement de licence dans la console, et
-deux garde-fous qu'il avait fallu contourner pour les faire passer.
+Le site reprend l'identité du Substack de Max, relevée dans le HTML qu'il
+sert réellement : accent `#2563eb` — et non l'orange `#FF6719` de la
+plateforme —, texte `#363737`, filet `#c3c3c3`, titres en **BBH Hegarty**
+(une seule graisse) et corps en **Lexend**, toutes deux servies par Google
+Fonts. Seul écart assumé : le fond de page est `#f2f2f2` au lieu du
+`#d9d9d9` du Substack, et la colonne de lecture est blanche — un portfolio
+se lit longtemps.
 
-Deux feuilles, donc :
+**Tailwind v4 et PrimeVue 4**, depuis le 17/09/2026. Les deux avaient été
+essayés puis retirés le 16/09 ; PrimeVue est revenu le soir même en version
+4 (la 5 avertit sur la licence), Tailwind avec la refonte. Tailwind v4 n'a
+plus de fichier de configuration : la palette est le bloc `@theme` de
+`app/assets/css/main.css`, et c'est la SEULE définition de couleur du
+projet. Tenu par `test/unit/design-tokens.spec.ts`.
 
-- `app/assets/css/base.css` — le site public, **sombre**, chargé
-  globalement par `nuxt.config.ts`.
-- `app/assets/css/admin.css` — le back-office, **clair**, importé par
+**L'ordre des couches est la pièce délicate**, parce qu'il ne se voit pas :
+`theme, base, primevue, site, components, utilities`. C'est **PrimeVue qui
+écrit l'instruction `@layer`**, depuis `cssLayer.order` de `nuxt.config.ts`
+— une instruction écrite dans `main.css` serait compilée et supprimée par
+Tailwind, les couches retomberaient sur l'ordre d'apparition, et PrimeVue,
+injecté en dernier à l'exécution, battrait silencieusement tout utilitaire.
+Un test Playwright lit l'ordre réel dans le navigateur.
+
+Les deux feuilles écrites à la main vivent dans la couche `site`, entre
+`primevue` (qu'elles surchargent) et `utilities` (qui les surcharge) : c'est
+ce qui permet de les vider un écran à la fois plutôt que d'un bloc.
+
+- `app/assets/css/main.css` — l'entrée : imports Tailwind, primeicons, le
+  bloc `@theme`, puis `base.css`.
+- `app/assets/css/base.css` — le site public, **clair**, dans la couche
+  `site`. Son `:root` ne définit plus de couleur : ce sont des alias des
+  tokens, pour que les centaines de `var(--x)` déjà écrites survivent.
+- `app/assets/css/admin.css` — le back-office, importé par
   `app/layouts/admin.vue` : il ne part pas dans le paquet des pages
-  publiques, qui ne s'en servent jamais.
+  publiques, qui ne s'en servent jamais. Ses `--a-*` sont, eux aussi, des
+  alias — il n'y avait pas une palette de trop, il y en avait deux.
 
 Une distinction à garder en tête dans la seconde : **`.admin-ui` porte le
 thème, `.admin-shell` porte la page.** Les fenêtres du back-office sont
 téléportées dans `<body>`, donc hors du layout ; sans cette séparation elles
-retombent sur la feuille sombre du site, champs compris. Elles portent
+retombent sur la feuille du site, champs compris. Elles portent
 `.admin-ui` et n'héritent ni de la hauteur ni du fond d'une page entière.
 
 Deux pièges de spécificité, payés une fois chacun :

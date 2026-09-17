@@ -21,13 +21,13 @@ const { data: accounts, refresh } = await useFetch('/api/admin/users', {
 })
 
 // The component is only mounted for a `tech`, and only after hydration —
-// `peut('tech')` is false during server rendering.
+// `peut('developer')` is false during server rendering.
 onMounted(() => refresh())
 
 /** Written once: the same labels served the invitation and each row. */
 const ROLES = [
   { label: 'Éditeur', value: 'editor' },
-  { label: 'Technique', value: 'tech' },
+  { label: 'Développeur', value: 'developer' },
 ]
 
 const invitation = ref<{ email: string; role: Role }>({ email: '', role: 'editor' })

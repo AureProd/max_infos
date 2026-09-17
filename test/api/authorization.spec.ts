@@ -51,7 +51,7 @@ function routesFromFiles(folder: string, prefixe = '/api/admin'): string[] {
 interface Pending {
   anonyme: number
   editor: number
-  tech: number
+  developer: number
   body?: unknown
 }
 
@@ -63,40 +63,40 @@ const DRAFT = {
 }
 
 const EXPECTED: Record<string, Pending> = {
-  'GET /api/admin/dashboard': { anonyme: 401, editor: 200, tech: 200 },
-  'GET /api/admin/articles': { anonyme: 401, editor: 200, tech: 200 },
-  'POST /api/admin/articles': { anonyme: 401, editor: 201, tech: 201, body: DRAFT },
-  'GET /api/admin/articles/[slug]': { anonyme: 401, editor: 200, tech: 200 },
-  'PUT /api/admin/articles/[slug]': { anonyme: 401, editor: 200, tech: 200, body: DRAFT },
-  'DELETE /api/admin/articles/[slug]': { anonyme: 401, editor: 404, tech: 404 },
+  'GET /api/admin/dashboard': { anonyme: 401, editor: 200, developer: 200 },
+  'GET /api/admin/articles': { anonyme: 401, editor: 200, developer: 200 },
+  'POST /api/admin/articles': { anonyme: 401, editor: 201, developer: 201, body: DRAFT },
+  'GET /api/admin/articles/[slug]': { anonyme: 401, editor: 200, developer: 200 },
+  'PUT /api/admin/articles/[slug]': { anonyme: 401, editor: 200, developer: 200, body: DRAFT },
+  'DELETE /api/admin/articles/[slug]': { anonyme: 401, editor: 404, developer: 404 },
   'PUT /api/admin/articles/[slug]/status': {
     anonyme: 401,
     editor: 200,
-    tech: 200,
+    developer: 200,
     body: { status: 'draft' },
   },
   'POST /api/admin/preview': {
     anonyme: 401,
     editor: 200,
-    tech: 200,
+    developer: 200,
     body: { bodyMd: '## Titre' },
   },
-  'GET /api/admin/media': { anonyme: 401, editor: 200, tech: 200 },
+  'GET /api/admin/media': { anonyme: 401, editor: 200, developer: 200 },
   'POST /api/admin/media/upload-url': {
     anonyme: 401,
     editor: 201,
-    tech: 201,
+    developer: 201,
     body: { filename: 'photo.png', contentType: 'image/png', bytes: 1024 },
   },
-  'GET /api/admin/tags': { anonyme: 401, editor: 200, tech: 200 },
+  'GET /api/admin/tags': { anonyme: 401, editor: 200, developer: 200 },
   // An unknown subject: 404 AFTER the role check, which is what is verified
   // here. A subject still carried by an article answers 409, and that
   // refusal has its own test.
-  'DELETE /api/admin/tags/[slug]': { anonyme: 401, editor: 404, tech: 404 },
+  'DELETE /api/admin/tags/[slug]': { anonyme: 401, editor: 404, developer: 404 },
   'PUT /api/admin/tags/[slug]': {
     anonyme: 401,
     editor: 404,
-    tech: 404,
+    developer: 404,
     body: { label: 'Peu importe' },
   },
   // Reading a pasted link never fails on the remote page's behalf: an
@@ -104,62 +104,62 @@ const EXPECTED: Record<string, Pending> = {
   'POST /api/admin/social-posts/unfurl': {
     anonyme: 401,
     editor: 200,
-    tech: 200,
+    developer: 200,
     body: { url: 'https://exemple.invalid/x' },
   },
-  'GET /api/admin/social-posts': { anonyme: 401, editor: 200, tech: 200 },
+  'GET /api/admin/social-posts': { anonyme: 401, editor: 200, developer: 200 },
   'POST /api/admin/social-posts': {
     anonyme: 401,
     editor: 201,
-    tech: 201,
+    developer: 201,
     body: { network: 'linkedin', url: 'https://www.linkedin.com/posts/x' },
   },
   // A non-existent identifier: 404 after the role check, which is what we
   // verify here. An anonymous caller gets 401 before reaching it.
-  'DELETE /api/admin/social-posts/[id]': { anonyme: 401, editor: 404, tech: 404 },
+  'DELETE /api/admin/social-posts/[id]': { anonyme: 401, editor: 404, developer: 404 },
   'PUT /api/admin/social-posts/[id]/article': {
     anonyme: 401,
     editor: 404,
-    tech: 404,
+    developer: 404,
     body: { articleSlug: null },
   },
   'PUT /api/admin/social-posts/[id]/visibility': {
     anonyme: 401,
     editor: 404,
-    tech: 404,
+    developer: 404,
     body: { hidden: true },
   },
-  'GET /api/admin/articles/[slug]/variants': { anonyme: 401, editor: 200, tech: 200 },
+  'GET /api/admin/articles/[slug]/variants': { anonyme: 401, editor: 200, developer: 200 },
 
   // The social accounts belong to Max: he connects, orders, hides and
   // disconnects them. The Meta application secrets, for their part, never
   // leave the server.
-  'GET /api/admin/social-accounts': { anonyme: 401, editor: 200, tech: 200 },
+  'GET /api/admin/social-accounts': { anonyme: 401, editor: 200, developer: 200 },
   'PUT /api/admin/social-accounts/[id]': {
     anonyme: 401,
     editor: 404,
-    tech: 404,
+    developer: 404,
     body: { visible: true },
   },
-  'DELETE /api/admin/social-accounts/[id]': { anonyme: 401, editor: 404, tech: 404 },
+  'DELETE /api/admin/social-accounts/[id]': { anonyme: 401, editor: 404, developer: 404 },
   // 409: no account connected in the tests. What counts is that an
   // `editor` is no longer refused.
-  'POST /api/admin/instagram/sync': { anonyme: 401, editor: 409, tech: 409 },
+  'POST /api/admin/instagram/sync': { anonyme: 401, editor: 409, developer: 409 },
   // 409 as well: without NUXT_INSTAGRAM_APP_ID, there is nowhere to send
   // Max.
-  'GET /api/admin/instagram/connect': { anonyme: 401, editor: 409, tech: 409 },
+  'GET /api/admin/instagram/connect': { anonyme: 401, editor: 409, developer: 409 },
   // 400: neither code nor state in the matrix request.
-  'GET /api/admin/instagram/callback': { anonyme: 401, editor: 400, tech: 400 },
+  'GET /api/admin/instagram/callback': { anonyme: 401, editor: 400, developer: 400 },
 
   // --- Reserved to the technical role ---------------------------------------
-  'GET /api/admin/settings': { anonyme: 401, editor: 200, tech: 200 },
+  'GET /api/admin/settings': { anonyme: 401, editor: 200, developer: 200 },
   // A single path, but a required role that DEPENDS ON THE KEY. The matrix
   // covers the public-key case here; the other scope is checked by the
   // « settings by scope » block, which enumerates SETTING_SCOPE.
   'PUT /api/admin/settings/[key]': {
     anonyme: 401,
     editor: 200,
-    tech: 200,
+    developer: 200,
     body: {
       name: 'Un Max d’info',
       author: 'Maximilien Huet',
@@ -175,35 +175,35 @@ const EXPECTED: Record<string, Pending> = {
   'POST /api/admin/substack/import': {
     anonyme: 401,
     editor: 409,
-    tech: 409,
+    developer: 409,
     body: { dryRun: true },
   },
 
-  'GET /api/admin/users': { anonyme: 401, editor: 403, tech: 200 },
+  'GET /api/admin/users': { anonyme: 401, editor: 403, developer: 200 },
   // Inviting writes a REAL row. Its own address, the least powerful role, and
   // no later case signs in with it.
   'POST /api/admin/users': {
     anonyme: 401,
     editor: 403,
-    tech: 201,
+    developer: 201,
     body: { email: 'matrice@exemple.test', role: 'editor' },
   },
   // 999999 does not exist: 404 AFTER the role check, which is what is being
-  // measured here. Aiming at a real account could strip the `tech` whose
+  // measured here. Aiming at a real account could strip the `developer` whose
   // session the following cases borrow — the handler therefore reads the row
   // BEFORE applying its guard rails, or a 409 would come out instead.
   'PUT /api/admin/users/[id]': {
     anonyme: 401,
     editor: 403,
-    tech: 404,
+    developer: 404,
     body: { active: true },
   },
-  'DELETE /api/admin/users/[id]': { anonyme: 401, editor: 403, tech: 404 },
-  'GET /api/admin/export': { anonyme: 401, editor: 403, tech: 200 },
+  'DELETE /api/admin/users/[id]': { anonyme: 401, editor: 403, developer: 404 },
+  'GET /api/admin/export': { anonyme: 401, editor: 403, developer: 200 },
   'POST /api/admin/import': {
     anonyme: 401,
     editor: 403,
-    tech: 200,
+    developer: 200,
     // Dry run: writes nothing, which leaves the matrix without side effects.
     body: { archive: { manifest: { version: 1 } }, dryRun: true },
   },
@@ -222,7 +222,7 @@ const SLUG_ABSENT = 'jamais-vu-de-la-matrice'
 
 let sqlClient: postgres.Sql
 let db: TestDatabase
-const accounts: Record<'editor' | 'tech', number> = { editor: 0, tech: 0 }
+const accounts: Record<'editor' | 'developer', number> = { editor: 0, developer: 0 }
 
 beforeAll(async () => {
   sqlClient = connection()
@@ -234,10 +234,10 @@ beforeAll(async () => {
     .returning({ id: appUser.id })
   const [t] = await db
     .insert(appUser)
-    .values({ email: 'jb@exemple.test', role: 'tech' })
+    .values({ email: 'jb@exemple.test', role: 'developer' })
     .returning({ id: appUser.id })
   accounts.editor = e?.id ?? 0
-  accounts.tech = t?.id ?? 0
+  accounts.developer = t?.id ?? 0
 
   // The article the parameterised routes operate on.
   const { article } = await import('../../server/database/schema')
@@ -255,7 +255,7 @@ afterAll(async () => {
 await setup({ server: true, browser: false })
 
 /** A sealed session cookie, without going through Google. */
-async function sessionFor(role: 'editor' | 'tech'): Promise<string> {
+async function sessionFor(role: 'editor' | 'developer'): Promise<string> {
   const r = await fetch('/api/test/session', {
     method: 'POST',
     body: JSON.stringify({ id: accounts[role] }),
@@ -284,7 +284,9 @@ describe('route inventory', () => {
 
 describe('route × role matrix', () => {
   const cas = Object.entries(EXPECTED).flatMap(([route, attentes]) =>
-    (['anonyme', 'editor', 'tech'] as const).map((qui) => [route, qui, attentes[qui]] as const),
+    (['anonyme', 'editor', 'developer'] as const).map(
+      (qui) => [route, qui, attentes[qui]] as const,
+    ),
   )
 
   it.each(cas)('%s — %s → %i', async (route, qui, expected) => {
@@ -346,9 +348,9 @@ describe('settings by scope', () => {
     }
   })
 
-  it('GET settings returns EVERYTHING to a tech', async () => {
+  it('GET settings returns EVERYTHING to a developer', async () => {
     const r = await fetch('/api/admin/settings', {
-      headers: { cookie: await sessionFor('tech') },
+      headers: { cookie: await sessionFor('developer') },
     })
     const received = Object.keys((await r.json()) as Record<string, unknown>)
     for (const key of keys) expect(received).toContain(key)
@@ -357,7 +359,7 @@ describe('settings by scope', () => {
 
 describe('project invariant', () => {
   it('editor gets 403 on EVERY technical route', () => {
-    const technical = Object.entries(EXPECTED).filter(([, a]) => a.tech !== a.editor)
+    const technical = Object.entries(EXPECTED).filter(([, a]) => a.developer !== a.editor)
     expect(technical.length).toBeGreaterThan(0)
     for (const [route, a] of technical) {
       expect(a.editor, `${route} doit refuser editor`).toBe(403)

@@ -1,32 +1,37 @@
 /* ============================================================
    Un Max d'info — back-office
-   Clair, dense, tabulaire. Le site public est sombre et
-   éditorial ; l'outil de travail n'a pas à lui ressembler.
+   Clair, dense, tabulaire. Le site public est une vitrine ;
+   l'outil de travail n'a pas à lui ressembler — il doit être
+   rapide et lisible, y compris sur un téléphone.
    ============================================================ */
 
 /*
  * `.admin-ui` porte le THÈME ; `.admin-shell` porte la PAGE.
  *
  * Les fenêtres du back-office sont téléportées dans <body>, donc hors du
- * layout : sans cette séparation elles retombaient sur la feuille sombre
- * du site, champs compris. Elles portent .admin-ui, et n'héritent ni de la
+ * layout : sans cette séparation elles retombaient sur la feuille du site,
+ * champs compris. Elles portent .admin-ui, et n'héritent ni de la
  * hauteur ni du fond d'une page entière.
  */
 .admin-ui {
   /* Le back-office est en clair, quoi que dise le système : les captures,
-     les impressions et les copies d'écran restent lisibles. */
-  --a-bg: #f6f7f9;
-  --a-panel: #ffffff;
-  --a-line: #e2e5ea;
-  --a-line-strong: #cdd2da;
-  --a-text: #1a1d23;
-  --a-muted: #5b6270;
-  --a-faint: #858c99;
-  --a-accent: #2462e9;
-  --a-accent-soft: #eaf0fe;
-  --a-ok: #0f7b46;
-  --a-warn: #b45309;
-  --a-danger: #b91c1c;
+     les impressions et les copies d'écran restent lisibles.
+
+     Ces `--a-*` ne sont plus une palette : ce sont des ALIAS des tokens de
+     `main.css`. Il n'y avait pas une palette de trop, il y en avait deux —
+     et une couleur écrite ailleurs n'appartenait alors à aucune des deux. */
+  --a-bg: var(--color-page);
+  --a-panel: var(--color-surface);
+  --a-line: var(--color-line-soft);
+  --a-line-strong: var(--color-line);
+  --a-text: var(--color-ink);
+  --a-muted: var(--color-muted);
+  --a-faint: var(--color-faint);
+  --a-accent: var(--color-accent);
+  --a-accent-soft: var(--color-accent-soft);
+  --a-ok: var(--color-ok);
+  --a-warn: var(--color-warn);
+  --a-danger: var(--color-danger);
 
   color-scheme: light;
   color: var(--a-text);

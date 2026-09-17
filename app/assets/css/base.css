@@ -1,39 +1,38 @@
 /* ============================================================
-   Un Max d'info — stylesheet
+   Un Max d'info — site public
    Direction: editorial, sharp angles, carried by the typography.
-   Palette: Discord-like neutrals, accent = the logo blue (#2462E9),
-   amber complement used sparingly.
+   Palette and fonts come from the @theme block of main.css: the
+   values below are ALIASES, so that the hundreds of var(--x)
+   already written in this sheet keep working while it is
+   progressively emptied into Tailwind classes.
    ============================================================ */
 :root {
-  /* Discord-like neutrals, pulled slightly towards the logo blue (221°),
-     so the greys read as a choice and not as a default. */
-  --ink: #17191d; /* fond de page      (Discord : #1E1F22) */
-  --surface: #1e2127; /* resting surfaces  (Discord: #2B2D31) */
-  --raised: #272b33; /* raised surfaces   (Discord: #313338) */
-  --line: #343842;
-  --line-soft: rgba(255, 255, 255, 0.055);
-  --text: #dbdee1; /* Discord : texte normal */
-  --muted: #949ba4; /* Discord: muted text */
-  --faint: #6b727c;
+  /* Le site est passé du sombre au clair. Les noms n'ont pas bougé —
+     `--ink` reste le fond de page, `--text` reste le texte — pour que la
+     bascule ne réécrive pas mille déclarations d'un coup. */
+  --ink: var(--color-page);
+  --surface: var(--color-surface);
+  --raised: var(--color-raised);
+  --line: var(--color-line);
+  --line-soft: var(--color-line-soft);
+  --text: var(--color-ink);
+  --muted: var(--color-muted);
+  --faint: var(--color-faint);
 
-  /* The logo blue, lifted to stay legible on a dark background —
-     the way Discord lifts its blurple. */
-  --accent: #4a81f5;
-  --accent-solid: #2462e9; /* bleu exact du logo, pour les aplats */
-  --accent-lo: rgba(74, 129, 245, 0.14);
+  --accent: var(--color-accent);
+  --accent-solid: var(--color-accent);
+  --accent-lo: var(--color-accent-soft);
 
-  /* Complement of the blue (221° → 41°). Used sparingly: the key
-     figures and the « à la une » label. */
-  --gold: #e9ab24;
-  --gold-lo: rgba(233, 171, 36, 0.13);
+  --gold: var(--color-gold);
+  --gold-lo: var(--color-gold-soft);
 
-  --display: 'Bricolage Grotesque', 'Helvetica Neue', Arial, sans-serif;
-  --body: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --display: var(--font-display);
+  --body: var(--font-body);
 
-  --wrap: 1240px;
-  --read: 66ch;
+  --wrap: var(--container-wrap);
+  --read: var(--container-read);
 
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 *,

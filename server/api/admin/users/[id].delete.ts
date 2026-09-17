@@ -10,7 +10,7 @@ import { removeUser } from '~~/server/utils/users'
  * `ON DELETE SET NULL` oblige.
  */
 export default defineEventHandler(async (event) => {
-  const actor = await requireRole(event, 'tech')
+  const actor = await requireRole(event, 'developer')
 
   const id = Number(getRouterParam(event, 'id'))
   if (!Number.isInteger(id)) {

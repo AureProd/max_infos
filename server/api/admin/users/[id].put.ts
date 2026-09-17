@@ -11,7 +11,7 @@ import { changeUser } from '~~/server/utils/users'
  * not 409.
  */
 export default defineEventHandler(async (event) => {
-  const actor = await requireRole(event, 'tech')
+  const actor = await requireRole(event, 'developer')
 
   const id = Number(getRouterParam(event, 'id'))
   if (!Number.isInteger(id)) {

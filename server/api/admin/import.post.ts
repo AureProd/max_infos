@@ -43,7 +43,7 @@ const zipOptions = z.object({
  * curiosity.
  */
 export default defineEventHandler(async (event) => {
-  await requireRole(event, 'tech')
+  await requireRole(event, 'developer')
 
   const type = getHeader(event, 'content-type') ?? ''
   const isZip = type.includes('zip') || type.includes('octet-stream')

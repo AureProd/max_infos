@@ -1,19 +1,5 @@
 import type { SettingKey, SettingValue } from '#shared/schemas/settings'
-
-/**
- * Whatever the server was willing to say — never an empty string.
- *
- * `??` alone is not enough: ofetch fills `data.message` with '' rather than
- * leaving it out, and an empty reason displays as no reason at all, which
- * is the very silence being fixed here.
- */
-function reason(e: unknown): string {
-  const err = e as { statusMessage?: string; data?: { message?: string }; message?: string }
-  const said = [err.data?.message, err.statusMessage, err.message].find(
-    (s) => typeof s === 'string' && s.trim() !== '',
-  )
-  return said ?? 'Enregistrement impossible'
-}
+import { reason } from '#shared/utils/errors'
 
 /**
  * Reading and writing a setting from the back-office.
@@ -43,7 +29,7 @@ export function useSetting<K extends SettingKey>(key: K) {
       state.value = 'repos'
     } catch (e) {
       state.value = 'échec'
-      error.value = reason(e)
+      error.value = reason(e, 'Enregistrement impossible')
     }
   }
 
@@ -59,7 +45,7 @@ export function useSetting<K extends SettingKey>(key: K) {
       state.value = 'enregistré'
     } catch (e) {
       state.value = 'échec'
-      error.value = reason(e)
+      error.value = reason(e, 'Enregistrement impossible')
     }
   }
 

@@ -26,7 +26,7 @@ beforeAll(async () => {
   await migrate(sqlClient)
   db = database(sqlClient)
   await seedTestData(db)
-  await db.insert(appUser).values({ email: 'jb@zip.test', role: 'tech' })
+  await db.insert(appUser).values({ email: 'jb@zip.test', role: 'developer' })
 }, 60_000)
 
 afterAll(async () => {
@@ -149,7 +149,7 @@ describe('a backup whose author has left', () => {
     prepared ??= (async () => {
       const [author] = await db
         .insert(appUser)
-        .values({ email: 'auteur@zip.test', role: 'tech' })
+        .values({ email: 'auteur@zip.test', role: 'developer' })
         .returning()
       if (!author) throw new Error('auteur non créé')
 

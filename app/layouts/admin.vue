@@ -21,7 +21,7 @@ const { user, peut, signOut } = useUser()
  * alone protects. But a menu offering forbidden screens makes a tool feel
  * like it was not built for you.
  */
-const seesTech = peut('tech')
+const seesTech = peut('developer')
 
 const route = useRoute()
 
@@ -83,7 +83,7 @@ const here = computed(
           <span class="admin-user">{{ user?.name ?? user?.email }}</span>
           <!-- The role, shown rather than guessed: which screens are
                missing from the menu is otherwise a puzzle. -->
-          <span v-if="seesTech" class="admin-tag">technique</span>
+          <span v-if="seesTech" class="admin-tag">développeur</span>
           <!--
             Deux libellés, un long et un court : sur un téléphone, « Voir le
             site ↗ » et « Se déconnecter » à eux seuls dépassent la largeur
@@ -110,11 +110,21 @@ const here = computed(
     <main class="admin-main">
       <slot />
     </main>
+
+    <!--
+      Le retour à l'utilisateur, monté une fois pour tout le back-office.
+
+      Ils sont TÉLÉPORTÉS dans <body>, donc hors de `.admin-shell` : c'est
+      `.admin-ui` qui porte le thème, et sans lui ils retomberaient sur la
+      feuille du site. Le `pt` les y rattache.
+    -->
+    <Toast position="top-right" :pt="{ root: { class: 'admin-ui' } }" />
+    <ConfirmDialog :pt="{ root: { class: 'admin-ui' } }" />
   </div>
 </template>
 
 <style>
 /* Importée ici plutôt que dans nuxt.config : la feuille du back-office ne
    part pas dans le bundle des pages publiques, qui ne l'utilisent jamais. */
-@import '~/assets/css/admin.css';
+@import '~/assets/css/admin.css' layer(site);
 </style>

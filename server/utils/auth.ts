@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm'
 import type { H3Event } from 'h3'
-import { isAllowed, type Role } from '#shared/utils/roles'
+import { asRole, isAllowed, type Role } from '#shared/utils/roles'
 import { useDatabase } from '~~/server/database/client'
 import { appUser } from '~~/server/database/schema'
 
@@ -44,7 +44,10 @@ export async function currentUser(event: H3Event): Promise<SignedInUser | null> 
     email: row.email,
     name: row.name,
     avatarUrl: row.avatarUrl,
-    role: row.role,
+    // `asRole` and not `row.role`: the column may still hold `tech`, the
+    // former name of `developer`, for the length of a deployment. Reading
+    // it here means nothing downstream ever has to know that.
+    role: asRole(row.role),
   }
 }
 
@@ -120,7 +123,7 @@ export async function signInOrReject(profile: {
       email: existing.email,
       name: profile.name ?? existing.name,
       avatarUrl: profile.avatarUrl ?? existing.avatarUrl,
-      role: existing.role,
+      role: asRole(existing.role),
     }
   }
 
@@ -135,7 +138,7 @@ export async function signInOrReject(profile: {
       email,
       name: profile.name ?? null,
       avatarUrl: profile.avatarUrl ?? null,
-      role: 'tech',
+      role: 'developer',
       lastLoginAt: new Date(),
     })
     .returning({
@@ -147,5 +150,5 @@ export async function signInOrReject(profile: {
     })
 
   if (!created) throw createError({ statusCode: 500, statusMessage: 'Création impossible' })
-  return created
+  return { ...created, role: asRole(created.role) }
 }

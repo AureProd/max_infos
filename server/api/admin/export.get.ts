@@ -21,7 +21,7 @@ import { articleToMarkdown, buildExport } from '~~/server/utils/export'
  * code for nothing — the heavy files are not in there.
  */
 export default defineEventHandler(async (event) => {
-  await requireRole(event, 'tech')
+  await requireRole(event, 'developer')
 
   const archive = await buildExport()
   const day = new Date().toISOString().slice(0, 10)

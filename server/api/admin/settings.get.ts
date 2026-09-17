@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const u = await requireRole(event, 'editor')
 
   const visible = SETTING_KEYS.filter(
-    (key) => SETTING_SCOPE[key] === 'public' || isAllowed(u.role, 'tech'),
+    (key) => SETTING_SCOPE[key] === 'public' || isAllowed(u.role, 'developer'),
   )
 
   const output: Record<string, unknown> = {}

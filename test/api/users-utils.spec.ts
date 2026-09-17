@@ -48,7 +48,7 @@ beforeEach(async () => {
   session = {}
 })
 
-const techId = async (email = 'jb@exemple.test') => (await inviteUser(email, 'tech')).id
+const techId = async (email = 'jb@exemple.test') => (await inviteUser(email, 'developer')).id
 
 describe('inviting', () => {
   it('writes the row a first login will recognise, and nothing more', async () => {
@@ -83,7 +83,7 @@ describe('inviting', () => {
     // The unique index is on lower(email): this test exercises the INDEX,
     // not the code around it.
     await inviteUser('max@exemple.test', 'editor')
-    await expect(inviteUser('MAX@EXEMPLE.TEST', 'tech')).rejects.toMatchObject({
+    await expect(inviteUser('MAX@EXEMPLE.TEST', 'developer')).rejects.toMatchObject({
       statusCode: 409,
     })
     expect(await db.select().from(appUser)).toHaveLength(1)
@@ -101,7 +101,7 @@ describe('changing an account', () => {
     const jb = await techId()
     const max = (await inviteUser('max@exemple.test', 'editor')).id
 
-    expect(await changeUser(jb, max, { role: 'tech' })).toMatchObject({ role: 'tech' })
+    expect(await changeUser(jb, max, { role: 'developer' })).toMatchObject({ role: 'developer' })
   })
 
   it('cuts the access, which takes effect on the very next request', async () => {

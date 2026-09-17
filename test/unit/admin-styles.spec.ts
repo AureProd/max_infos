@@ -4,21 +4,24 @@ import { describe, expect, it } from 'vitest'
 import { rules } from './helpers/css'
 
 /**
- * Two palettes coexist in the cascade, and the back-office pays for it.
+ * The back-office is not dressed from the public sheet.
  *
- * `base.css` is loaded everywhere, `:root` carrying the DARK palette of the
- * public site. The back-office is light: `.admin-ui` sets `--a-*` and its
- * own text colour. A rule written in `base.css` for an admin screen
- * therefore paints a dark background under black text — which is exactly
- * what `.a-diff`, the restore comparison, did.
+ * There used to be two palettes — a dark `:root` in `base.css`, a light
+ * `.admin-ui` in `admin.css` — and a rule written in the wrong sheet painted
+ * a dark background under black text, which is exactly what `.a-diff`, the
+ * restore comparison, did. Both now alias the same `@theme` tokens, so the
+ * colours can no longer clash; what this test still holds is the SEPARATION.
+ * `base.css` is loaded on every public page: an admin rule written there is
+ * shipped to every visitor for nothing, and drifts away from `admin.css`
+ * where its siblings live.
  *
- * Nothing catches it: Biome does not read CSS, `vue-tsc` neither, and the
- * defect is invisible until someone looks at the screen.
+ * Nothing else catches it: Biome does not read CSS, `vue-tsc` neither, and
+ * the defect is invisible until someone looks at the screen.
  */
 
 const CSS = readFileSync(join(process.cwd(), 'app/assets/css/base.css'), 'utf8')
 
-/** The palette of the public site, which the back-office does not inherit. */
+/** The aliases the public sheet defines for itself, not for the tool. */
 const PUBLIC_PALETTE = /var\(--(surface|ink|text|line|muted|raised|accent)\b/
 
 /** A property that would make something visible — or invisible. */
@@ -59,12 +62,16 @@ describe('the sheet of the public site', () => {
  */
 describe('the theme of the back-office controls', () => {
   const CONFIG = readFileSync(join(process.cwd(), 'nuxt.config.ts'), 'utf8')
-  const ADMIN = readFileSync(join(process.cwd(), 'app/assets/css/admin.css'), 'utf8')
+  const MAIN = readFileSync(join(process.cwd(), 'app/assets/css/main.css'), 'utf8')
 
-  /** The accent the sheet gives to `.admin-ui`, which everything else uses. */
-  const accent = /--a-accent:\s*(#[0-9a-f]{6})/i.exec(ADMIN)?.[1]?.toLowerCase()
+  /**
+   * The accent, read from the ONE place it is written — the `@theme` block.
+   * `.admin-ui` only aliases it now, so reading `--a-accent` would compare
+   * the config to the string `var(--color-accent)`.
+   */
+  const accent = /--color-accent:\s*(#[0-9a-f]{6})/i.exec(MAIN)?.[1]?.toLowerCase()
 
-  it('reads an accent from the sheet at all', () => {
+  it('reads an accent from the tokens at all', () => {
     expect(accent).toMatch(/^#[0-9a-f]{6}$/)
   })
 

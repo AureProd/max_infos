@@ -69,7 +69,7 @@ describe('inviting an account', () => {
   })
 
   it('accepts the two roles and nothing else', () => {
-    expect(userInvitation.parse({ email: 'a@b.test', role: 'tech' }).role).toBe('tech')
+    expect(userInvitation.parse({ email: 'a@b.test', role: 'developer' }).role).toBe('developer')
     expect(userInvitation.safeParse({ email: 'a@b.test', role: 'admin' }).success).toBe(false)
     expect(userInvitation.safeParse({ email: 'a@b.test' }).success).toBe(false)
   })
@@ -79,7 +79,7 @@ describe('updating an account', () => {
   it('accepts a single field, because that is what a switch sends', () => {
     // Posting the whole state back would overwrite a change made meanwhile.
     expect(userUpdate.parse({ active: false })).toEqual({ active: false })
-    expect(userUpdate.parse({ role: 'tech' })).toEqual({ role: 'tech' })
+    expect(userUpdate.parse({ role: 'developer' })).toEqual({ role: 'developer' })
   })
 
   it('refuses a role it does not know', () => {

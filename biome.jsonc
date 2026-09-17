@@ -25,6 +25,11 @@
   "javascript": {
     "formatter": { "quoteStyle": "single", "semicolons": "asNeeded" }
   },
+  "css": {
+    // Sans cela, `@theme` et `@source` de Tailwind v4 sont des erreurs de
+    // syntaxe : Biome abandonne le fichier entier, formatage compris.
+    "parser": { "tailwindDirectives": true }
+  },
   "linter": {
     "enabled": true,
     "rules": {
@@ -43,9 +48,13 @@
       "linter": { "rules": { "style": { "noNonNullAssertion": "off" } } }
     },
     {
-      // The two stylesheets carry the whole design. Reformatting them would
+      // The stylesheets carry the whole design. Reformatting them would
       // drown every future review in noise.
-      "includes": ["app/assets/css/base.css", "app/assets/css/admin.css"],
+      "includes": [
+        "app/assets/css/main.css",
+        "app/assets/css/base.css",
+        "app/assets/css/admin.css"
+      ],
       "formatter": { "enabled": false },
       "linter": { "enabled": false }
     },

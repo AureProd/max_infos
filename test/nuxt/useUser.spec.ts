@@ -54,17 +54,17 @@ describe('useUser', () => {
     expect(user.value).toBeNull()
     expect(signedIn.value).toBe(false)
     expect(peut('editor').value).toBe(false)
-    expect(peut('tech').value).toBe(false)
+    expect(peut('developer').value).toBe(false)
   })
 
   it('opens everything to a tech', async () => {
-    current = asUser('tech')
+    current = asUser('developer')
     const { signedIn, peut, refresh } = useUser()
     await refresh()
 
     expect(signedIn.value).toBe(true)
     expect(peut('editor').value).toBe(true)
-    expect(peut('tech').value).toBe(true)
+    expect(peut('developer').value).toBe(true)
   })
 
   it('keeps the technical screens shut to an editor', async () => {
@@ -73,13 +73,13 @@ describe('useUser', () => {
     await refresh()
 
     expect(peut('editor').value).toBe(true)
-    expect(peut('tech').value).toBe(false)
+    expect(peut('developer').value).toBe(false)
   })
 
   it('signs out, re-reads, then leaves the back-office', async () => {
     // The order matters: leaving without refreshing would keep a stale user
     // in memory for the next page.
-    current = asUser('tech')
+    current = asUser('developer')
     order.length = 0
 
     const { signOut, signedIn, refresh } = useUser()

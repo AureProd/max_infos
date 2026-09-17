@@ -1,5 +1,5 @@
-import { and, eq, ne } from 'drizzle-orm'
-import type { Role } from '#shared/utils/roles'
+import { and, eq, inArray, ne } from 'drizzle-orm'
+import { asRole, LEGACY_ROLE, type Role } from '#shared/utils/roles'
 import { useDatabase } from '~~/server/database/client'
 import { appUser } from '~~/server/database/schema'
 
@@ -31,10 +31,22 @@ export interface AccountChange {
   active?: boolean
 }
 
+/**
+ * The two spellings of the developer role that the column may hold.
+ *
+ * `tech` is its former name, still legal for the length of one deployment.
+ * A query that looked for `developer` alone would conclude there is no
+ * developer left and refuse every change — including, ironically, the one
+ * that would fix it.
+ */
+const DEVELOPER_IN_DB = ['developer', LEGACY_ROLE] as const
+
 async function load(id: number) {
   const [row] = await useDatabase().select(FIELDS).from(appUser).where(eq(appUser.id, id)).limit(1)
   if (!row) throw createError({ statusCode: 404, statusMessage: 'Compte introuvable' })
-  return row
+  // Normalised here, once: everything downstream — the rules below and the
+  // JSON the screen receives — then speaks a single name.
+  return { ...row, role: asRole(row.role) }
 }
 
 /**
@@ -56,34 +68,40 @@ function refuseSelfHarm(actorId: number, target: { id: number; role: Role }, c: 
 }
 
 /**
- * Refuses to strip the last active `tech`.
+ * Refuses to strip the last active `developer`.
  *
  * Belt and braces: `refuseSelfHarm` already makes a lockout unreachable
- * through the routes, since the last tech is necessarily the one asking. This
+ * through the routes, since the last developer is necessarily the one asking. This
  * one holds even for a caller that forgets to pass the actor — a script, a
  * route written later.
  *
- * A DEACTIVATED tech does not count: an account that can no longer sign in
+ * A DEACTIVATED developer does not count: an account that can no longer sign in
  * protects nothing.
  */
-async function refuseLosingLastTech(
+async function refuseLosingLastDeveloper(
   target: { id: number; role: Role; active: boolean },
   c: AccountChange & { removed?: boolean },
 ) {
-  if (target.role !== 'tech' || !target.active) return
-  const stillTech = c.removed || c.active === false || (c.role !== undefined && c.role !== 'tech')
-  if (!stillTech) return
+  if (target.role !== 'developer' || !target.active) return
+  const losing = c.removed || c.active === false || (c.role !== undefined && c.role !== 'developer')
+  if (!losing) return
 
   const [survivor] = await useDatabase()
     .select({ id: appUser.id })
     .from(appUser)
-    .where(and(eq(appUser.role, 'tech'), eq(appUser.active, true), ne(appUser.id, target.id)))
+    .where(
+      and(
+        inArray(appUser.role, [...DEVELOPER_IN_DB]),
+        eq(appUser.active, true),
+        ne(appUser.id, target.id),
+      ),
+    )
     .limit(1)
 
   if (!survivor) {
     throw createError({
       statusCode: 409,
-      statusMessage: 'Il doit rester au moins un compte technique actif',
+      statusMessage: 'Il doit rester au moins un compte développeur actif',
     })
   }
 }
@@ -109,7 +127,7 @@ export async function inviteUser(email: string, role: Role) {
   if (!row) {
     throw createError({ statusCode: 409, statusMessage: 'Cette adresse est déjà invitée' })
   }
-  return row
+  return { ...row, role: asRole(row.role) }
 }
 
 /** Changes a role, an access, or both. */
@@ -117,7 +135,7 @@ export async function changeUser(actorId: number, id: number, changes: AccountCh
   const target = await load(id)
 
   refuseSelfHarm(actorId, target, changes)
-  await refuseLosingLastTech(target, changes)
+  await refuseLosingLastDeveloper(target, changes)
 
   // Nothing to write: the screen sends the field it touched, and an empty
   // change is not an error — it is a click that changed nothing.
@@ -130,7 +148,7 @@ export async function changeUser(actorId: number, id: number, changes: AccountCh
     .returning(FIELDS)
 
   if (!row) throw createError({ statusCode: 404, statusMessage: 'Compte introuvable' })
-  return row
+  return { ...row, role: asRole(row.role) }
 }
 
 /**
@@ -149,7 +167,7 @@ export async function removeUser(actorId: number, id: number) {
       statusMessage: 'On ne peut pas supprimer son propre compte',
     })
   }
-  await refuseLosingLastTech(target, { removed: true })
+  await refuseLosingLastDeveloper(target, { removed: true })
 
   const [row] = await useDatabase()
     .delete(appUser)

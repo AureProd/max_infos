@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: 'Réglage inconnu' })
   }
 
-  const u = await requireRole(event, SETTING_SCOPE[key] === 'tech' ? 'tech' : 'editor')
+  const u = await requireRole(event, SETTING_SCOPE[key] === 'tech' ? 'developer' : 'editor')
   const body = await readBody(event)
 
   return await writeSetting(key, body, u.id)

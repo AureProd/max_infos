@@ -13,7 +13,7 @@ import { inviteUser } from '~~/server/utils/users'
  * `tech`. Managing accounts therefore stays with JB, as docs/PLAN.md said.
  */
 export default defineEventHandler(async (event) => {
-  await requireRole(event, 'tech')
+  await requireRole(event, 'developer')
   const { email, role } = await readValidatedBody(event, userInvitation.parse)
 
   const created = await inviteUser(email, role)
