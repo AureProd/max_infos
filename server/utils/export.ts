@@ -1,4 +1,5 @@
 import { asc, eq, sql } from 'drizzle-orm'
+import { strFromU8, unzipSync } from 'fflate'
 import { useDatabase } from '~~/server/database/client'
 import {
   appUser,
@@ -117,6 +118,69 @@ export async function buildExport(): Promise<Archive> {
   }
 }
 
+/**
+ * Reads back the ZIP the site hands out.
+ *
+ * The export produced an archive and the import accepted nothing but raw
+ * JSON: the backup downloaded from the Technique screen could not be
+ * restored with it, and pulling production content into a local database
+ * was simply impossible.
+ *
+ * The layout read here is the one `export.get.ts` writes. The root folder
+ * carries the day of the export, so it is FOUND rather than assumed — a
+ * pinned name would only ever restore today's backup. The .md files are
+ * ignored: they are there for humans, the JSON is what restores.
+ */
+export function archiveFromZip(bytes: Uint8Array): Archive {
+  let files: Record<string, Uint8Array>
+  try {
+    files = unzipSync(bytes)
+  } catch {
+    throw createError({ statusCode: 422, statusMessage: "Ce fichier n'est pas une archive zip" })
+  }
+
+  const manifestPath = Object.keys(files).find(
+    (f) => f.endsWith('manifest.json') && !f.includes('/media/'),
+  )
+  if (!manifestPath) {
+    throw createError({
+      statusCode: 422,
+      statusMessage: "Archive sans manifest.json : ce n'est pas une sauvegarde du site",
+    })
+  }
+  const root = manifestPath.slice(0, manifestPath.length - 'manifest.json'.length)
+
+  /** A section absent from an older archive is empty, not fatal. */
+  const read = <T>(path: string, fallback: T): T => {
+    const file = files[`${root}${path}`]
+    if (!file) return fallback
+    try {
+      return JSON.parse(strFromU8(file)) as T
+    } catch {
+      throw createError({
+        statusCode: 422,
+        statusMessage: `Fichier illisible dans l'archive : ${path}`,
+      })
+    }
+  }
+
+  const links = read<{ tags?: unknown[]; social?: unknown[] }>('data/links.json', {})
+
+  return {
+    manifest: read('manifest.json', { version: 0, exportedAt: '', counts: {} }),
+    articles: read<unknown[]>('data/articles.json', []),
+    tags: read<unknown[]>('data/tags.json', []),
+    tagLinks: links.tags ?? [],
+    media: read<unknown[]>('media/manifest.json', []),
+    socialAccounts: read<unknown[]>('data/social_accounts.json', []),
+    socialPosts: read<unknown[]>('data/social_posts.json', []),
+    socialLinks: links.social ?? [],
+    settings: read<unknown[]>('data/settings.json', []),
+    users: read<unknown[]>('data/users.json', []),
+    views: read<unknown[]>('data/views.json', []),
+  }
+}
+
 /** An article's YAML front matter, for the archive's readability. */
 export function articleToMarkdown(a: Record<string, unknown>, tags: string[]): string {
   // The BACKSLASH first, then the quote: doing it the other way round would
@@ -146,11 +210,41 @@ ${a.bodyMd ?? ''}
  * `secret` is never touched: an import must not be able to replace the
  * access tokens of third-party accounts.
  */
+/**
+ * What a restore can be asked to bring back, one chunk per meaning.
+ *
+ * Grouped by what they ARE and not by table: whoever ticks « Articles »
+ * means the articles WITH their subjects, not a list of rows whose links
+ * would be missing.
+ */
+export const IMPORT_PARTS = [
+  'articles',
+  'media',
+  'publications',
+  'settings',
+  'users',
+  'views',
+] as const
+
+export type ImportPart = (typeof IMPORT_PARTS)[number]
+
 export async function applyImport(
   archive: Archive,
-  options: { wipe: boolean },
+  options: { wipe: boolean; parts?: readonly ImportPart[] },
 ): Promise<Record<string, number>> {
   const db = useDatabase()
+  const asked = new Set<ImportPart>(options.parts ?? IMPORT_PARTS)
+
+  /**
+   * An article points at its cover, which lives in `media`.
+   *
+   * Restoring the articles without the media would break on the foreign
+   * key — and only once the insert ran, halfway through the restore. The
+   * dependency is resolved here rather than left to whoever ticks the
+   * boxes.
+   */
+  const wants = (part: ImportPart): boolean =>
+    asked.has(part) || (part === 'media' && asked.has('articles'))
 
   if (archive.manifest?.version !== SCHEMA_VERSION) {
     throw createError({
@@ -162,10 +256,27 @@ export async function applyImport(
   if (options.wipe) {
     // `secret` is ABSENT from this list, on purpose: an import must not be
     // able to erase the access tokens of third-party accounts.
-    await db.execute(sql`truncate table
-      article_view, article_social_post, article_tag, social_post,
-      social_account, article, tag, media, setting, app_user
-      restart identity cascade`)
+    //
+    // Only what is about to be rewritten is emptied: wiping the articles to
+    // restore the settings alone would destroy content the archive is not
+    // going to put back.
+    const tables: string[] = []
+    if (wants('articles')) tables.push('article_tag', 'article')
+    if (wants('publications')) tables.push('article_social_post', 'social_post', 'social_account')
+    if (wants('views')) tables.push('article_view')
+    if (wants('articles')) tables.push('tag')
+    if (wants('media')) tables.push('media')
+    if (wants('settings')) tables.push('setting')
+    if (wants('users')) tables.push('app_user')
+
+    if (tables.length) {
+      await db.execute(
+        sql`truncate table ${sql.join(
+          [...new Set(tables)].map((t) => sql.identifier(t)),
+          sql`, `,
+        )} restart identity cascade`,
+      )
+    }
   }
 
   /**
@@ -204,18 +315,35 @@ export async function applyImport(
     written[name] = lines.length
   }
 
+  /** Skipped means absent from the report, not « zero written ». */
+  const maybe = async <T>(
+    part: ImportPart,
+    name: string,
+    table: never,
+    lines: T[],
+  ): Promise<void> => {
+    if (wants(part)) await insert(name, table, lines)
+  }
+
   // The order follows the dependencies: whatever is referenced comes first.
-  await insert('users', appUser as never, archive.users as never[])
-  await insert('media', media as never, archive.media as never[])
-  await insert('tags', tag as never, archive.tags as never[])
-  await insert('articles', article as never, archive.articles as never[])
+  await maybe('users', 'users', appUser as never, archive.users as never[])
+  await maybe('media', 'media', media as never, archive.media as never[])
+  await maybe('articles', 'tags', tag as never, archive.tags as never[])
+  await maybe('articles', 'articles', article as never, archive.articles as never[])
   // Accounts BEFORE posts: the latter reference the former.
-  await insert('socialAccounts', socialAccount as never, archive.socialAccounts as never[])
-  await insert('socialPosts', socialPost as never, archive.socialPosts as never[])
-  await insert('tagLinks', articleTag as never, archive.tagLinks as never[])
-  await insert('socialLinks', articleSocialPost as never, archive.socialLinks as never[])
-  await insert('settings', setting as never, archive.settings as never[])
-  await insert('views', articleView as never, archive.views as never[])
+  await maybe(
+    'publications',
+    'socialAccounts',
+    socialAccount as never,
+    archive.socialAccounts as never[],
+  )
+  await maybe('publications', 'socialPosts', socialPost as never, archive.socialPosts as never[])
+  await maybe('articles', 'tagLinks', articleTag as never, archive.tagLinks as never[])
+  // A link needs BOTH ends: restoring it without one would point nowhere.
+  if (wants('articles') && wants('publications'))
+    await insert('socialLinks', articleSocialPost as never, archive.socialLinks as never[])
+  await maybe('settings', 'settings', setting as never, archive.settings as never[])
+  await maybe('views', 'views', articleView as never, archive.views as never[])
 
   /**
    * Moves the sequences past the highest imported identifier.

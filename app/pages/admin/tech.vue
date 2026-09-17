@@ -8,34 +8,91 @@ const importState = ref<'repos' | 'en cours' | 'échec'>('repos')
 const importMessage = ref('')
 
 /**
- * An import ALWAYS runs as a dry run first.
+ * Restoring a backup — the very zip the button above hands out.
  *
- * Restoring a backup overwrites the content: offering the button without
- * showing the difference would amount to asking someone to sign without
- * reading.
+ * It used to accept raw JSON only, so what the site produced could not be
+ * fed back to it: pulling the production content into a local database was
+ * simply impossible. Now the archive goes back in as it came out.
  */
-async function stub(evenement: Event): Promise<void> {
-  const file = (evenement.target as HTMLInputElement).files?.[0]
+const PARTS = [
+  { key: 'articles', label: 'Articles et sujets' },
+  { key: 'media', label: 'Images et documents' },
+  { key: 'publications', label: 'Comptes et publications' },
+  { key: 'settings', label: 'Réglages (à propos, CV, gabarits)' },
+  { key: 'users', label: 'Comptes autorisés' },
+  { key: 'views', label: 'Compteurs de lecture' },
+]
+
+const chosen = ref<string[]>(PARTS.map((p) => p.key))
+const wipe = ref(true)
+const archive = ref<File | null>(null)
+/** What the dry run said, and therefore what « Restaurer » may be offered. */
+const preview = ref<{ before: unknown; after: unknown } | null>(null)
+
+function pick(event: Event): void {
+  archive.value = (event.target as HTMLInputElement).files?.[0] ?? null
+  preview.value = null
+  importMessage.value = ''
+  importState.value = 'repos'
+}
+
+/** `parts=` and the two switches, as the route reads them from the query. */
+const query = (dryRun: boolean): string =>
+  `?dryRun=${dryRun}&wipe=${wipe.value}&parts=${chosen.value.join(',')}`
+
+async function send(dryRun: boolean): Promise<void> {
+  const file = archive.value
   if (!file) return
   importState.value = 'en cours'
   importMessage.value = ''
   try {
-    const archive = JSON.parse(await file.text())
-    const summary = await $fetch('/api/admin/import', {
-      method: 'POST',
-      body: { archive, dryRun: true },
-    })
+    const bytes = await file.arrayBuffer()
+    const json = file.name.endsWith('.json')
+
+    const summary = json
+      ? await $fetch('/api/admin/import', {
+          method: 'POST',
+          body: { archive: JSON.parse(new TextDecoder().decode(bytes)), dryRun, wipe: wipe.value },
+        })
+      : await $fetch(`/api/admin/import${query(dryRun)}`, {
+          method: 'POST',
+          body: bytes,
+          headers: { 'content-type': 'application/zip' },
+        })
+
     importState.value = 'repos'
-    importMessage.value =
-      'dryRun' in summary && summary.dryRun
-        ? `En base : ${JSON.stringify(summary.before)} — dans l'archive : ${JSON.stringify(summary.after)}`
-        : 'Import appliqué.'
+    if ('dryRun' in summary && summary.dryRun) {
+      preview.value = { before: summary.before, after: summary.after }
+      importMessage.value = ''
+    } else {
+      preview.value = null
+      importMessage.value = `Restauré : ${JSON.stringify('written' in summary ? summary.written : {})}`
+    }
   } catch (e) {
     importState.value = 'échec'
-    importMessage.value =
-      (e as { statusMessage?: string }).statusMessage ?? 'Fichier illisible : attendu du JSON'
+    preview.value = null
+    importMessage.value = (e as { statusMessage?: string }).statusMessage ?? 'Archive illisible'
   }
 }
+
+/**
+ * A dry run ALWAYS comes first.
+ *
+ * Restoring overwrites the content: offering the button without showing the
+ * difference would amount to asking someone to sign without reading.
+ */
+async function restore(): Promise<void> {
+  const what = wipe.value
+    ? 'REMPLACER le contenu actuel par celui de l’archive'
+    : 'ajouter le contenu de l’archive à celui qui est en base'
+  if (!confirm(`Cette opération va ${what}. Elle est définitive. Continuer ?`)) return
+  await send(false)
+}
+
+const counts = (value: unknown): string =>
+  Object.entries((value ?? {}) as Record<string, number>)
+    .map(([k, n]) => `${k} : ${n}`)
+    .join(' · ')
 
 useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
 </script>
@@ -70,16 +127,68 @@ useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
         <div class="cluster">
           <a class="a-btn a-btn-primary" href="/api/admin/export">Télécharger une sauvegarde</a>
           <label class="a-btn">
-            {{ importState === 'en cours' ? 'Lecture…' : 'Simuler un import (JSON)' }}
-            <input
-              type="file"
-              accept="application/json"
-              style="display: none"
-              @change="stub"
-            />
+            {{ archive ? archive.name : 'Choisir une archive…' }}
+            <input type="file" accept=".zip,.json" style="display: none" @change="pick" />
           </label>
         </div>
-        <p v-if="importMessage" :class="importState === 'échec' ? 'err' : 'hint'">
+
+        <template v-if="archive">
+          <p class="hint" style="margin-top: 18px">
+            Ce qui est restauré. Les images restent sur R2 : l'archive n'en porte que les
+            références, donc une restauration locale affichera les mêmes adresses qu'en
+            production. Les jetons tiers, eux, n'y figurent jamais — une connexion Instagram
+            est à refaire.
+          </p>
+
+          <ul class="a-taglist">
+            <li v-for="part in PARTS" :key="part.key">
+              <Checkbox
+                v-model="chosen"
+                :input-id="`part-${part.key}`"
+                :value="part.key"
+              />
+              <label :for="`part-${part.key}`">{{ part.label }}</label>
+            </li>
+          </ul>
+
+          <label class="a-switch" style="margin-top: 12px">
+            <ToggleSwitch v-model="wipe" />
+            <span>
+              {{
+                wipe
+                  ? 'Vider ce qui est restauré avant d’écrire'
+                  : 'Ajouter à ce qui est déjà en base'
+              }}
+            </span>
+          </label>
+
+          <div class="cluster" style="margin-top: 16px">
+            <Button
+              severity="secondary"
+              outlined
+              :label="importState === 'en cours' ? 'Lecture…' : 'Simuler'"
+              :disabled="importState === 'en cours' || !chosen.length"
+              @click="send(true)"
+            />
+            <Button
+              severity="danger"
+              :label="'Restaurer'"
+              :disabled="importState === 'en cours' || !preview || !chosen.length"
+              @click="restore"
+            />
+          </div>
+
+          <!--
+            Les deux décomptes côte à côte : c'est la seule façon de voir ce
+            qu'on s'apprête à perdre avant de cliquer.
+          -->
+          <div v-if="preview" class="a-diff">
+            <p><strong>En base :</strong> {{ counts(preview.before) }}</p>
+            <p><strong>Dans l'archive :</strong> {{ counts(preview.after) }}</p>
+          </div>
+        </template>
+
+        <p v-if="importMessage" :class="importState === 'échec' ? 'a-err' : 'hint'">
           {{ importMessage }}
         </p>
       </section>
