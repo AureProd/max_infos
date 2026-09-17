@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nb } from '#shared/utils/format'
+import { frDate, nb } from '#shared/utils/format'
 
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
@@ -106,14 +106,13 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
       <div class="admin-actions">
           <span v-if="state === 'enregistré'" class="a-tag is-ok">enregistré</span>
           <span v-else-if="state === 'échec'" class="a-err">échec</span>
-          <button
-            class="a-btn"
-            type="button"
+          <Button
+            severity="secondary"
+            outlined
+            :label="syncTask === 'tous' ? 'Synchronisation…' : 'Tout synchroniser'"
             :disabled="syncTask !== null || !(accounts ?? []).length"
             @click="syncPosts()"
-          >
-            {{ syncTask === 'tous' ? 'Synchronisation…' : 'Tout synchroniser' }}
-          </button>
+          />
           <a class="a-btn a-btn-primary" href="/api/admin/instagram/connect">Connecter un compte</a>
       </div>
     </div>
@@ -131,82 +130,138 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
         <NuxtLink to="/admin/publications">Publications</NuxtLink>.
       </p>
 
-      <ul class="list">
-        <li v-for="(c, i) in accounts ?? []" :key="c.id">
-          <div class="entry">
+      <!--
+        Un vrai tableau, comme les comptes autorisés : les colonnes
+        s'alignent d'une ligne à l'autre. La liste précédente empilait une
+        case à cocher nue, un champ numérique nu et des boutons dépareillés
+        dans une rangée en flex — seul écran du back-office resté ainsi.
+        Pas de tri : l'ordre des lignes EST celui de la page d'accueil.
+      -->
+      <DataTable :value="accounts ?? []" data-key="id" size="small" striped-rows>
+        <template #empty>
+          <p class="a-empty">
+            Aucun compte connecté. « Connecter un compte » ouvre l'autorisation Instagram.
+          </p>
+        </template>
+
+        <Column header="Compte">
+          <template #body="{ data }">
             <div class="cluster">
-              <img v-if="c.avatarUrl" class="avatar" :src="c.avatarUrl" :alt="`@${c.username}`" />
+              <img
+                v-if="data.avatarUrl"
+                class="avatar"
+                :src="data.avatarUrl"
+                :alt="`@${data.username}`"
+              />
               <div>
-                <h3>
-                  <a :href="c.url ?? undefined" target="_blank" rel="noopener">@{{ c.username }}</a>
-                </h3>
-                <div class="meta">
-                  <span v-if="c.displayName">{{ c.displayName }}</span>
-                  <span>{{ nb(c.nbPublications) }} publication(s)</span>
-                  <span v-if="c.followers">{{ nb(c.followers) }} abonné(e)s</span>
-                  <span>
-                    Synchronisé : {{ c.lastSyncAt ? c.lastSyncAt.slice(0, 10) : 'jamais' }}
-                  </span>
-                  <span v-if="!c.signedIn" class="a-err">jeton absent — reconnecter</span>
-                  <strong v-else-if="c.jetonAlerte">
-                    Jeton vieux de {{ c.jetonAgeJours }} jours : à renouveler avant 60.
-                  </strong>
+                <a class="a-title" :href="data.url ?? undefined" target="_blank" rel="noopener">
+                  @{{ data.username }}
+                </a>
+                <div class="a-sub">
+                  <span v-if="data.displayName">{{ data.displayName }}</span>
+                  <span>{{ nb(data.nbPublications) }} publication(s)</span>
+                  <span v-if="data.followers">{{ nb(data.followers) }} abonné(e)s</span>
                 </div>
               </div>
             </div>
+          </template>
+        </Column>
 
-            <div class="cluster">
-              <button class="a-btn" type="button" :disabled="i === 0" @click="move(i, -1)">
-                ↑
-              </button>
-              <button
-                class="a-btn"
-                type="button"
-                :disabled="i === (accounts ?? []).length - 1"
-                @click="move(i, 1)"
-              >
-                ↓
-              </button>
+        <Column header="Jeton" style="width: 200px">
+          <template #body="{ data }">
+            <Tag v-if="!data.signedIn" severity="danger" value="absent — reconnecter" />
+            <Tag
+              v-else-if="data.jetonAlerte"
+              severity="warn"
+              :value="`${data.jetonAgeJours} jours — à renouveler`"
+            />
+            <Tag v-else-if="data.jetonAgeJours === null" severity="success" value="connecté" />
+            <Tag v-else severity="success" :value="`${data.jetonAgeJours} jours`" />
+          </template>
+        </Column>
 
-              <label class="field">
-                <input
-                  type="checkbox"
-                  :checked="c.visible"
-                  @change="set(c.id, { visible: ($event.target as HTMLInputElement).checked })"
-                />
-                Sur l'accueil
-              </label>
+        <Column header="Synchronisé" style="width: 130px">
+          <template #body="{ data }">
+            <time v-if="data.lastSyncAt" class="a-date" :datetime="data.lastSyncAt">
+              {{ frDate(data.lastSyncAt.slice(0, 10)) }}
+            </time>
+            <span v-else class="a-nil">jamais</span>
+          </template>
+        </Column>
 
-              <label class="field">
-                <input
-                  type="number"
-                  min="1"
-                  max="50"
-                  :value="c.postsOnHome"
-                  @change="
-                    set(c.id, { postsOnHome: Number(($event.target as HTMLInputElement).value) })
-                  "
-                />
-                publications
-              </label>
+        <Column header="Sur l'accueil" style="width: 120px">
+          <template #body="{ data }">
+            <ToggleSwitch
+              :model-value="data.visible"
+              aria-label="Afficher ce compte sur l'accueil"
+              @update:model-value="(v: boolean) => set(data.id, { visible: v })"
+            />
+          </template>
+        </Column>
 
-              <button
-                class="a-btn"
-                type="button"
-                :disabled="syncTask !== null"
-                @click="syncPosts(c.id)"
-              >
-                {{ syncTask === c.id ? 'Synchronisation…' : 'Synchroniser' }}
-              </button>
-              <button class="a-btn" type="button" @click="signOut(c)">Déconnecter</button>
+        <Column header="Publications" style="width: 130px">
+          <template #body="{ data }">
+            <InputNumber
+              :model-value="data.postsOnHome"
+              :min="1"
+              :max="50"
+              show-buttons
+              button-layout="horizontal"
+              :input-style="{ width: '2.5rem' }"
+              aria-label="Nombre de publications sur l'accueil"
+              @update:model-value="(v: number) => set(data.id, { postsOnHome: v })"
+            />
+          </template>
+        </Column>
+
+        <Column header="Ordre" style="width: 110px">
+          <template #body="{ data, index }">
+            <div class="a-row-act">
+              <Button
+                severity="secondary"
+                outlined
+                size="small"
+                label="↑"
+                :disabled="index === 0"
+                aria-label="Monter"
+                @click="move(index, -1)"
+              />
+              <Button
+                severity="secondary"
+                outlined
+                size="small"
+                label="↓"
+                :disabled="index === (accounts ?? []).length - 1"
+                aria-label="Descendre"
+                @click="move(index, 1)"
+              />
             </div>
-          </div>
-        </li>
-      </ul>
+          </template>
+        </Column>
 
-      <p v-if="!(accounts ?? []).length" class="empty">
-        Aucun compte connecté. « Connecter un compte » ouvre l'autorisation Instagram.
-      </p>
+        <Column style="width: 1%">
+          <template #body="{ data }">
+            <div class="a-row-act">
+              <Button
+                severity="secondary"
+                outlined
+                size="small"
+                :label="syncTask === data.id ? 'Synchronisation…' : 'Synchroniser'"
+                :disabled="syncTask !== null"
+                @click="syncPosts(data.id)"
+              />
+              <Button
+                severity="danger"
+                outlined
+                size="small"
+                label="Déconnecter"
+                @click="signOut(data)"
+              />
+            </div>
+          </template>
+        </Column>
+      </DataTable>
+
   </div>
 </template>
 

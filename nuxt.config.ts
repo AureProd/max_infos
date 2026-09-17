@@ -38,7 +38,16 @@ export default defineNuxtConfig({
     // Auto-import limité : sans cela le module enregistre les ~80 composants
     // de la bibliothèque, et chacun entre dans le paquet.
     components: {
-      include: ['DataTable', 'Column', 'Tag', 'Select', 'InputText', 'Button', 'ToggleSwitch'],
+      include: [
+        'DataTable',
+        'Column',
+        'Tag',
+        'Select',
+        'InputText',
+        'InputNumber',
+        'Button',
+        'ToggleSwitch',
+      ],
     },
     options: {
       theme: {
