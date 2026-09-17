@@ -47,6 +47,8 @@ export default defineNuxtConfig({
         'InputNumber',
         'Button',
         'ToggleSwitch',
+        'Dialog',
+        'Checkbox',
       ],
     },
     options: {

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { addTagLabel, normalizeTagLabel, toggleTag } from '#shared/utils/tags'
+
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const route = useRoute()
@@ -17,35 +19,74 @@ await load()
  */
 const { data: known } = await useFetch('/api/admin/tags', { key: 'tags-connus' })
 
-const unused = computed(() =>
-  (known.value ?? []).filter((t) => !draft.value.tags.includes(t.label)),
-)
+const knownLabels = computed(() => (known.value ?? []).map((t) => t.label))
 
-function addTag(label: string): void {
-  if (!draft.value.tags.includes(label)) draft.value.tags = [...draft.value.tags, label]
+/**
+ * The subjects are CHOSEN, no longer typed.
+ *
+ * The free-text field split on commas had three faults, all met in use: a
+ * comma inside a label cut it in two, « Histoire » retyped became a second
+ * tag, and the same list lived in the input, in the draft and in a watcher
+ * rewriting the input. The dialog leaves one source of truth: `draft.tags`.
+ */
+const picking = ref(false)
+const search = ref('')
+
+/** Everything known, plus what is selected without being known yet. */
+const choices = computed(() => {
+  const all = [...new Set([...knownLabels.value, ...draft.value.tags])]
+  const needle = normalizeTagLabel(search.value).toLowerCase()
+  return all
+    .filter((label) => label.toLowerCase().includes(needle))
+    .sort((a, b) => a.localeCompare(b, 'fr'))
+})
+
+/** True while what is typed matches nothing: the only case that creates. */
+const isNew = computed(() => {
+  const wanted = normalizeTagLabel(search.value)
+  return wanted !== '' && !choices.value.some((c) => c.toLowerCase() === wanted.toLowerCase())
+})
+
+function createTag(): void {
+  draft.value.tags = addTagLabel(draft.value.tags, knownLabels.value, search.value)
+  search.value = ''
 }
 
-function removeTag(label: string): void {
-  draft.value.tags = draft.value.tags.filter((t) => t !== label)
+function flipTag(label: string): void {
+  draft.value.tags = toggleTag(draft.value.tags, label)
 }
 
 /**
- * The free-text field, kept alongside: a brand-new subject must not require
- * an existing tag. It is only reformatted when it loses focus — reformatting
- * on every keystroke made the caret jump over the typed comma.
+ * Housekeeping: a subject no article carries can be deleted.
+ *
+ * Every misspelling created one more tag and nothing removed it, so the
+ * list only ever grew. The count comes from the server, and so does the
+ * refusal: a subject still in use answers 409 rather than being stripped
+ * off the articles carrying it.
  */
-const tagsInput = ref(draft.value.tags.join(', '))
-watch(
-  () => draft.value.tags,
-  (list) => {
-    tagsInput.value = list.join(', ')
-  },
-)
-function commitTags(): void {
-  draft.value.tags = tagsInput.value
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean)
+const tagError = ref('')
+
+const orphan = computed(() => {
+  const byLabel = new Map((known.value ?? []).map((t) => [t.label, t]))
+  return (label: string) => {
+    const t = byLabel.get(label)
+    return t !== undefined && t.n === 0 && !draft.value.tags.includes(label) ? t.slug : null
+  }
+})
+
+async function dropTag(slug: string, label: string): Promise<void> {
+  if (!confirm(`Supprimer définitivement le sujet « ${label} » ?`)) return
+  tagError.value = ''
+  try {
+    await $fetch<unknown>(`/api/admin/tags/${slug}`, { method: 'DELETE' })
+    known.value = (known.value ?? []).filter((t) => t.slug !== slug)
+  } catch (e) {
+    tagError.value = (e as { statusMessage?: string }).statusMessage ?? 'Suppression refusée'
+  }
+}
+
+function removeTag(label: string): void {
+  draft.value.tags = toggleTag(draft.value.tags, label)
 }
 
 // Automatic saving: Max writes, he does not have to think about saving.
@@ -132,40 +173,89 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
             <input id="a-dek" v-model="draft.dek" type="text" />
           </div>
           <div class="field">
-            <label for="a-tags">Sujets, séparés par des virgules</label>
-            <input
-              id="a-tags"
-              v-model="tagsInput"
-              type="text"
-              @change="commitTags"
-              @blur="commitTags"
-            />
-
-            <div v-if="draft.tags.length" class="a-chosen">
+            <span class="a-label">Sujets</span>
+            <div class="a-chosen">
               <button
                 v-for="t in draft.tags"
                 :key="t"
                 class="a-chip is-on"
                 type="button"
+                :title="`Retirer « ${t} »`"
                 @click="removeTag(t)"
               >
                 {{ t }} ×
               </button>
-            </div>
-
-            <div v-if="unused.length" class="a-known">
-              <span class="a-known-label">Déjà utilisés :</span>
-              <button
-                v-for="t in unused"
-                :key="t.slug"
-                class="a-chip"
-                type="button"
-                @click="addTag(t.label)"
-              >
-                {{ t.label }}
-              </button>
+              <Button
+                severity="secondary"
+                outlined
+                size="small"
+                :label="draft.tags.length ? 'Modifier' : 'Choisir les sujets'"
+                @click="picking = true"
+              />
             </div>
           </div>
+
+          <Dialog
+            v-model:visible="picking"
+            modal
+            header="Sujets de l'article"
+            :style="{ width: '32rem' }"
+          >
+            <p class="hint">
+              Coche ceux qui existent déjà. Un sujet ne se crée que s'il ne ressemble à aucun
+              autre — c'est ce qui empêche « Histoire » et « histoire » de cohabiter.
+            </p>
+
+            <InputText
+              v-model="search"
+              class="a-tagsearch"
+              placeholder="Chercher ou créer un sujet"
+              autofocus
+              @keydown.enter.prevent="isNew && createTag()"
+            />
+
+            <Button
+              v-if="isNew"
+              class="a-tagnew"
+              size="small"
+              :label="`Créer « ${normalizeTagLabel(search)} »`"
+              @click="createTag"
+            />
+
+            <p v-if="tagError" class="a-err">{{ tagError }}</p>
+
+            <ul class="a-taglist">
+              <li v-for="label in choices" :key="label">
+                <Checkbox
+                  :input-id="`tag-${label}`"
+                  :model-value="draft.tags.includes(label)"
+                  binary
+                  @update:model-value="flipTag(label)"
+                />
+                <label :for="`tag-${label}`">{{ label }}</label>
+                <!--
+                  Le bouton ne paraît que sur un sujet qu'aucun article ne
+                  porte : ailleurs, supprimer voudrait dire le retirer des
+                  articles, ce que personne ne demande depuis cet écran.
+                -->
+                <Button
+                  v-if="orphan(label)"
+                  class="a-tagdrop"
+                  severity="danger"
+                  text
+                  size="small"
+                  label="Supprimer"
+                  :title="`Aucun article ne porte « ${label} »`"
+                  @click="dropTag(orphan(label) as string, label)"
+                />
+              </li>
+              <li v-if="!choices.length && !isNew" class="a-nil">Aucun sujet pour l'instant.</li>
+            </ul>
+
+            <template #footer>
+              <Button label="Fermer" @click="picking = false" />
+            </template>
+          </Dialog>
         <MediaPicker v-model="draft.coverMediaId" label="Image de couverture" />
       </div>
 

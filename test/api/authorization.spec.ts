@@ -89,6 +89,10 @@ const EXPECTED: Record<string, Pending> = {
     body: { filename: 'photo.png', contentType: 'image/png', bytes: 1024 },
   },
   'GET /api/admin/tags': { anonyme: 401, editor: 200, tech: 200 },
+  // An unknown subject: 404 AFTER the role check, which is what is verified
+  // here. A subject still carried by an article answers 409, and that
+  // refusal has its own test.
+  'DELETE /api/admin/tags/[slug]': { anonyme: 401, editor: 404, tech: 404 },
   'GET /api/admin/social-posts': { anonyme: 401, editor: 200, tech: 200 },
   'POST /api/admin/social-posts': {
     anonyme: 401,
