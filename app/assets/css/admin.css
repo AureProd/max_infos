@@ -976,6 +976,25 @@ a.a-figure:hover {
   max-width: 100%;
 }
 
+/*
+ * Une rangée qui se lit de gauche à droite : un champ qui prend la place,
+ * puis le bouton qui agit dessus. Employée là où la grille n'a rien à
+ * aligner d'une ligne à l'autre — l'ajout d'une puce, le nom d'un groupe.
+ */
+.a-row-add {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.a-row-add .a-input {
+  flex: 1;
+  min-width: 0;
+}
+.a-row-add .a-short {
+  flex: 0 0 160px;
+}
+
 /* Un interrupteur se voit ; une case à cocher dans une pastille bleue, non. */
 .a-switch {
   display: inline-flex;

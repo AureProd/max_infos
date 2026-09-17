@@ -15,17 +15,17 @@
  * to publishing wrong content. Only the two real Instagram posts, the ones
  * carrying a shortcode, are taken.
  */
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import * as schema from '../../server/database/schema'
 import { renderMarkdown } from '../../server/utils/markdown'
 import { DEFAULT_TEMPLATES } from '../../server/utils/templates'
-import { SETTING_SCOPE, type SettingKey } from '../../shared/schemas/settings'
 import { slugify } from '../../shared/utils/slug'
 import { ARTICLES } from './data/articles'
 import { IG_MEDIA } from './data/instagram'
 import { SITE } from './data/site'
+import { writeSeedSettings } from './settings'
 
 const URL = process.env.DATABASE_URL ?? process.env.NUXT_DATABASE_URL
 if (!URL) {
@@ -221,13 +221,9 @@ async function main(): Promise<void> {
     templates: DEFAULT_TEMPLATES,
   }
 
-  for (const [key, value] of Object.entries(settings)) {
-    await db
-      .insert(schema.setting)
-      // The scope comes from the table, never from a value written here.
-      .values({ key, value, scope: SETTING_SCOPE[key as SettingKey] ?? 'public' })
-      .onConflictDoUpdate({ target: schema.setting.key, set: { value, updatedAt: sql`now()` } })
-  }
+  // Merges instead of rewriting: replaying the seed must not erase a CV
+  // typed in the back-office. See `writeSeedSettings`.
+  await writeSeedSettings(db, settings)
   console.log(`▸ ${Object.keys(settings).length} réglages publics`)
 }
 

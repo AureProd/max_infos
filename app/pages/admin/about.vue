@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { cleanContactFields, newContactField } from '#shared/utils/contact'
+import { CV_LISTS, CV_SECTIONS, type CvSectionKey, cleanCvLists } from '#shared/utils/cv'
 
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
@@ -26,26 +27,51 @@ async function saveAll(): Promise<void> {
   // breath. Cleaning before sending is what makes the screen usable.
   if (contact.value.value)
     contact.value.value.fields = cleanContactFields(contact.value.value.fields)
+  // Same reason on the CV side: a group left nameless, or a language whose
+  // level was never typed (`''` where the schema wants `null`), refused the
+  // whole key — and the identity and the contacts with it.
+  if (cv.value.value) Object.assign(cv.value.value, cleanCvLists(cv.value.value))
   await Promise.all([identity.save(), contact.save(), cv.save()])
 }
 
 /**
- * The CV sections, in the order they appear.
- * Each section AND each entry carries its own switch.
+ * The dated sections carry a switch, each rubric AND each entry.
+ *
+ * The list itself lives in `#shared/utils/cv`, next to the chip rubrics,
+ * and the public page reads the same one: holding two lists is what let
+ * « À propos » render compétences, langues, certifications and centres
+ * d'intérêt that this screen never offered to type.
  */
-const SECTIONS = [
-  { key: 'education' as const, label: 'Formations' },
-  { key: 'experience' as const, label: 'Expériences' },
-  { key: 'engagements' as const, label: 'Engagements' },
-]
-
-function addEntry(section: 'education' | 'experience' | 'engagements'): void {
+function addEntry(section: CvSectionKey): void {
   if (!cv.value.value) return
   cv.value.value[section].entries.push({ title: '', visible: true })
 }
 
-function removeEntry(section: 'education' | 'experience' | 'engagements', i: number): void {
+function removeEntry(section: CvSectionKey, i: number): void {
   cv.value.value?.[section].entries.splice(i, 1)
+}
+
+/** The label a rubric wears on the site, so both screens say the same. */
+const listLabel = (key: 'languages' | 'certifications' | 'interests'): string =>
+  CV_LISTS.find((l) => l.key === key)?.label ?? key
+
+/** The item being typed, per group: one input, reused at every row. */
+const typed = reactive<Record<string, string>>({})
+
+function addItem(group: number): void {
+  const set = cv.value.value?.skills[group]
+  const item = (typed[group] ?? '').trim()
+  if (!set || item === '' || set.items.includes(item)) return
+  set.items.push(item)
+  typed[group] = ''
+}
+
+function addEntryTo(list: 'certifications' | 'interests'): void {
+  const item = (typed[list] ?? '').trim()
+  const items = cv.value.value?.[list]
+  if (!items || item === '' || items.includes(item)) return
+  items.push(item)
+  typed[list] = ''
 }
 
 /**
@@ -176,7 +202,7 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
           s'affiche sans encadré : rien ne casse.
         </p>
 
-      <template v-for="r in SECTIONS" :key="r.key">
+      <template v-for="r in CV_SECTIONS" :key="r.key">
           <div class="a-section-head">
             <h3>{{ r.label }}</h3>
             <label class="a-switch">
@@ -206,6 +232,119 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
           </ul>
           <button class="a-btn" type="button" @click="addEntry(r.key)">+ Ajouter</button>
         </template>
+
+      <div class="a-section-head">
+        <h3>Compétences</h3>
+      </div>
+      <p class="hint">
+        Un groupe porte le nom qui s'affichera sur le site — « Journalisme »,
+        « Domaines », « Diffusion » — puis ses éléments. Un groupe sans nom ou sans
+        élément n'est pas enregistré.
+      </p>
+      <ul class="a-rows">
+        <li v-for="(set, g) in cv.value.value.skills" :key="g">
+          <div class="a-row-add">
+            <input v-model="set.group" class="a-input" type="text" placeholder="Nom du groupe" />
+            <Button
+              severity="danger"
+              outlined
+              size="small"
+              label="Retirer le groupe"
+              @click="cv.value.value?.skills.splice(g, 1)"
+            />
+          </div>
+          <div class="a-chosen">
+            <button
+              v-for="(item, k) in set.items"
+              :key="k"
+              class="a-chip is-on"
+              type="button"
+              :title="`Retirer « ${item} »`"
+              @click="set.items.splice(k, 1)"
+            >
+              {{ item }} ×
+            </button>
+          </div>
+          <div class="a-row-add">
+            <input
+              v-model="typed[g]"
+              class="a-input"
+              type="text"
+              placeholder="Ajouter un élément"
+              @keydown.enter.prevent="addItem(g)"
+            />
+            <button class="a-btn" type="button" @click="addItem(g)">+ Ajouter</button>
+          </div>
+        </li>
+      </ul>
+      <button
+        class="a-btn"
+        type="button"
+        @click="cv.value.value?.skills.push({ group: '', items: [] })"
+      >
+        + Ajouter un groupe
+      </button>
+
+      <div class="a-section-head">
+        <h3>{{ listLabel('languages') }}</h3>
+      </div>
+      <ul class="a-rows">
+        <li v-for="(lang, i) in cv.value.value.languages" :key="i">
+          <div class="a-row-add">
+            <input v-model="lang.label" class="a-input" type="text" placeholder="Langue" />
+            <!-- Le niveau reste facultatif : laissé vide, il repart en `null`,
+                 jamais en chaîne vide, que le schéma refuserait. -->
+            <input
+              v-model="lang.level"
+              class="a-input a-short"
+              type="text"
+              placeholder="Niveau (facultatif)"
+            />
+            <Button
+              severity="danger"
+              outlined
+              size="small"
+              label="Retirer"
+              @click="cv.value.value?.languages.splice(i, 1)"
+            />
+          </div>
+        </li>
+      </ul>
+      <button
+        class="a-btn"
+        type="button"
+        @click="cv.value.value?.languages.push({ label: '', level: null })"
+      >
+        + Ajouter une langue
+      </button>
+
+      <template v-for="l in (['certifications', 'interests'] as const)" :key="l">
+        <div class="a-section-head">
+          <h3>{{ listLabel(l) }}</h3>
+        </div>
+        <div class="a-chosen">
+          <button
+            v-for="(item, k) in cv.value.value[l]"
+            :key="k"
+            class="a-chip is-on"
+            type="button"
+            :title="`Retirer « ${item} »`"
+            @click="cv.value.value?.[l].splice(k, 1)"
+          >
+            {{ item }} ×
+          </button>
+        </div>
+        <div class="a-row-add">
+          <input
+            v-model="typed[l]"
+            class="a-input"
+            type="text"
+            placeholder="Ajouter"
+            @keydown.enter.prevent="addEntryTo(l)"
+          />
+          <button class="a-btn" type="button" @click="addEntryTo(l)">+ Ajouter</button>
+        </div>
+      </template>
     </section>
   </div>
 </template>

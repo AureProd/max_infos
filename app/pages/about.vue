@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { CV_LISTS, CV_SECTIONS } from '#shared/utils/cv'
+
 const { data: site } = await useSite()
 const { data: list } = await useFetch('/api/articles', { key: 'a-propos', query: { size: 1 } })
 
@@ -19,44 +21,36 @@ const pdf = computed(() => {
   return id ? (mediaItems.value[id] ?? null) : null
 })
 
-/**
- * The CV sections, in the order of the back-office screen.
- *
- * The page used to render `cv.skills` and NOTHING else — a field no admin
- * screen ever writes. Everything Max actually typed, his education and his
- * engagements, appeared nowhere on the site.
- */
-const SECTIONS = [
-  { key: 'education' as const, label: 'Formations' },
-  { key: 'experience' as const, label: 'Expériences' },
-  { key: 'engagements' as const, label: 'Engagements' },
-]
-
 type Entry = { title: string; org?: string; start?: string; end?: string; detail?: string }
 type Block = { label: string; entries?: Entry[]; items?: string[] }
 
 /**
  * One list for everything the CV holds, dated entries and chips alike: the
  * page lays them out the same way, and an empty rubric simply is not there.
+ *
+ * The rubrics themselves are named in `#shared/utils/cv`, which the
+ * back-office reads too. The page used to hold its own list, and rendered
+ * four rubrics that no screen ever wrote.
  */
 const blocks = computed<Block[]>(() => {
   const cv = site.value?.cv
   if (!cv) return []
 
-  const out: Block[] = SECTIONS.map((s) => ({ label: s.label, entries: cv[s.key].entries })).filter(
-    (b) => (b.entries?.length ?? 0) > 0,
-  )
+  const out: Block[] = CV_SECTIONS.map((s) => ({
+    label: s.label,
+    entries: cv[s.key].entries,
+  })).filter((b) => (b.entries?.length ?? 0) > 0)
 
   for (const set of cv.skills)
     if (set.items.length) out.push({ label: set.group, items: set.items })
 
-  if (cv.languages.length)
-    out.push({
-      label: 'Langues',
-      items: cv.languages.map((l) => (l.level ? `${l.label} — ${l.level}` : l.label)),
-    })
-  if (cv.certifications.length) out.push({ label: 'Certifications', items: cv.certifications })
-  if (cv.interests.length) out.push({ label: "Centres d'intérêt", items: cv.interests })
+  for (const list of CV_LISTS) {
+    const items =
+      list.key === 'languages'
+        ? cv.languages.map((l) => (l.level ? `${l.label} — ${l.level}` : l.label))
+        : cv[list.key]
+    if (items.length) out.push({ label: list.label, items })
+  }
 
   return out
 })
@@ -136,7 +130,7 @@ useSeoMeta({
       </div>
 
       <div v-if="blocks.length" class="cvgrid">
-        <div v-for="block in blocks" :key="block.label" class="skillset">
+        <div v-for="(block, i) in blocks" :key="i" class="skillset">
           <h4>{{ block.label }}</h4>
 
           <ul v-if="block.entries" class="cvlist">
