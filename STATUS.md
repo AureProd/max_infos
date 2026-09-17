@@ -1,6 +1,7 @@
 # Où on en est — reprise du chantier
 
-> Dernière séance : **lundi 14 septembre 2026**. **Les onze lots sont écrits.**
+> Dernière séance : **jeudi 17 septembre 2026**. **Les onze lots sont écrits,
+> et la refonte du style est faite.**
 > Pour reprendre : lancer `claude` dans `~/Documents/perso/max_infos` et dire
 > « reprends le chantier, lis STATUS.md ».
 
@@ -30,13 +31,63 @@
 | 9 — Référencement : flux, plan du site, JSON-LD, cache | ✅ |
 | 10 — Export / import avec aller-retour vérifié | ✅ |
 | 11 — CI, compose de production, déploiement | ✅ écrit, **pas encore exécuté** |
+| 12 — Refonte du style, public et back-office | ✅ |
 
-**352 tests.** `pnpm verify` et `pnpm hooks` passent.
+**841 tests Vitest et 112 tests Playwright.** `pnpm verify` et `pnpm hooks`
+passent.
 
-Le back-office est complet : tableau de bord, articles avec couverture et
-panneau Décliner, publications, **Réseaux**, accueil, CV illustré (photo +
-PDF), et un écran Technique qui garde la sauvegarde et les comptes
-autorisés.
+Le back-office est complet : tableau de bord avec ses graphiques de lecture,
+articles écrits dans un vrai éditeur, **Tags**, publications, **Réseaux**,
+à propos, CV illustré (photo + PDF), et un écran Technique qui garde la
+sauvegarde et les comptes autorisés.
+
+## Lot 12 — la refonte du style
+
+Le site est le portfolio de Max : il devait prouver la qualité de son
+travail, pas seulement l'exposer. Le rendu reprend l'identité de son
+Substack, relevée dans le HTML qu'il sert — accent `#2563eb` et non l'orange
+`#FF6719` de la plateforme, corps en **Lexend**, colonne de lecture à
+728 px.
+
+**La police de titres n'est PAS la sienne, et c'est mesuré.** Le fichier que
+Google sert pour `BBH Hegarty` contient 121 glyphes et aucun caractère
+accentué : chaque `é` d'un titre français va se chercher dans une autre
+police. Le défaut est visible sur le Substack de Max lui-même (« sols
+craquelés »). **Gabarito** tient la même densité géométrique et couvre le
+français ; un test Playwright mesure qu'aucun accent ne tombe en repli.
+
+Ce que la refonte a apporté d'autre :
+
+- **Tailwind v4 et primeicons**, en plus de PrimeVue. L'ordre des couches est
+  le point délicat : `theme, base, primevue, site, components, utilities`,
+  et c'est **PrimeVue qui écrit l'instruction `@layer`**. Voir `docs/STACK.md`.
+- **Des tests navigateur.** Vitest prouve ce que le serveur envoie ; rien ne
+  prouvait ce que le navigateur montre. Playwright mesure l'absence de
+  débordement horizontal, l'ordre des sections, la ligne unique des tags et
+  le repli des tableaux — aux trois largeurs, 390, 820 et 1440 px.
+- **Des toasts**, à la place de six machines d'état recopiées et de sept
+  `confirm()` natifs.
+- **Le rôle `tech` est devenu `developer`.** La migration `0006` accepte les
+  deux noms le temps d'un déploiement ; une migration ultérieure resserrera
+  la contrainte.
+- **Le corps d'un article est du HTML**, écrit dans Tiptap. Une colonne
+  `body_text` porte le texte brut, sur lequel la recherche travaille — elle
+  cherchait dans le Markdown, et « **souveraineté** » ne répondait pas à
+  « souveraineté ». `bodyMd` n'est plus écrite : elle sera retirée par une
+  migration ultérieure.
+
+### Deux défauts trouvés en chemin
+
+**Un titre contenant une apostrophe était tronqué à l'import.** Le motif
+capturait `content="([^"']*)"` — une classe qui exclut les DEUX guillemets
+quel que soit le délimiteur ouvrant — et « L'enquête sur le pouvoir »
+arrivait sous le titre « L ». En français, ce n'est pas un cas limite.
+
+**Une section entière de back-office vivait dans `base.css`**, la feuille
+chargée par chaque visiteur, sous des noms sans préfixe que le garde-fou
+existant ne regardait pas. Elle ne servait plus le site et peignait toujours
+l'administration : le champ « Présentation » de l'écran À propos faisait
+460 px de haut à cause d'un `min-height` écrit là pour le corps d'un article.
 
 ### Plusieurs comptes Instagram
 

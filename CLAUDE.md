@@ -65,6 +65,14 @@ migration appliquant un jeu périmé tout en répondant « applied successfully 
 | Le préflight CORS d'un `PUT` presigné vers R2 échoue **sans code de statut** : le navigateur ne dit que `Failed to fetch`, et le serveur ne voit rien passer | La règle du seau est versionnée dans `scripts/r2-cors.ts` (`pnpm r2:cors`), qui **relit** ce que le seau répond |
 | `getSignedUrl` signe **sans corps** : depuis 3.729 le SDK AWS y grave le CRC32 du vide (`x-amz-checksum-crc32=AAAAAA==`), et R2 rejette ensuite le fichier réel | `requestChecksumCalculation: 'WHEN_REQUIRED'` sur le `S3Client`. Tenu par `test/unit/storage.spec.ts` |
 | `social_post.source` a pour défaut **`'manual'`** : il dit la PROVENANCE, pas le placement. Filtrer dessus affiche deux fois le même billet sur l'accueil | Pour « quel billet n'a pas de section », filtrer sur `account_id IS NULL` |
+| Un reset d'élément (`button { … }`) dans `base.css` **bat PrimeVue** : une couche gagne sur la spécificité, et `site` passe après `primevue` | Tous les boutons de la bibliothèque perdaient fond et bordure, sans un mot. `button:not([class])`, comme `a` et `label` |
+| `BBH Hegarty`, la police de titres du Substack, n'a **aucun glyphe accentué** — 121 glyphes, mesurés | Chaque `é` d'un titre français tombe dans une autre police. Gabarito à la place ; tenu par `test/e2e/layout.spec.ts` |
+| Une **seconde clé `vite:`** dans `nuxt.config.ts` n'est pas fusionnée, elle écrase | Le plugin Tailwind ne tournait pas, et `@tailwind utilities` partait tel quel dans la feuille servie |
+| L'instruction `@layer a, b, c;` écrite dans `main.css` est **compilée et supprimée** par Tailwind | C'est PrimeVue qui l'écrit, depuis `cssLayer.order`. Sans elle, les couches retombent sur l'ordre d'apparition et PrimeVue, injecté en dernier, bat tout utilitaire |
+| Un module importé par le **script de semis** ne peut pas dépendre de l'alias `#shared` : il tourne sous `tsx` | D'où `derivedFields` dans `markdown.ts` et non dans `articles.ts`. Même raison que le commentaire de `schema/enums.ts` |
+| **Tiptap ne garde que ce que son schéma décrit** : un attribut inséré tel quel disparaît à la sérialisation | Étendre le nœud (`ParagraphWithCta`), et n'admettre que la valeur voulue |
+| Tailwind v4 ne génère **que les classes trouvées dans les fichiers source** | Une classe ajoutée depuis JavaScript est simplement absente de la feuille — ce qui se lit exactement comme perdre la cascade |
+| Les trois projets Playwright tournent **en parallèle contre la même base** | Deux tests qui visent « la première ligne » se marchent dessus, et publier change `updatedAt`, donc l'ordre. Viser par titre, pas par rang |
 
 ## Décisions arrêtées
 
