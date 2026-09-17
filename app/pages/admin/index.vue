@@ -6,6 +6,95 @@ definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const { data: bord } = await useFetch('/api/admin/dashboard', { key: 'admin-bord' })
 
+/*
+ * Les graphiques arrivent à part.
+ *
+ * `/api/admin/stats` agrège toute la table des lectures ; la liste des
+ * choses à faire, elle, doit s'afficher tout de suite. Deux requêtes plutôt
+ * qu'une : l'écran ne reste pas blanc le temps d'un `group by`.
+ */
+const { data: stats } = await useFetch('/api/admin/stats', { key: 'admin-stats' })
+const { colors, base } = useChartTheme()
+
+const frJour = (iso: string): string => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`
+
+/** Lectures par jour. Une courbe : c'est une évolution, pas un classement. */
+const courbeLectures = computed(() => ({
+  labels: (stats.value?.parJour ?? []).map((d) => frJour(d.day)),
+  datasets: [
+    {
+      data: (stats.value?.parJour ?? []).map((d) => d.views),
+      borderColor: colors.value.accent,
+      backgroundColor: colors.value.accentSoft,
+      borderWidth: 2,
+      fill: true,
+      tension: 0.3,
+      pointRadius: 0,
+      pointHoverRadius: 5,
+      pointHoverBackgroundColor: colors.value.accent,
+      pointHoverBorderColor: colors.value.surface,
+      pointHoverBorderWidth: 2,
+    },
+  ],
+}))
+
+/** Barres HORIZONTALES : des titres d'articles ne tiennent pas sous un axe. */
+const barres = (rows: { label: string; views: number }[]) => ({
+  labels: rows.map((r) => r.label),
+  datasets: [
+    {
+      data: rows.map((r) => r.views),
+      backgroundColor: colors.value.accent,
+      borderRadius: 4,
+      borderSkipped: false,
+      barThickness: 14,
+    },
+  ],
+})
+
+/** Coupé par la FIN, seul endroit où une coupure se comprend. */
+const court = (text: string, max = 26): string =>
+  text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text
+
+const parArticle = computed(() =>
+  barres((stats.value?.parArticle ?? []).map((a) => ({ label: court(a.title), views: a.views }))),
+)
+
+const parTag = computed(() =>
+  barres((stats.value?.parTag ?? []).map((t) => ({ label: court(t.label), views: t.views }))),
+)
+
+/** Une courbe n'a pas de grille verticale : elle n'apporte rien à la lecture. */
+const optionsCourbe = computed(() => ({
+  ...base.value,
+  scales: {
+    ...base.value.scales,
+    x: { ...base.value.scales.x, grid: { display: false } },
+    y: {
+      ...base.value.scales.y,
+      beginAtZero: true,
+      ticks: { ...base.value.scales.y.ticks, precision: 0 },
+    },
+  },
+}))
+
+const optionsBarres = computed(() => ({
+  ...base.value,
+  indexAxis: 'y' as const,
+  interaction: { mode: 'nearest' as const, intersect: true },
+  scales: {
+    x: {
+      ...base.value.scales.x,
+      beginAtZero: true,
+      ticks: { ...base.value.scales.x.ticks, precision: 0 },
+    },
+    y: { ...base.value.scales.y, grid: { display: false } },
+  },
+}))
+
+/** Y a-t-il seulement quelque chose à tracer ? */
+const lu = computed(() => (stats.value?.parJour ?? []).some((d) => d.views > 0))
+
 const { user } = useUser()
 
 const firstName = computed(() => user.value?.name?.split(' ')[0] ?? '')
@@ -37,9 +126,6 @@ useSeoMeta({ title: 'Tableau de bord', robots: 'noindex, nofollow' })
         <h1>{{ firstName ? `Bonjour ${firstName}` : 'Tableau de bord' }}</h1>
         <p class="admin-lede">Ce qu'il y a à faire, et ce qui a été lu cette semaine.</p>
       </div>
-      <div class="admin-actions">
-        <NuxtLink class="a-btn a-btn-primary" to="/admin/articles">Écrire</NuxtLink>
-      </div>
     </div>
 
     <!--
@@ -64,6 +150,62 @@ useSeoMeta({ title: 'Tableau de bord', robots: 'noindex, nofollow' })
         <strong>{{ f.value }}</strong>
         <span>{{ f.label }}</span>
       </component>
+    </div>
+
+    <!--
+      Ce qui est LU. Les trois graphiques portent une seule série chacun,
+      donc une seule couleur et aucune légende : le titre dit déjà ce qui
+      est tracé, et donner une teinte par barre inventerait une identité que
+      l'axe porte déjà.
+    -->
+    <section class="admin-card a-chart-wide">
+      <div class="a-chart-head">
+        <h2>Lectures, sur {{ stats?.fenetre ?? 30 }} jours</h2>
+      </div>
+      <p v-if="!lu" class="a-empty">
+        Pas encore de lecture enregistrée. C'est normal les premiers jours.
+      </p>
+      <!-- Hauteur portée par le conteneur : un <canvas> sans hauteur fixe
+           grandit à l'infini à chaque redimensionnement. -->
+      <div v-else class="a-chart" style="height: 220px">
+        <Chart type="line" :data="courbeLectures" :options="optionsCourbe" class="h-full" />
+      </div>
+    </section>
+
+    <div class="a-cols">
+      <section class="admin-card">
+        <div class="a-chart-head">
+          <h2>Les articles les plus lus</h2>
+          <span class="a-chart-note">{{ stats?.fenetre ?? 30 }} derniers jours</span>
+        </div>
+        <p v-if="!stats?.parArticle.length" class="a-empty">Rien à classer pour l'instant.</p>
+        <div v-else class="a-chart" :style="{ height: `${Math.max(140, stats.parArticle.length * 32)}px` }">
+          <Chart type="bar" :data="parArticle" :options="optionsBarres" class="h-full" />
+        </div>
+      </section>
+
+      <section class="admin-card">
+        <div class="a-chart-head">
+          <h2>Les tags qui fonctionnent</h2>
+          <span class="a-chart-note">lectures cumulées</span>
+        </div>
+        <p v-if="!stats?.parTag.length" class="a-empty">Rien à classer pour l'instant.</p>
+        <template v-else>
+          <div class="a-chart" :style="{ height: `${Math.max(140, stats.parTag.length * 32)}px` }">
+            <Chart type="bar" :data="parTag" :options="optionsBarres" class="h-full" />
+          </div>
+          <!--
+            Un article porte plusieurs tags, donc ses lectures comptent pour
+            chacun : la somme des barres dépasse le total du site. On compare
+            des sujets entre eux, on ne partage pas un gâteau — et il vaut
+            mieux l'écrire que laisser quelqu'un additionner.
+          -->
+          <p class="hint">
+            Un article compte pour chacun de ses tags : ces barres se comparent entre elles,
+            elles ne s'additionnent pas.
+          </p>
+        </template>
+      </section>
     </div>
 
     <div class="a-cols">

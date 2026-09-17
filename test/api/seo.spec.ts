@@ -21,7 +21,7 @@ beforeAll(async () => {
     value: {
       name: "Un Max d'info",
       author: 'Maximilien Huet',
-      byline: 'Max',
+
       tagline: 'Comprendre ce que l’actualité n’explique pas.',
       pitch: 'Enquêtes au long cours.',
     },

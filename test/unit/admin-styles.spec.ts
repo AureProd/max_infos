@@ -42,6 +42,31 @@ describe('the sheet of the public site', () => {
     expect(guilty).toEqual([])
   })
 
+  /**
+   * The public sheet must not dress the back-office AT ALL.
+   *
+   * The prefix rule above missed the worst of it: a whole section headed
+   * « Back-office (lots 5 to 8) » sat in `base.css` under class names that
+   * carry no prefix — `.field`, `.editor`, `.preview`, `.cnav`, `.pill`.
+   * Every visitor downloaded it, and it still painted the admin: the
+   * « Présentation » field of the About screen stood 460px tall because of
+   * a `min-height` written there for the body of an article.
+   */
+  const ADMIN_ONLY = ['.editor', '.field', '.preview', '.cnav', '.pill']
+
+  it('carries no rule for a back-office-only class', () => {
+    const guilty = rules(CSS)
+      .map((r) => r.selector)
+      .filter((sel) =>
+        sel
+          .split(',')
+          .some((one) =>
+            ADMIN_ONLY.some((name) => new RegExp(`(^|[\\s>])\\${name}\\b`).test(one.trim())),
+          ),
+      )
+    expect(guilty).toEqual([])
+  })
+
   it('reads the rules it claims to read', () => {
     // Without this, a parser returning nothing would make the test above
     // pass on an empty list — the most comfortable kind of green.

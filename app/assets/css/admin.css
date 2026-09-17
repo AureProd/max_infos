@@ -20,7 +20,10 @@
      Ces `--a-*` ne sont plus une palette : ce sont des ALIAS des tokens de
      `main.css`. Il n'y avait pas une palette de trop, il y en avait deux —
      et une couleur écrite ailleurs n'appartenait alors à aucune des deux. */
-  --a-bg: var(--color-page);
+  /* Le site public est blanc, ses sections séparées par des filets ; un
+     outil, lui, a des cartes, et une carte blanche sur un fond blanc n'est
+     plus une carte. D'où `--color-tool`, le seul ton qui ne serve qu'ici. */
+  --a-bg: var(--color-tool);
   --a-panel: var(--color-surface);
   --a-line: var(--color-line-soft);
   --a-line-strong: var(--color-line);
@@ -1414,4 +1417,711 @@ a.a-figure:hover {
     padding: 10px 12px;
     font-size: 0.95rem;
   }
+}
+
+/* ---------- lot 12 : la refonte ---------- */
+
+/*
+ * Toute la ligne ouvre l'article.
+ *
+ * Il fallait viser un lien de quelques mots dans une rangée de 56 px, et
+ * rater la cible ne faisait rien. Le curseur et le survol disent que la
+ * ligne entière est cliquable ; le titre reste un vrai lien, pour qu'un
+ * clic du milieu ouvre toujours un onglet.
+ */
+.a-row-open {
+  cursor: pointer;
+}
+.a-row-open:hover {
+  background: var(--a-accent-soft);
+}
+.a-row-open:focus-visible {
+  outline: 2px solid var(--a-accent);
+  outline-offset: -2px;
+}
+
+/* Un lien habillé comme un bouton icône, pour les cibles qui doivent
+   rester des <a> — « voir sur le site » s'ouvre dans un onglet. */
+.a-icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--a-line-strong);
+  border-radius: 6px;
+  color: var(--a-muted);
+  text-decoration: none;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
+}
+.a-icon-link:hover {
+  color: var(--a-accent);
+  border-color: var(--a-accent);
+}
+.a-icon-link i {
+  font-size: 0.82rem;
+}
+
+/* Le champ de recherche prend la place restante de sa barre d'outils. */
+.a-grow {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+/* Les graphiques du tableau de bord. La hauteur est portée par le
+   conteneur : un <canvas> de Chart.js sans hauteur fixe grandit d'un
+   redimensionnement à l'autre, jusqu'à occuper l'écran. */
+.a-chart {
+  position: relative;
+  width: 100%;
+}
+.a-chart canvas {
+  display: block;
+}
+.a-chart-wide {
+  margin-bottom: 20px;
+}
+.a-chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.a-chart-head h2 {
+  margin: 0;
+}
+.a-chart-note {
+  font-size: 0.8rem;
+  color: var(--a-faint);
+  white-space: nowrap;
+}
+
+/* ---------- MediaField : choisir un fichier ----------
+   L'ancien sélecteur montrait un <select> de NOMS de fichiers. Choisir une
+   couverture revenait à lire « 4f2a-bretagne-1080.png » et à espérer, sur
+   le seul écran où ce qui compte est à quoi l'image ressemble. */
+.a-media {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 14px;
+  border: 1px dashed var(--a-line-strong);
+  border-radius: 10px;
+  background: var(--a-bg);
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+.a-media.is-dragging {
+  border-color: var(--a-accent);
+  background: var(--a-accent-soft);
+}
+.a-media-thumb {
+  flex: none;
+  width: 120px;
+  height: 120px;
+  padding: 0;
+  border: 1px solid var(--a-line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--a-panel);
+  cursor: zoom-in;
+}
+.a-media-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.a-media-pdf {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--a-danger);
+  font-size: 1.8rem;
+}
+.a-media-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.a-media-name {
+  font-size: 0.86rem;
+  color: var(--a-muted);
+  word-break: break-all;
+}
+.a-media-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--a-muted);
+}
+.a-media-empty i {
+  font-size: 1.4rem;
+  color: var(--a-faint);
+}
+.a-media-empty p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.a-gallery {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 12px;
+}
+.a-gallery-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--a-line);
+  border-radius: 8px;
+  background: var(--a-panel);
+  cursor: pointer;
+  text-align: left;
+}
+.a-gallery-item:hover {
+  border-color: var(--a-accent);
+}
+.a-gallery-item.is-on {
+  border-color: var(--a-accent);
+  box-shadow: 0 0 0 2px var(--a-accent-soft);
+}
+.a-gallery-item img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 5px;
+  display: block;
+}
+.a-gallery-item .a-media-pdf {
+  aspect-ratio: 4 / 3;
+  height: auto;
+}
+.a-gallery-name {
+  font-size: 0.74rem;
+  color: var(--a-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.a-zoom-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 6px;
+}
+.a-zoom-pdf {
+  width: 100%;
+  height: min(70vh, 800px);
+  border: 1px solid var(--a-line);
+  border-radius: 6px;
+}
+
+@media (max-width: 640px) {
+  .a-media {
+    flex-direction: column;
+  }
+  .a-media-thumb {
+    width: 100%;
+    height: 180px;
+  }
+}
+
+/* ---------- import manuel d'une publication ----------
+   Une grille, et non une barre en flex : les champs y avaient des hauteurs
+   différentes selon qu'ils portaient un <input> nu ou un contrôle de la
+   bibliothèque, et rien ne s'alignait. */
+.a-import-grid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 14px 16px;
+  align-items: end;
+}
+.a-import-url {
+  min-width: 0;
+}
+.a-import-grid .field {
+  margin: 0;
+}
+/* Les deux champs facultatifs ont leur propre grille : celle du dessus a
+   une première colonne taillée sur le mot « Réseau », et le titre s'y
+   retrouvait à trente pixels de large. */
+.a-import-pair {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+.a-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+  align-items: stretch;
+}
+/* Le bouton secondaire prend la largeur : c'est le geste qu'on fait
+   d'abord, et « Ajouter » reste la décision, à sa taille. */
+.a-btn-block {
+  flex: 1 1 260px;
+  justify-content: center;
+}
+.a-seg i {
+  margin-right: 6px;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 640px) {
+  .a-import-grid,
+  .a-import-pair {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- l'état de l'enregistrement ----------
+   Il n'y a plus de bouton « Enregistrer » : il faut donc quelque chose à
+   lire, toujours au même endroit, qui CHANGE plutôt qu'apparaître. */
+.a-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+.a-save i {
+  font-size: 0.75rem;
+}
+.a-save.is-idle,
+.a-save.is-saved {
+  color: var(--a-ok);
+}
+.a-save.is-pending,
+.a-save.is-saving {
+  color: var(--a-muted);
+}
+.a-save.is-failed {
+  color: var(--a-danger);
+  font-weight: 600;
+}
+
+/* Un libellé de champ et son action, sur la même ligne. */
+.a-label-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.a-label-row .a-label {
+  margin: 0;
+}
+.a-attached {
+  margin-top: 20px;
+}
+.a-attached .a-lines {
+  margin-bottom: 20px;
+}
+
+/* ---------- le CV en rubriques repliables ----------
+   Sept rubriques à la suite faisaient une page où l'on se perdait : on ne
+   savait plus dans laquelle on tapait. */
+.a-cv-sections {
+  margin-block: 18px;
+}
+.a-cv-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.a-cv-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding-inline: 6px;
+  border-radius: 999px;
+  background: var(--a-bg);
+  color: var(--a-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+/* Un champ et son bouton d'ajout, à la MÊME hauteur. Le bouton portait
+   `.a-btn`, dont le rembourrage ne correspond pas à celui d'un <input> :
+   les deux se décalaient d'environ deux pixels, sur chaque rubrique. */
+.a-add {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 10px;
+}
+.a-add > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.a-chip i {
+  font-size: 0.6rem;
+  margin-left: 4px;
+}
+
+/* De l'air sous le dernier bloc d'un écran. Une liste qui bute contre le
+   bas de la fenêtre ne peut pas être remontée pour être lue. */
+.a-tail {
+  height: 25vh;
+  min-height: 120px;
+}
+
+/* Le formulaire d'ajout d'un compte : une seule ligne, une seule police.
+   Le libellé au-dessus et les trois contrôles dessous prenaient deux
+   rangées pour un geste, et le menu déroulant portait la police du système
+   quand tout le reste portait celle du back-office. */
+.a-invite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.a-invite > :first-child {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.a-invite .p-select,
+.a-invite .p-select-label,
+.a-invite .p-inputtext {
+  font-family: inherit;
+}
+
+/*
+ * Le menu de rôle a une largeur FIXE.
+ *
+ * Il se dimensionnait sur son contenu : « Éditeur » et « Développeur » ne
+ * font pas la même longueur, donc deux lignes voisines portaient deux
+ * menus de tailles différentes, et la colonne tremblait d'une ligne à
+ * l'autre. C'est le mot le plus long qui donne la mesure, une fois.
+ */
+.admin-ui .p-datatable .p-select {
+  width: 10.5rem;
+}
+
+/* Un intitulé de ligne qui ne mène nulle part. `.a-title` peint en bleu et
+   se souligne au survol : porté par un nom de compte, il annonçait un lien
+   qui n'existait pas. */
+.a-strong {
+  font-weight: 600;
+  color: var(--a-text);
+}
+
+@media (max-width: 640px) {
+  .a-invite > * {
+    flex: 1 1 100%;
+  }
+}
+
+/* ---------- les tables PrimeVue se replient, elles aussi ----------
+   Sous 640px, cinq colonnes ne tiennent pas : soit elles débordent de
+   côté, soit chaque mot se compose à une lettre par ligne. Les tables
+   écrites à la main (`.a-table`) se repliaient déjà en cartes empilées ;
+   celles de la bibliothèque étaient les seules à rester en défilement
+   horizontal.
+
+   Le libellé de chaque cellule vient du `data-label` posé par `cell()` —
+   l'en-tête, répété, puisque la ligne d'en-tête a disparu. */
+@media (max-width: 640px) {
+  .a-scroll-x {
+    overflow-x: visible;
+  }
+  .a-scroll-x .p-datatable-table,
+  .a-scroll-x .p-datatable-tbody,
+  .a-scroll-x .p-datatable-tbody > tr,
+  .a-scroll-x .p-datatable-tbody > tr > td {
+    display: block;
+    width: auto;
+  }
+  .a-scroll-x .p-datatable-thead {
+    /* L'en-tête n'a plus de colonnes à nommer. */
+    display: none;
+  }
+  .a-scroll-x .p-datatable-tbody > tr {
+    border: 1px solid var(--a-line);
+    border-radius: 10px;
+    padding: 6px 4px;
+    margin-bottom: 12px;
+    background: var(--a-panel);
+  }
+  .a-scroll-x .p-datatable-tbody > tr > td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    border: none;
+    padding: 8px 12px;
+    text-align: right;
+  }
+  .a-scroll-x .p-datatable-tbody > tr > td[data-label]::before {
+    content: attr(data-label);
+    flex: none;
+    color: var(--a-faint);
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: left;
+  }
+  /* La première cellule porte l'identité de la ligne : elle garde toute la
+     largeur, comme un titre de carte. */
+  .a-scroll-x .p-datatable-tbody > tr > td:first-child {
+    display: block;
+    text-align: left;
+    border-bottom: 1px solid var(--a-line);
+    padding-bottom: 12px;
+    margin-bottom: 4px;
+  }
+  .a-scroll-x .p-datatable-tbody > tr > td:first-child::before {
+    display: none;
+  }
+  .a-scroll-x .p-datatable-tbody > tr > td .a-row-act {
+    justify-content: flex-end;
+  }
+}
+
+/* ---------- la fenêtre de choix des tags ----------
+   Ces règles vivaient dans base.css, la feuille du SITE PUBLIC, sous un
+   en-tête « Back-office (lots 5 à 8) » : chargées par chaque visiteur pour
+   habiller un écran qu'il ne verra jamais. */
+.a-tagsearch {
+  width: 100%;
+}
+.a-tagnew {
+  margin-top: 10px;
+}
+.a-taglist {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.a-taglist li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 2px;
+}
+.a-taglist label {
+  cursor: pointer;
+}
+.a-tagdrop {
+  margin-left: auto;
+}
+
+/* ============================================================
+   Ajustements de finition
+   ============================================================ */
+
+/*
+ * La barre d'actions d'un écran ne se casse plus en deux.
+ *
+ * `.a-btn-block` prend toute la largeur — c'est ce qu'on veut au pied d'un
+ * formulaire. Dans l'en-tête, il poussait le bouton suivant à la ligne :
+ * « Tout synchroniser » s'étirait sur 400 px et « Connecter un compte »
+ * tombait dessous. Ici le bloc ne vaut que sur un téléphone, où les deux
+ * gestes s'empilent de toute façon.
+ */
+.admin-actions {
+  justify-content: flex-end;
+}
+.admin-actions .a-btn-block {
+  flex: 0 0 auto;
+  width: auto;
+}
+
+/* Les widgets du tableau de bord respirent : les cartes se touchaient
+   presque, et deux graphiques côte à côte se lisaient comme un seul. */
+.a-figures {
+  gap: 20px;
+  margin-bottom: 28px;
+}
+.a-cols {
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.a-cols:last-child {
+  margin-bottom: 0;
+}
+.a-chart-wide {
+  margin-bottom: 24px;
+}
+.a-alerts {
+  margin-bottom: 28px;
+}
+
+/*
+ * Les actions d'une ligne portent une COULEUR, pas seulement une icône.
+ *
+ * Toutes grises, elles demandaient de lire l'infobulle pour distinguer
+ * « publier » de « supprimer » — sur la même rangée, à trente pixels l'une
+ * de l'autre. Le contour prend la teinte de ce que le bouton fait, et le
+ * survol la remplit : l'intention se lit avant le geste.
+ */
+.admin-ui .a-row-act .p-button-outlined:not(:disabled) {
+  background: var(--a-panel);
+}
+.admin-ui .a-row-act .p-button-outlined:not(:disabled):hover {
+  color: #fff;
+}
+.admin-ui .a-row-act .p-button-secondary.p-button-outlined:not(:disabled) {
+  border-color: var(--a-line-strong);
+  color: var(--a-muted);
+}
+.admin-ui .a-row-act .p-button-secondary.p-button-outlined:not(:disabled):hover {
+  border-color: var(--a-accent);
+  background: var(--a-accent);
+  color: #fff;
+}
+.admin-ui .a-row-act .p-button-danger.p-button-outlined:not(:disabled):hover {
+  background: var(--a-danger);
+  border-color: var(--a-danger);
+}
+.admin-ui .a-row-act .p-button-warn.p-button-outlined:not(:disabled):hover {
+  background: var(--a-warn);
+  border-color: var(--a-warn);
+}
+.admin-ui .a-row-act .p-button-success.p-button-outlined:not(:disabled):hover {
+  background: var(--a-ok);
+  border-color: var(--a-ok);
+}
+.admin-ui .a-row-act {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Une ligne de tableau se lit sur une base commune, pas au fil de la
+   hauteur de sa cellule la plus haute. */
+.admin-ui .p-datatable-tbody > tr > td {
+  vertical-align: middle;
+}
+
+/* ============================================================
+   Une seule hauteur de contrôle
+   ============================================================ */
+
+/*
+ * Tout ce qui se met sur une ligne mesure la même chose.
+ *
+ * Un `<input>` maison, un `InputText` de la bibliothèque, un `Select`, un
+ * `<button class="a-btn">` et un `<Button>` avaient chacun leur propre
+ * rembourrage : posés côte à côte, ils se décalaient de deux à six pixels,
+ * sur chaque barre d'outils de chaque écran. Une variable, et la question
+ * ne se repose plus.
+ */
+.admin-ui {
+  --a-control: 38px;
+  --a-control-sm: 32px;
+}
+
+.admin-ui .a-btn,
+.admin-ui .p-button:not(.p-button-sm):not(.p-button-icon-only),
+.admin-ui .p-inputtext,
+.admin-ui .p-select,
+.admin-ui .p-inputnumber-input,
+.admin-ui input[type='text'],
+.admin-ui input[type='email'],
+.admin-ui input[type='url'],
+.admin-ui input[type='search'],
+.admin-ui input[type='number'],
+.admin-ui input[type='date'],
+.admin-ui select,
+.admin-ui .a-input,
+.admin-ui .a-select {
+  min-height: var(--a-control);
+}
+.admin-ui .p-button-sm,
+.admin-ui .a-row-act .p-button {
+  min-height: var(--a-control-sm);
+}
+.admin-ui .a-row-act .p-button-icon-only {
+  width: var(--a-control-sm);
+}
+/* Un `<label>` habillé en bouton EST un bouton : c'est ainsi qu'on habille
+   un <input type="file">. Il doit donc mesurer comme les autres. */
+.admin-ui label.a-btn {
+  min-height: var(--a-control);
+}
+
+/*
+ * Les espaces, une bonne fois.
+ *
+ * Un champ, un intertitre, une liste et une barre d'outils se suivaient
+ * avec des marges écrites au cas par cas : selon l'écran, un select
+ * touchait son libellé ou flottait à vingt pixels.
+ */
+.admin-ui .field {
+  margin-bottom: 18px;
+}
+.admin-ui .field > label,
+.admin-ui .field > .a-label,
+.admin-ui .field > .label {
+  margin-bottom: 7px;
+}
+.admin-ui .field > .hint {
+  margin: 0 0 8px;
+}
+.admin-ui .a-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.admin-ui .a-rows > li + li {
+  margin-top: 12px;
+}
+.admin-ui .field-group + .field-group {
+  margin-top: 28px;
+}
+.admin-ui .hint + .a-scroll-x,
+.admin-ui .admin-lede + .a-scroll-x {
+  margin-top: 16px;
+}
+
+/*
+ * Le compteur empile ses boutons.
+ *
+ * En horizontal, le moins et le plus encadraient le nombre et la commande
+ * faisait 120 px de large dans une colonne qui n'en demandait pas tant.
+ * Empilés, ils tiennent dans la hauteur du champ.
+ */
+.admin-ui .p-inputnumber-vertical {
+  width: auto;
+}
+.admin-ui .p-inputnumber-vertical .p-inputnumber-input {
+  width: 3.2rem;
+  min-height: 0;
+  height: 30px;
+  text-align: center;
+}
+/* Compact : empilée telle quelle, la commande mesurait 105 px et c'est
+   ELLE qui donnait sa hauteur à toute la rangée — une ligne de tableau de
+   134 px pour deux lignes de texte. */
+.admin-ui .p-inputnumber-vertical .p-inputnumber-button {
+  min-height: 0;
+  height: 17px;
+  padding: 0;
+}
+.admin-ui .p-inputnumber-vertical .p-inputnumber-button .p-icon,
+.admin-ui .p-inputnumber-vertical .p-inputnumber-button span {
+  font-size: 0.6rem;
 }

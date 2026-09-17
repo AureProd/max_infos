@@ -26,7 +26,7 @@ beforeAll(async () => {
       value: {
         name: "Un Max d'info",
         author: 'Maximilien Huet',
-        byline: 'Max',
+
         tagline: 'Une accroche.',
         pitch: '',
       },

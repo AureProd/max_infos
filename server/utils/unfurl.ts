@@ -36,23 +36,32 @@ function decode(text: string): string {
  *
  * LinkedIn writes `content` first. A pattern expecting `property` first
  * matches nothing — and says nothing about it.
+ *
+ * The value is read up to THE DELIMITER THAT OPENED IT, captured and
+ * back-referenced. The obvious `["']([^"']*)["']` excludes both quote
+ * characters whatever the opening one, so `content="L'enquête sur le
+ * pouvoir"` stopped dead at the apostrophe: Max imported a post titled
+ * « L ». In French titles an apostrophe is not an edge case, it is most of
+ * them.
  */
 function meta(html: string, names: readonly string[]): string {
   for (const name of names) {
     const escaped = name.replace(':', '\\:')
+    // `(.*?)` reste non gourmand : il s'arrête au premier guillemet de la
+    // même espèce, donc à la fin de l'attribut, jamais à la balise suivante.
     const patterns = [
       new RegExp(
-        `<meta[^>]+(?:property|name)\\s*=\\s*["']${escaped}["'][^>]*content\\s*=\\s*["']([^"']*)["']`,
+        `<meta[^>]+(?:property|name)\\s*=\\s*["']${escaped}["'][^>]*content\\s*=\\s*(["'])(.*?)\\1`,
         'i',
       ),
       new RegExp(
-        `<meta[^>]+content\\s*=\\s*["']([^"']*)["'][^>]*(?:property|name)\\s*=\\s*["']${escaped}["']`,
+        `<meta[^>]+content\\s*=\\s*(["'])(.*?)\\1[^>]*(?:property|name)\\s*=\\s*["']${escaped}["']`,
         'i',
       ),
     ]
     for (const pattern of patterns) {
       const hit = pattern.exec(html)
-      if (hit?.[1]) return decode(hit[1])
+      if (hit?.[2]) return decode(hit[2])
     }
   }
   return ''

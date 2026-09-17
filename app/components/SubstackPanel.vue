@@ -63,9 +63,13 @@ async function run(dryRun: boolean): Promise<void> {
 
 <template>
   <div>
-    <button class="a-btn" type="button" @click="open = !open">
-      {{ open ? 'Fermer' : 'Rapatrier depuis Substack' }}
-    </button>
+    <Button
+      severity="secondary"
+      outlined
+      :icon="open ? 'pi pi-times' : 'pi pi-download'"
+      :label="open ? 'Fermer' : 'Rapatrier depuis Substack'"
+      @click="open = !open"
+    />
 
     <!--
       Téléporté : le bouton vit dans la barre d'actions de l'écran, une

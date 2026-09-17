@@ -93,8 +93,11 @@ useSeoMeta({
             {{ list?.total ?? 0 }} articles publiés à ce jour. Rien n'est sponsorisé, rien n'est
             affilié, et ce site ne dépose aucun traceur.
           </p>
-          <p v-if="pdf">
-            <a class="btn" :href="pdf.url" download>Télécharger le CV (PDF)</a>
+          <p v-if="pdf" class="about-cv">
+            <a class="btn" :href="pdf.url" download>
+              <i class="pi pi-download" aria-hidden="true" />
+              Télécharger le CV (PDF)
+            </a>
           </p>
         </div>
 

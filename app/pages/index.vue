@@ -38,10 +38,6 @@ useSeoMeta({
     <section class="hero">
       <h1>{{ site?.identity.tagline }}</h1>
       <p class="strap">{{ site?.identity.pitch }}</p>
-      <p class="scroll-cue">
-        <i class="pi pi-angle-down" aria-hidden="true" />
-        Défiler
-      </p>
     </section>
 
     <section v-if="feature" class="front">
@@ -144,12 +140,4 @@ useSeoMeta({
       </nav>
     </section>
   </div>
-
-  <!--
-    Le bandeau ferme la page au lieu de la couper en deux. Il était posé
-    entre la une et les réseaux, là où le lecteur venait justement de
-    choisir quoi lire : une seconde liste de titres à cet endroit ne fait
-    que reprendre la décision qu'il vient de prendre.
-  -->
-  <ArticleMarquee />
 </template>

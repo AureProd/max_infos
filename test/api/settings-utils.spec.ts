@@ -57,11 +57,7 @@ describe('readSetting', () => {
   })
 
   it('gives back what was stored when it is valid', async () => {
-    await writeSetting(
-      'identity',
-      { name: 'Test', author: 'A', byline: 'B', tagline: '', pitch: '' },
-      author,
-    )
+    await writeSetting('identity', { name: 'Test', author: 'A', tagline: '', pitch: '' }, author)
     expect((await readSetting('identity')).name).toBe('Test')
   })
 })

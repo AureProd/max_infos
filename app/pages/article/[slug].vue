@@ -111,7 +111,18 @@ onMounted(() => {
 <template>
   <div class="wrap">
     <article v-if="article" class="article">
-      <NuxtLink class="back" to="/">← Retour</NuxtLink>
+      <!--
+        Le retour et le partage se partagent la première ligne : deux
+        actions, une barre. Le partage était sous la signature, entre le
+        sous-titre et le texte, là où l'on n'a encore rien lu.
+      -->
+      <div class="article-top">
+        <NuxtLink class="back" to="/">
+          <i class="pi pi-arrow-left" aria-hidden="true" />
+          Retour
+        </NuxtLink>
+        <ShareButton :title="article.title" />
+      </div>
 
       <header>
         <h1>{{ article.title }}</h1>
@@ -122,6 +133,11 @@ onMounted(() => {
         -->
         <p v-if="article.dek" class="dek">{{ article.dek }}</p>
 
+        <!--
+          L'auteur et les tags sur une seule ligne : c'est la même chose,
+          la fiche d'identité du texte. Ils occupaient deux bandes séparées
+          par un filet, pour six mots en tout.
+        -->
         <div class="signature">
           <img
             v-if="portrait"
@@ -140,10 +156,7 @@ onMounted(() => {
               <span>{{ article.readingMinutes }} min de lecture</span>
             </span>
           </div>
-        </div>
 
-        <div class="article-bar">
-          <ShareButton :title="article.title" />
           <ul v-if="article.tags.length" class="article-tags">
             <li v-for="tag in article.tags" :key="tag.slug">{{ tag.label }}</li>
           </ul>

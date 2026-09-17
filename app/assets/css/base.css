@@ -65,7 +65,7 @@ body {
  * does not have smears the glyphs sideways to fake one, and on display type
  * this heavy it reads as a rendering fault.
  */
-:where(h1, h2, h3, h4, .brand, .kicker, .cap, .marquee a) {
+:where(h1, h2, h3, h4, .brand, .kicker, .cap) {
   font-family: var(--display);
   font-weight: var(--font-weight-display);
   font-synthesis-weight: none;
@@ -86,7 +86,21 @@ svg {
   max-width: 100%;
   display: block;
 }
-button {
+/*
+ * `:not([class])`, comme `a` et `label` plus bas — et pour la même raison,
+ * doublée d'une nouvelle.
+ *
+ * Ce reset dépouille un bouton de son fond et de sa bordure. Écrit sur
+ * l'élément nu, il frappait AUSSI les boutons de PrimeVue : la couche
+ * `site` passe après `primevue`, et une couche bat la spécificité — un
+ * `button` de cette feuille l'emportait donc sur `.p-button`. Tous les
+ * boutons du back-office se retrouvaient sans fond ni bordure, réduits à
+ * leur icône, sans que rien ne le signale.
+ *
+ * Tenu par test/e2e/layout.spec.ts, qui mesure le fond d'un bouton de la
+ * bibliothèque dans un vrai navigateur.
+ */
+button:not([class]) {
   font: inherit;
   color: inherit;
   background: none;
@@ -180,7 +194,6 @@ button {
   color: var(--muted);
   text-decoration: none;
   padding: 8px 12px;
-  border-radius: 999px;
   transition: color 0.15s;
 }
 
@@ -198,7 +211,6 @@ button {
 }
 .nav a.nav-icon:hover {
   color: var(--accent);
-  background: var(--accent-lo);
 }
 .nav a.nav-icon i {
   font-size: 1rem;
@@ -206,12 +218,19 @@ button {
 .nav a:hover {
   color: var(--text);
 }
+/* Un trait bleu sous l'onglet actif, et rien d'autre. La pastille pleine
+   faisait un bouton là où il n'y a qu'un repère. Il ne va pas sous
+   l'icône : elle n'est pas une rubrique, elle est une porte. */
 .nav a.router-link-exact-active {
-  color: var(--accent);
-  background: var(--accent-lo);
+  color: var(--text);
 }
-/* Pas de soulignement sous l'onglet actif : la pastille le dit déjà, et
-   le trait se glissait aussi sous l'icône, où il n'avait aucun sens. */
+.nav a.router-link-exact-active:not(.nav-icon)::after {
+  content: '';
+  display: block;
+  height: 2px;
+  background: var(--accent);
+  margin-top: 5px;
+}
 
 /* ---------- hero carried by the type ---------- */
 .hero {
@@ -277,86 +296,22 @@ button {
   color: var(--accent);
 }
 
-.scroll-cue {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--display);
-  font-size: 0.8rem;
-  color: var(--faint);
-  padding-block: 34px 0;
-}
-.scroll-cue i {
-  font-size: 0.85rem;
-}
-
-/* ---------- scrolling title banner ---------- */
-.marquee {
-  margin-top: 72px;
-  border-block: 1px solid var(--line);
-  overflow: hidden;
-  padding-block: 18px;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
-}
-.marquee-run {
-  display: flex;
-  width: max-content;
-  gap: 0;
-  animation: slide 46s linear infinite;
-}
-.marquee:hover .marquee-run {
-  animation-play-state: paused;
-}
-.marquee a {
-  font-family: var(--display);
-  font-weight: var(--font-weight-display);
-  font-size: clamp(1.05rem, 2.1vw, 1.5rem);
-  letter-spacing: -0.02em;
-  color: var(--muted);
-  text-decoration: none;
-  padding-inline: 24px;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  transition: color 0.15s;
-}
-.marquee a::after {
-  content: '';
-  width: 6px;
-  height: 6px;
-  flex: none;
-  background: var(--accent-solid);
-}
-.marquee a:hover {
-  color: var(--text);
-}
-@keyframes slide {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .marquee-run {
-    animation: none;
-  }
-  .marquee {
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-}
 
 /* ---------- front page: featured article left, rail right ---------- */
+/*
+ * Les séparations de section portent le filet DOUX.
+ *
+ * `--line` est le filet du Substack, relevé sur son fond gris. Posé sur du
+ * blanc, il devient une barre : trois de ces traits sur une page d'accueil
+ * la découpaient plus qu'ils ne l'articulaient. `--line` reste pour le bord
+ * d'un contrôle, où l'on veut voir l'arête.
+ */
 .front {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
   gap: 48px;
   padding-block: 56px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-soft);
 }
 .feature {
   display: grid;
@@ -470,7 +425,7 @@ button {
 /* ---------- titres de section ---------- */
 .section {
   padding-block: 62px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-soft);
 }
 .section-head {
   display: flex;
@@ -494,7 +449,7 @@ button {
 .section-head .rule {
   flex: 1;
   height: 1px;
-  background: var(--line);
+  background: var(--line-soft);
   min-width: 20px;
 }
 
@@ -621,8 +576,9 @@ button {
   flex-wrap: wrap;
   gap: 14px;
   align-items: center;
-  padding-block: 24px;
-  border-top: 1px solid var(--line);
+  /* Plus de filet ici : le titre de section en pose déjà un juste au-dessus,
+     et les deux traits se suivaient à trente pixels d'intervalle. */
+  padding-block: 4px 24px;
 }
 .search {
   flex: 1 1 260px;
@@ -837,12 +793,6 @@ button {
   color: var(--muted);
   margin: 0;
   max-width: 48ch;
-}
-
-.cnav {
-  display: flex;
-  gap: 6px;
-  flex: none;
 }
 .cbtn {
   width: 34px;
@@ -1103,22 +1053,27 @@ button {
 .article {
   padding-block: 32px 80px;
 }
+/* Le retour et le partage se partagent la première ligne, calée sur la
+   colonne de lecture : deux actions, une barre. */
+.article-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: var(--read);
+  margin: 0 auto 30px;
+}
 .back {
   font-family: var(--body);
   font-size: 0.87rem;
   color: var(--faint);
   text-decoration: none;
-  /* `flex` et non `inline-flex` : le lien doit s'aligner sur le bord
-     GAUCHE de la colonne de lecture, ce qu'un élément en ligne ne peut pas
-     faire — il restait collé au bord de la page. */
-  display: flex;
-  justify-content: flex-start;
+  display: inline-flex;
   gap: 8px;
   align-items: center;
-  margin-bottom: 34px;
-  max-width: var(--read);
-  margin-inline: auto;
-  width: 100%;
+}
+.back i {
+  font-size: 0.75rem;
 }
 .back:hover {
   color: var(--accent);
@@ -1152,7 +1107,10 @@ button {
 .signature {
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line-soft);
 }
 .signature-face {
   width: 44px;
@@ -1183,21 +1141,14 @@ button {
   color: var(--faint);
 }
 
-.article-bar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px 16px;
-  margin-top: 22px;
-  padding-block: 16px;
-  border-block: 1px solid var(--line-soft);
-}
+/* Les tags rejoignent la signature : c'est la même chose, la fiche
+   d'identité du texte. Poussés à droite, ils ne concurrencent pas le nom. */
 .article-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   list-style: none;
-  margin: 0;
+  margin: 0 0 0 auto;
   padding: 0;
 }
 .article-tags li {
@@ -1212,7 +1163,7 @@ button {
   max-width: var(--read);
   margin: 56px auto 0;
   padding-top: 24px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-soft);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1354,7 +1305,7 @@ button {
 }
 .prose hr {
   border: none;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-soft);
   margin: 2.6em 0;
 }
 /* Les images du corps viennent de Substack avec un width="728" en dur :
@@ -1381,7 +1332,7 @@ button {
   margin-inline: auto;
   margin-top: 56px;
   padding-top: 24px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-soft);
   color: var(--faint);
   font-family: var(--display);
   font-size: 0.9rem;
@@ -1557,16 +1508,25 @@ button {
   color: var(--faint);
 }
 
-/* ---------- back-office ---------- */
-.pill {
-  font-family: var(--display);
-  font-size: 0.78rem;
-  color: var(--accent);
-  background: var(--accent-lo);
-  border: 1px solid rgba(74, 129, 245, 0.3);
-  padding: 4px 10px;
+/* ---------- ce que le site public emprunte au back-office ----------
+   Il y avait ici une SECTION ENTIÈRE de back-office — `.editor`, `.field`,
+   `.preview`, `.pill` — dans la feuille chargée par chaque visiteur. Elle
+   ne servait plus le site, et elle peignait toujours l'administration : le
+   champ « Présentation » de l'écran À propos faisait 460 px de haut à
+   cause d'un `min-height` écrit ici pour le corps d'un article.
+
+   Ne reste que le bouton, que la page « À propos » utilise pour proposer
+   le CV en PDF. */
+/* Le bouton collait au paragraphe au-dessus : un `<p>` suit un `<p>`, donc
+   il n'héritait que de l'interligne du texte. */
+.about-cv {
+  margin-top: 28px;
 }
 .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 999px;
   font-family: var(--display);
   font-size: 0.9rem;
   font-weight: var(--font-weight-display);
@@ -1588,74 +1548,14 @@ button {
   font-weight: 600;
 }
 .btn-primary:hover {
-  background: #6b97f7;
-  border-color: #6b97f7;
+  background: var(--color-accent-strong);
+  border-color: var(--color-accent-strong);
 }
 
-.editor {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 26px;
-  align-items: start;
-}
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  margin-bottom: 16px;
-}
-.field label {
-  font-family: var(--display);
-  font-size: 0.83rem;
-  color: var(--muted);
-}
-.field input,
-.field textarea {
-  font-family: var(--display);
-  font-size: 0.95rem;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--line);
-  padding: 10px 12px;
-  width: 100%;
-}
-.field textarea {
-  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-  font-size: 0.87rem;
-  line-height: 1.65;
-  min-height: 460px;
-  resize: vertical;
-}
-.field input:focus,
-.field textarea:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-.preview {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  padding: 26px 28px;
-  max-height: 680px;
-  overflow-y: auto;
-}
-.preview .prose {
-  font-size: 1.02rem;
-  max-width: none;
-}
-.preview .prose h2 {
-  font-size: 1.3rem;
-  margin-top: 1.6em;
-}
-.count {
-  font-family: var(--display);
-  font-size: 0.8rem;
-  color: var(--faint);
-  font-variant-numeric: tabular-nums;
-}
 
 /* ---------- pied ---------- */
 .foot {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line-soft);
   padding-block: 38px 52px;
   font-family: var(--display);
   font-size: 0.85rem;
@@ -1694,12 +1594,6 @@ button {
   .about-grid {
     grid-template-columns: 1fr;
     gap: 40px;
-  }
-  .editor {
-    grid-template-columns: 1fr;
-  }
-  .preview {
-    max-height: none;
   }
   .cluster .c1 {
     grid-column: span 6;
@@ -1767,9 +1661,6 @@ button {
   }
   .article header {
     max-width: none;
-  }
-  .field textarea {
-    min-height: 280px;
   }
 }
 
@@ -1906,84 +1797,6 @@ button {
   white-space: nowrap;
 }
 
-/* ---------------------------------------------------------------------------
-   Back-office (lots 5 to 8)
-
-   The back-office does not have to be pretty — it has to be legible and not
-   misleading. Hence minimal rules, reusing the site's variables.
---------------------------------------------------------------------------- */
-/* At phone width the eight entries wrapped onto three lines and pushed the
-   title down. A strip that scrolls keeps the bar one line tall, whatever the
-   screen, and the scrollbar itself is hidden — the overflow is the hint. */
-.cnav {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  max-width: 100%;
-}
-@media (max-width: 640px) {
-  .cnav {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  .cnav::-webkit-scrollbar {
-    display: none;
-  }
-  .cnav a {
-    white-space: nowrap;
-  }
-}
-
-.cnav a {
-  padding: 6px 12px;
-  border-radius: 3px;
-  font-family: var(--display);
-  font-size: 14px;
-  text-decoration: none;
-  color: var(--muted, #949ba4);
-  border-bottom: 2px solid transparent;
-  transition:
-    color 0.15s,
-    background 0.15s,
-    border-color 0.15s;
-}
-
-.cnav a:hover {
-  color: var(--text);
-  background: var(--raised);
-}
-
-/* `.current` and NOT `.router-link-active`: the latter matches by prefix, so
-   /admin stayed lit on every screen of the back-office. app/utils/admin-nav.ts
-   decides, and a test holds it to exactly one entry. */
-.cnav a.current {
-  color: var(--text, #dbdee1);
-  background: var(--accent-lo);
-  border-bottom-color: var(--accent);
-}
-
-.cluster {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-/* An error message must be seen without being read: colour does half the
-   work, notably for the warning about personal data. */
-.err {
-  color: #e4604f;
-  font-size: 14px;
-  margin: 8px 0 0;
-}
-
-.hint {
-  color: var(--muted, #949ba4);
-  font-size: 14px;
-}
-
 /* Les tags d'une carte : discrets, ils situent sans concurrencer le titre. */
 .card-tags {
   display: flex;
@@ -2036,33 +1849,6 @@ button {
 .pager button:disabled {
   opacity: 0.4;
   cursor: default;
-}
-
-/* ---------- choix des sujets (popup) ---------- */
-.a-tagsearch {
-  width: 100%;
-}
-.a-tagnew {
-  margin-top: 10px;
-}
-.a-taglist {
-  list-style: none;
-  margin: 14px 0 0;
-  padding: 0;
-  max-height: 320px;
-  overflow-y: auto;
-}
-.a-taglist li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 2px;
-}
-.a-taglist label {
-  cursor: pointer;
-}
-.a-tagdrop {
-  margin-left: auto;
 }
 
 /* ---------- partager (lot 2) ----------

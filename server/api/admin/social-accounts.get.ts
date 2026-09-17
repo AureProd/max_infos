@@ -33,6 +33,9 @@ export default defineEventHandler(async (event) => {
       position: socialAccount.position,
       postsOnHome: socialAccount.postsOnHome,
       lastSyncAt: socialAccount.lastSyncAt,
+      // La date de connexion : l'écran disait quand le compte avait été
+      // synchronisé pour la dernière fois, jamais depuis quand il est là.
+      createdAt: socialAccount.createdAt,
     })
     .from(socialAccount)
     .orderBy(asc(socialAccount.position), asc(socialAccount.id))
@@ -57,6 +60,7 @@ export default defineEventHandler(async (event) => {
     return {
       ...account,
       lastSyncAt: account.lastSyncAt?.toISOString() ?? null,
+      createdAt: account.createdAt.toISOString(),
       url: account.username ? `https://www.instagram.com/${account.username}` : null,
       signedIn: Boolean(token),
       jetonAgeJours: ageDays,

@@ -143,6 +143,18 @@ export const postVisibility = z.object({
 })
 
 /**
+ * Correcting the title of a post.
+ *
+ * It came from the page's OpenGraph tags and nothing could take it back: a
+ * title LinkedIn served truncated, or did not serve at all, stayed that way
+ * on the site for good. `null` clears it — the card then falls back to the
+ * media type, which is what it did before any title existed.
+ */
+export const postCaption = z.object({
+  caption: z.string().trim().max(2000).nullable(),
+})
+
+/**
  * How an account shows up on the home page.
  *
  * Everything is optional: the screen sends only the field just touched — an

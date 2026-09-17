@@ -66,3 +66,52 @@ describe('reading the tags', () => {
     expect(readOpenGraph(html).image).toBe('')
   })
 })
+
+/**
+ * An apostrophe in a title is not a delimiter.
+ *
+ * The pattern captured `content="([^"']*)"` — a class that excludes BOTH
+ * quote characters, whatever the one that opened the attribute. So
+ * `content="L'enquête sur le pouvoir"` stopped at the apostrophe and Max
+ * imported a post titled « L ». French titles are full of apostrophes;
+ * this was not an edge case, it was most of them.
+ */
+describe('a title that contains a quote character', () => {
+  const page = (attr: string) => `<html><head><meta property="og:title" ${attr}></head></html>`
+
+  it('keeps an apostrophe inside a double-quoted attribute', () => {
+    expect(readOpenGraph(page(`content="L'enquête sur le pouvoir"`)).title).toBe(
+      "L'enquête sur le pouvoir",
+    )
+  })
+
+  it('keeps a double quote inside a single-quoted attribute', () => {
+    expect(readOpenGraph(page(`content='Le "coup de gueule" de Dequoy'`)).title).toBe(
+      'Le "coup de gueule" de Dequoy',
+    )
+  })
+
+  it('reads a title written before the property, apostrophe included', () => {
+    // LinkedIn writes `content` first — the other pattern of the pair.
+    expect(readOpenGraph(`<meta content="L'Europe s'arme" property="og:title">`).title).toBe(
+      "L'Europe s'arme",
+    )
+  })
+
+  it('does the same for the description and the image', () => {
+    const html = `<html><head>
+      <meta property="og:description" content="Ce qu'il reste de l'accord">
+      <meta property="og:image" content="https://exemple.test/a'b.jpg">
+    </head></html>`
+    const og = readOpenGraph(html)
+    expect(og.description).toBe("Ce qu'il reste de l'accord")
+    expect(og.image).toBe("https://exemple.test/a'b.jpg")
+  })
+
+  it('still stops at the delimiter that opened the attribute', () => {
+    // Le garde-fou de la correction : capturer « tout jusqu'au même
+    // guillemet », pas « tout jusqu'à la fin de la balise ».
+    const html = `<meta property="og:title" content="Titre"><meta name="autre" content="ignoré">`
+    expect(readOpenGraph(html).title).toBe('Titre')
+  })
+})

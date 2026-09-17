@@ -29,6 +29,7 @@ const screens = computed(() =>
   [
     { to: '/admin', label: 'Tableau de bord', tech: false },
     { to: '/admin/articles', label: 'Articles', tech: false },
+    { to: '/admin/tags', label: 'Tags', tech: false },
     { to: '/admin/publications', label: 'Publications', tech: false },
     { to: '/admin/social', label: 'Réseaux', tech: false },
     { to: '/admin/about', label: 'À propos', tech: false },

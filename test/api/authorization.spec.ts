@@ -129,6 +129,14 @@ const EXPECTED: Record<string, Pending> = {
     developer: 404,
     body: { hidden: true },
   },
+  // 999999 n'existe pas : 404 APRÈS le contrôle de rôle, ce qui est
+  // exactement ce qu'on mesure ici.
+  'PUT /api/admin/social-posts/[id]/caption': {
+    anonyme: 401,
+    editor: 404,
+    developer: 404,
+    body: { caption: 'Un titre corrigé' },
+  },
   'GET /api/admin/articles/[slug]/variants': { anonyme: 401, editor: 200, developer: 200 },
 
   // The social accounts belong to Max: he connects, orders, hides and
@@ -163,7 +171,7 @@ const EXPECTED: Record<string, Pending> = {
     body: {
       name: 'Un Max d’info',
       author: 'Maximilien Huet',
-      byline: 'Max',
+
       tagline: '',
       pitch: '',
     },
@@ -178,6 +186,9 @@ const EXPECTED: Record<string, Pending> = {
     developer: 409,
     body: { dryRun: true },
   },
+
+  // Les graphiques du tableau de bord : c'est l'écran de Max, donc `editor`.
+  'GET /api/admin/stats': { anonyme: 401, editor: 200, developer: 200 },
 
   'GET /api/admin/users': { anonyme: 401, editor: 403, developer: 200 },
   // Inviting writes a REAL row. Its own address, the least powerful role, and

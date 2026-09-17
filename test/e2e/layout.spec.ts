@@ -34,6 +34,7 @@ test.describe('the public pages', () => {
 const ADMIN_SCREENS = [
   '/admin',
   '/admin/articles',
+  '/admin/tags',
   '/admin/publications',
   '/admin/social',
   '/admin/about',

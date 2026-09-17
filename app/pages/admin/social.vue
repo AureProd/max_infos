@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { frDate, nb } from '#shared/utils/format'
+import { networkLabel } from '#shared/utils/social'
 
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
@@ -18,6 +19,9 @@ const back = computed(() => route.query.instagram as string | undefined)
 const { data: accounts, refresh } = await useFetch('/api/admin/social-accounts', {
   key: 'comptes-sociaux',
 })
+
+const { ok, fail } = useNotify()
+const confirmDialog = useConfirm()
 
 const state = ref<'repos' | 'enregistrement' | 'enregistré' | 'échec'>('repos')
 const message = ref('')
@@ -38,7 +42,7 @@ async function set(
     state.value = 'enregistré'
   } catch (e) {
     state.value = 'échec'
-    message.value = (e as { statusMessage?: string }).statusMessage ?? 'Enregistrement impossible'
+    fail(e, 'Enregistrement impossible')
   }
 }
 
@@ -67,8 +71,10 @@ async function syncPosts(account?: number): Promise<void> {
       ? `${summary.fresh} nouvelle(s). En échec : ${failures.map((c) => `@${c.username} (${c.error})`).join(', ')}`
       : `${summary.views} publication(s) vue(s), ${summary.fresh} nouvelle(s).`
     await refresh()
+    if (failures.length) fail(message.value, 'Synchronisation incomplète')
+    else ok('Synchronisé', message.value)
   } catch (e) {
-    message.value = (e as { statusMessage?: string }).statusMessage ?? 'Synchronisation impossible'
+    fail(e, 'Synchronisation impossible')
   } finally {
     syncTask.value = null
   }
@@ -80,17 +86,25 @@ async function syncPosts(account?: number): Promise<void> {
  * Hence the confirmation announcing the exact count: it is final, and
  * resyncing after reconnecting would not give the article attachments back.
  */
-async function signOut(account: {
-  id: number
-  username: string | null
-  nbPublications: number
-}): Promise<void> {
-  const accord = confirm(
-    `Déconnecter @${account.username} supprimera aussi ses ${account.nbPublications} publication(s) et leurs liens vers les articles. Cette action est définitive.`,
-  )
-  if (!accord) return
-  await $fetch(`/api/admin/social-accounts/${account.id}`, { method: 'DELETE' })
-  await refresh()
+function signOut(account: { id: number; username: string | null; nbPublications: number }): void {
+  confirmDialog.require({
+    header: `Déconnecter @${account.username}`,
+    message: `Ses ${account.nbPublications} publication(s) et leurs liens vers les articles seront supprimés. Une reconnexion ne les rendra pas.`,
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: 'Déconnecter',
+    acceptProps: { severity: 'danger' },
+    rejectLabel: 'Annuler',
+    rejectProps: { severity: 'secondary', outlined: true },
+    accept: async () => {
+      try {
+        await $fetch(`/api/admin/social-accounts/${account.id}`, { method: 'DELETE' })
+        await refresh()
+        ok('Compte déconnecté')
+      } catch (e) {
+        fail(e, 'Déconnexion refusée')
+      }
+    },
+  })
 }
 
 useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
@@ -104,16 +118,23 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
         <h1>Réseaux</h1>
       </div>
       <div class="admin-actions">
-          <span v-if="state === 'enregistré'" class="a-tag is-ok">enregistré</span>
-          <span v-else-if="state === 'échec'" class="a-err">échec</span>
-          <Button
-            severity="secondary"
-            outlined
-            :label="syncTask === 'tous' ? 'Synchronisation…' : 'Tout synchroniser'"
-            :disabled="syncTask !== null || !(accounts ?? []).length"
-            @click="syncPosts()"
-          />
-          <a class="a-btn a-btn-primary" href="/api/admin/instagram/connect">Connecter un compte</a>
+        <SaveState
+          :saving="state === 'enregistrement'"
+          :failed="state === 'échec'"
+          :saved="state === 'enregistré'"
+        />
+        <Button
+          severity="secondary"
+          outlined
+          class="a-btn-block"
+          icon="pi pi-sync"
+          :label="syncTask === 'tous' ? 'Synchronisation…' : 'Tout synchroniser'"
+          :disabled="syncTask !== null || !(accounts ?? []).length"
+          @click="syncPosts()"
+        />
+        <a class="a-btn a-btn-primary" href="/api/admin/instagram/connect">
+          <i class="pi pi-plus" aria-hidden="true" /> Connecter un compte
+        </a>
       </div>
     </div>
 
@@ -121,12 +142,11 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
       <p v-else-if="back === 'refus'" class="a-err">
         L'autorisation a été refusée côté Instagram.
       </p>
-      <p v-if="message" class="hint">{{ message }}</p>
 
       <p class="hint">
         Chaque compte affiché occupe sa propre section sur la page d'accueil, dans l'ordre
         ci-dessous. Le nom et la photo sont ceux du compte Instagram : ils se corrigent là-bas.
-        Pour rattacher une publication à un article, voir
+        Les réglages s'enregistrent tout seuls. Pour rattacher une publication à un article, voir
         <NuxtLink to="/admin/publications">Publications</NuxtLink>.
       </p>
 
@@ -145,7 +165,7 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
             </p>
           </template>
 
-          <Column header="Compte">
+          <Column header="Compte" :pt="cell('Compte')">
             <template #body="{ data }">
               <div class="cluster">
                 <img
@@ -156,19 +176,35 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
                 />
                 <div>
                   <a class="a-title" :href="data.url ?? undefined" target="_blank" rel="noopener">
+                    <!-- De quel réseau il s'agit : l'écran le laissait
+                         deviner, alors qu'il en gère deux. -->
+                    <i
+                      :class="['pi', data.network === 'linkedin' ? 'pi-linkedin' : 'pi-instagram']"
+                      aria-hidden="true"
+                    />
                     @{{ data.username }}
                   </a>
                   <div class="a-sub">
+                    <span>{{ networkLabel(data.network) }}</span>
                     <span v-if="data.displayName">{{ data.displayName }}</span>
                     <span>{{ nb(data.nbPublications) }} publication(s)</span>
                     <span v-if="data.followers">{{ nb(data.followers) }} abonné(e)s</span>
+                  </div>
+                  <div class="a-sub">
+                    <span>connecté le {{ frDate(data.createdAt.slice(0, 10)) }}</span>
                   </div>
                 </div>
               </div>
             </template>
           </Column>
 
-          <Column header="Jeton" class="a-col-lg">
+          <!--
+            Les en-têtes disent ce que la colonne RÈGLE, pas ce qu'elle
+            contient. « Sur l'accueil » et « Publications » ne disaient
+            rien : on ne savait ni ce que l'interrupteur montre, ni de quel
+            nombre il s'agit.
+          -->
+          <Column header="Jeton d'accès" class="a-col-lg" :pt="cell('Jeton')">
             <template #body="{ data }">
               <Tag v-if="!data.signedIn" severity="danger" value="absent — reconnecter" />
               <Tag
@@ -181,7 +217,7 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
             </template>
           </Column>
 
-          <Column header="Synchronisé" class="a-col-md">
+          <Column header="Dernière synchro" class="a-col-md" :pt="cell('Dernière synchro')">
             <template #body="{ data }">
               <time v-if="data.lastSyncAt" class="a-date" :datetime="data.lastSyncAt">
                 {{ frDate(data.lastSyncAt.slice(0, 10)) }}
@@ -190,39 +226,56 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
             </template>
           </Column>
 
-          <Column header="Sur l'accueil" class="a-col-md">
+          <Column class="a-col-md" :pt="cell('Montré sur l’accueil')">
+            <template #header>
+              <span v-tooltip.top="'Le compte a sa propre section sur la page d’accueil.'">
+                Montré sur l'accueil
+              </span>
+            </template>
             <template #body="{ data }">
               <ToggleSwitch
                 :model-value="data.visible"
-                aria-label="Afficher ce compte sur l'accueil"
+                aria-label="Montrer ce compte sur l'accueil"
                 @update:model-value="(v: boolean) => set(data.id, { visible: v })"
               />
             </template>
           </Column>
 
-          <Column header="Publications" class="a-col-md">
+          <Column class="a-col-md" :pt="cell('Publications montrées')">
+            <template #header>
+              <span v-tooltip.top="'Combien de publications de ce compte la page d’accueil montre.'">
+                Publications montrées
+              </span>
+            </template>
             <template #body="{ data }">
               <InputNumber
                 :model-value="data.postsOnHome"
                 :min="1"
                 :max="50"
                 show-buttons
-                button-layout="horizontal"
+                button-layout="vertical"
+                decrement-button-icon="pi pi-chevron-down"
+                increment-button-icon="pi pi-chevron-up"
                 :input-style="{ width: '2.5rem' }"
-                aria-label="Nombre de publications sur l'accueil"
+                aria-label="Nombre de publications montrées sur l'accueil"
                 @update:model-value="(v: number) => set(data.id, { postsOnHome: v })"
               />
             </template>
           </Column>
 
-          <Column header="Ordre" class="a-col-sm">
+          <Column class="a-col-sm" :pt="cell('Ordre')">
+            <template #header>
+              <span v-tooltip.top="'L’ordre des sections sur la page d’accueil.'">Ordre</span>
+            </template>
             <template #body="{ data, index }">
               <div class="a-row-act">
+                <!-- Grisés aux extrémités : rien à monter au-dessus du
+                     premier, rien à descendre sous le dernier. -->
                 <Button
                   severity="secondary"
                   outlined
                   size="small"
-                  label="↑"
+                  icon="pi pi-arrow-up"
                   :disabled="index === 0"
                   aria-label="Monter"
                   @click="move(index, -1)"
@@ -231,7 +284,7 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
                   severity="secondary"
                   outlined
                   size="small"
-                  label="↓"
+                  icon="pi pi-arrow-down"
                   :disabled="index === (accounts ?? []).length - 1"
                   aria-label="Descendre"
                   @click="move(index, 1)"
@@ -240,22 +293,26 @@ useSeoMeta({ title: 'Réseaux', robots: 'noindex, nofollow' })
             </template>
           </Column>
 
-          <Column class="a-col-fit">
+          <Column class="a-col-fit" :pt="cell('')">
             <template #body="{ data }">
               <div class="a-row-act">
                 <Button
+                  v-tooltip.top="'Synchroniser ce compte'"
                   severity="secondary"
                   outlined
                   size="small"
-                  :label="syncTask === data.id ? 'Synchronisation…' : 'Synchroniser'"
+                  :icon="syncTask === data.id ? 'pi pi-spin pi-spinner' : 'pi pi-sync'"
                   :disabled="syncTask !== null"
+                  aria-label="Synchroniser"
                   @click="syncPosts(data.id)"
                 />
                 <Button
+                  v-tooltip.top="'Déconnecter ce compte'"
                   severity="danger"
                   outlined
                   size="small"
-                  label="Déconnecter"
+                  icon="pi pi-power-off"
+                  aria-label="Déconnecter"
                   @click="signOut(data)"
                 />
               </div>

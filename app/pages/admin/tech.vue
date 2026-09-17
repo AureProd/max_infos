@@ -15,7 +15,7 @@ const importMessage = ref('')
  * simply impossible. Now the archive goes back in as it came out.
  */
 const PARTS = [
-  { key: 'articles', label: 'Articles et sujets' },
+  { key: 'articles', label: 'Articles et tags' },
   { key: 'media', label: 'Images et documents' },
   { key: 'publications', label: 'Comptes et publications' },
   { key: 'settings', label: 'Réglages (à propos, CV, gabarits)' },
@@ -125,9 +125,14 @@ useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
           tels quels, et un LISEZ-MOI. Les jetons tiers n'y figurent jamais.
         </p>
         <div class="cluster">
-          <a class="a-btn a-btn-primary" href="/api/admin/export">Télécharger une sauvegarde</a>
+          <a class="a-btn a-btn-primary" href="/api/admin/export">
+            <i class="pi pi-download" aria-hidden="true" /> Télécharger une sauvegarde
+          </a>
+          <!-- « Choisir une archive… » décrivait le geste du navigateur, pas
+               ce qu'on vient faire ici. -->
           <label class="a-btn">
-            {{ archive ? archive.name : 'Choisir une archive…' }}
+            <i class="pi pi-upload" aria-hidden="true" />
+            {{ archive ? archive.name : 'Importer une sauvegarde' }}
             <input type="file" accept=".zip,.json" style="display: none" @change="pick" />
           </label>
         </div>
@@ -162,17 +167,25 @@ useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
             </span>
           </label>
 
-          <div class="cluster" style="margin-top: 16px">
+          <!--
+            Deux boutons qui disent ce qu'ils font. « Simuler » et
+            « Restaurer » nommaient des opérations ; ici on lit d'abord
+            l'archive, puis on l'applique — et la simulation reste
+            obligatoire, le second est grisé tant qu'elle n'a pas eu lieu.
+          -->
+          <div class="a-import-actions" style="margin-top: 16px">
             <Button
               severity="secondary"
               outlined
-              :label="importState === 'en cours' ? 'Lecture…' : 'Simuler'"
+              class="a-btn-block"
+              icon="pi pi-search"
+              :label="importState === 'en cours' ? 'Lecture…' : 'Voir ce que contient l’archive'"
               :disabled="importState === 'en cours' || !chosen.length"
               @click="send(true)"
             />
             <Button
-              severity="danger"
-              :label="'Restaurer'"
+              icon="pi pi-database"
+              label="Appliquer la sauvegarde importée"
               :disabled="importState === 'en cours' || !preview || !chosen.length"
               @click="restore"
             />
@@ -204,7 +217,13 @@ useSeoMeta({ title: 'Technique', robots: 'noindex, nofollow' })
           carries backups and imports, and the list is no longer a list — it
           invites, promotes, cuts off and deletes.
         -->
+        <!--
+          Une marge en pied : la liste des comptes butait contre le bas de la
+          fenêtre, et la dernière ligne ne pouvait pas être remontée pour
+          être lue confortablement.
+        -->
         <UsersPanel />
+        <div class="a-tail" aria-hidden="true" />
       </template>
   </div>
 </template>

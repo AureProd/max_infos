@@ -198,7 +198,6 @@ async function main(): Promise<void> {
     identity: {
       name: SITE.name,
       author: SITE.author,
-      byline: SITE.byline,
       tagline: SITE.tagline,
       pitch: SITE.pitch,
     },

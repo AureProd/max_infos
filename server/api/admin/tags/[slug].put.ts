@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
 
   const db = useDatabase()
   const [found] = await db.select({ id: tag.id }).from(tag).where(eq(tag.slug, slug))
-  if (!found) throw createError({ statusCode: 404, statusMessage: 'Sujet introuvable' })
+  if (!found) throw createError({ statusCode: 404, statusMessage: 'Tag introuvable' })
 
   // « «  » » slugifies to nothing, and a tag without a slug is a tag no
   // filter can ever reach.
@@ -48,11 +48,11 @@ export default defineEventHandler(async (event) => {
     .where(and(eq(tag.slug, wanted), ne(tag.id, found.id)))
 
   if (taken) {
-    // Fusionner deux sujets est une autre opération. Écraser en silence en
+    // Fusionner deux tags est une autre opération. Écraser en silence en
     // perdrait un.
     throw createError({
       statusCode: 409,
-      statusMessage: 'Un autre sujet porte déjà ce nom',
+      statusMessage: 'Un autre tag porte déjà ce nom',
     })
   }
 

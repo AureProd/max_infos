@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
 
   const db = useDatabase()
   const [found] = await db.select({ id: tag.id }).from(tag).where(eq(tag.slug, slug))
-  if (!found) throw createError({ statusCode: 404, statusMessage: 'Sujet introuvable' })
+  if (!found) throw createError({ statusCode: 404, statusMessage: 'Tag introuvable' })
 
   const [used] = await db
     .select({ n: count() })
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
   if ((used?.n ?? 0) > 0) {
     throw createError({
       statusCode: 409,
-      statusMessage: `Ce sujet est encore porté par ${used?.n} article(s).`,
+      statusMessage: `Ce tag est encore porté par ${used?.n} article(s).`,
     })
   }
 

@@ -9,6 +9,8 @@ const { data: publications, refresh } = await useFetch('/api/admin/social-posts'
 })
 const { data: articles } = await useFetch('/api/admin/articles', { key: 'admin-articles-liste' })
 const { data: linked } = await useFetch('/api/social-posts', { key: 'publications-liees' })
+const { ok, fail } = useNotify()
+const confirm = useConfirm()
 
 /** Posts discovered and not yet attached: the work left to do. */
 const toAttach = computed(
@@ -38,85 +40,75 @@ const visible = computed(() =>
 )
 
 async function attach(id: number, slug: string): Promise<void> {
-  await $fetch(`/api/admin/social-posts/${id}/article`, {
-    method: 'PUT',
-    body: { articleSlug: slug || null },
-  })
-  await refresh()
+  try {
+    await $fetch(`/api/admin/social-posts/${id}/article`, {
+      method: 'PUT',
+      body: { articleSlug: slug || null },
+    })
+    await refresh()
+    ok(slug ? 'Publication rattachée' : 'Publication détachée')
+  } catch (e) {
+    fail(e, 'Rattachement refusé')
+  }
 }
 
 async function toggleVisibility(id: number, hidden: boolean): Promise<void> {
-  await $fetch(`/api/admin/social-posts/${id}/visibility`, { method: 'PUT', body: { hidden } })
-  await refresh()
+  try {
+    await $fetch(`/api/admin/social-posts/${id}/visibility`, { method: 'PUT', body: { hidden } })
+    await refresh()
+    ok(hidden ? 'Publication masquée' : 'Publication affichée')
+  } catch (e) {
+    fail(e, 'Changement refusé')
+  }
 }
-
-async function remove(id: number): Promise<void> {
-  if (!confirm('Supprimer cette publication ? Cette action est définitive.')) return
-  await $fetch(`/api/admin/social-posts/${id}`, { method: 'DELETE' })
-  await refresh()
-}
-
-// --- Manual entry ----------------------------------------------------------
-const BLANK = {
-  network: 'linkedin' as 'linkedin' | 'instagram',
-  url: '',
-  caption: '',
-  thumbnailUrl: '',
-}
-
-const input = ref({ ...BLANK })
-const inputError = ref('')
 
 /**
- * What the pasted page says about itself.
+ * Corriger le titre d'une publication.
  *
- * No API will ever hand over a LinkedIn post — `r_member_social` is closed
- * to new applications — so the card arrived with neither title nor image.
- * The server reads the OpenGraph tags of the link instead. LinkedIn serves
- * them unevenly: when it says nothing, the two fields simply stay there,
- * empty and editable, which is why they are always shown.
+ * Il venait des balises de la page et rien ne permettait de le reprendre :
+ * un titre tronqué ou absent restait tel quel sur le site.
  */
-const reading = ref(false)
-const readingSaid = ref('')
+const editing = ref<number | null>(null)
+const captionDraft = ref('')
 
-async function readLink(): Promise<void> {
-  const url = input.value.url.trim()
-  if (!url) return
-  reading.value = true
-  readingSaid.value = ''
+function startCaption(id: number, caption: string | null): void {
+  editing.value = id
+  captionDraft.value = caption ?? ''
+}
+
+async function saveCaption(id: number): Promise<void> {
   try {
-    const found = await $fetch('/api/admin/social-posts/unfurl', { method: 'POST', body: { url } })
-    if (found.title && !input.value.caption) input.value.caption = found.title
-    if (found.image && !input.value.thumbnailUrl) input.value.thumbnailUrl = found.image
-    readingSaid.value =
-      found.title || found.image
-        ? 'Lu depuis la page.'
-        : 'Cette page ne dit rien d’exploitable : à remplir à la main.'
-  } finally {
-    reading.value = false
+    await $fetch<unknown>(`/api/admin/social-posts/${id}/caption`, {
+      method: 'PUT',
+      body: { caption: captionDraft.value.trim() || null },
+    })
+    editing.value = null
+    await refresh()
+    ok('Titre modifié')
+  } catch (e) {
+    fail(e, 'Modification refusée')
   }
 }
 
-async function add(): Promise<void> {
-  inputError.value = ''
-  try {
-    await $fetch('/api/admin/social-posts', {
-      method: 'POST',
-      body: {
-        network: input.value.network,
-        url: input.value.url,
-        // Empty strings would fail the URL and length checks: absent means
-        // absent.
-        caption: input.value.caption || undefined,
-        thumbnailUrl: input.value.thumbnailUrl || undefined,
-      },
-    })
-    input.value = { ...BLANK }
-    readingSaid.value = ''
-    await refresh()
-  } catch (e) {
-    inputError.value = (e as { statusMessage?: string }).statusMessage ?? 'Adresse non reconnue.'
-  }
+function remove(id: number): void {
+  confirm.require({
+    header: 'Supprimer cette publication',
+    message: 'Elle disparaîtra du site. La publication elle-même n’est pas touchée.',
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: 'Supprimer',
+    acceptProps: { severity: 'danger' },
+    rejectLabel: 'Annuler',
+    rejectProps: { severity: 'secondary', outlined: true },
+    accept: async () => {
+      try {
+        await $fetch(`/api/admin/social-posts/${id}`, { method: 'DELETE' })
+        await refresh()
+        ok('Publication supprimée')
+      } catch (e) {
+        fail(e, 'Suppression refusée')
+      }
+    },
+  })
 }
 
 /**
@@ -152,74 +144,15 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
       </div>
     </div>
 
-      <!--
-        La saisie manuelle est la SEULE voie pour LinkedIn : lire ses propres
-        publications y est impossible, le scope r_member_social étant fermé
-        aux nouvelles applications.
-      -->
+    <!--
+      La saisie manuelle est la SEULE voie pour LinkedIn : lire ses propres
+      publications y est impossible, le scope r_member_social étant fermé
+      aux nouvelles applications. Le même formulaire sert dans l'écran d'un
+      article, déjà pointé sur lui.
+    -->
     <div class="admin-card" style="margin-bottom: 20px">
-      <form @submit.prevent="add">
-        <label class="a-label" for="p-url">Coller l'adresse d'une publication</label>
-        <div class="a-toolbar">
-          <!--
-            Deux options, donc deux segments visibles plutôt qu'un menu à
-            dérouler : le réseau se change d'un geste, et l'on voit celui
-            qui est choisi sans ouvrir quoi que ce soit.
-          -->
-          <div class="a-seg" role="group" aria-label="Réseau">
-            <button
-              v-for="r in (['linkedin', 'instagram'] as const)"
-              :key="r"
-              type="button"
-              :aria-pressed="input.network === r"
-              @click="input.network = r"
-            >
-              {{ networkLabel(r) }}
-            </button>
-          </div>
-          <input
-            id="p-url"
-            v-model="input.url"
-            class="a-input"
-            type="url"
-            placeholder="https://www.linkedin.com/posts/…"
-            required
-            @blur="readLink"
-          />
-          <Button
-            severity="secondary"
-            outlined
-            type="button"
-            :label="reading ? 'Lecture…' : 'Lire la page'"
-            :disabled="reading || !input.url"
-            @click="readLink"
-          />
-          <button class="a-btn a-btn-primary" type="submit">Ajouter</button>
-        </div>
-
-        <!--
-          Toujours affichés, jamais seulement en cas d'échec : LinkedIn ne
-          sert ses balises qu'une fois sur deux, et un champ qui apparaît
-          par surprise se remarque moins qu'un champ vide qui attend.
-        -->
-        <div class="a-row-grid is-cv" style="margin-top: 12px">
-          <input
-            v-model="input.caption"
-            class="a-input"
-            type="text"
-            placeholder="Titre ou légende"
-          />
-          <input
-            v-model="input.thumbnailUrl"
-            class="a-input"
-            type="url"
-            placeholder="Adresse de l'image (facultative)"
-          />
-        </div>
-
-        <p v-if="readingSaid" class="hint">{{ readingSaid }}</p>
-        <p v-if="inputError" class="a-err">{{ inputError }}</p>
-      </form>
+      <h2>Importer une publication</h2>
+      <PostImportForm @added="refresh" />
     </div>
 
     <div class="admin-card">
@@ -256,18 +189,42 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
                   <span v-else class="a-pub-nothumb">{{ mediaLabel(p.mediaType) }}</span>
                 </div>
                 <div class="a-pub-text">
-                  <a
-                    v-if="p.permalink"
-                    class="a-title"
-                    :href="p.permalink"
-                    target="_blank"
-                    rel="noopener"
-                  >
-                    {{ p.caption?.slice(0, 90) || mediaLabel(p.mediaType) }} ↗
-                  </a>
-                  <span v-else class="a-title">
-                    {{ p.caption?.slice(0, 90) || mediaLabel(p.mediaType) }}
-                  </span>
+                  <div v-if="editing === p.id" class="a-toolbar">
+                    <InputText
+                      v-model="captionDraft"
+                      autofocus
+                      fluid
+                      @keydown.enter.prevent="saveCaption(p.id)"
+                    />
+                    <Button
+                      size="small"
+                      icon="pi pi-check"
+                      aria-label="Enregistrer le titre"
+                      @click="saveCaption(p.id)"
+                    />
+                    <Button
+                      severity="secondary"
+                      text
+                      size="small"
+                      icon="pi pi-times"
+                      aria-label="Annuler"
+                      @click="editing = null"
+                    />
+                  </div>
+                  <template v-else>
+                    <a
+                      v-if="p.permalink"
+                      class="a-title"
+                      :href="p.permalink"
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      {{ p.caption?.slice(0, 90) || mediaLabel(p.mediaType) }} ↗
+                    </a>
+                    <span v-else class="a-title">
+                      {{ p.caption?.slice(0, 90) || mediaLabel(p.mediaType) }}
+                    </span>
+                  </template>
                   <div class="a-sub">
                     <span v-if="p.accountUsername">@{{ p.accountUsername }}</span>
                     <span>{{ mediaLabel(p.mediaType) }}</span>
@@ -297,12 +254,33 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
             </td>
             <td data-label="Actions">
               <div class="a-row-act">
-                <button class="a-btn" type="button" @click="toggleVisibility(p.id, !p.hidden)">
-                  {{ p.hidden ? 'Afficher' : 'Masquer' }}
-                </button>
-                <button class="a-btn a-btn-danger" type="button" @click="remove(p.id)">
-                  Supprimer
-                </button>
+                <Button
+                  v-tooltip.top="'Modifier le titre'"
+                  severity="secondary"
+                  outlined
+                  size="small"
+                  icon="pi pi-pencil"
+                  aria-label="Modifier le titre"
+                  @click="startCaption(p.id, p.caption)"
+                />
+                <Button
+                  v-tooltip.top="p.hidden ? 'Afficher sur le site' : 'Masquer du site'"
+                  severity="secondary"
+                  outlined
+                  size="small"
+                  :icon="p.hidden ? 'pi pi-eye' : 'pi pi-eye-slash'"
+                  :aria-label="p.hidden ? 'Afficher' : 'Masquer'"
+                  @click="toggleVisibility(p.id, !p.hidden)"
+                />
+                <Button
+                  v-tooltip.top="'Supprimer'"
+                  severity="danger"
+                  outlined
+                  size="small"
+                  icon="pi pi-trash"
+                  aria-label="Supprimer"
+                  @click="remove(p.id)"
+                />
               </div>
             </td>
           </tr>
@@ -314,7 +292,7 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
       v-if="chooserFor !== null"
       :articles="articles ?? []"
       :current="(publications ?? []).find((p) => p.id === chooserFor)?.articleSlug ?? null"
-      :caption="(publications ?? []).find((p) => p.id === chooserFor)?.caption"
+      :publication="(publications ?? []).find((p) => p.id === chooserFor) ?? null"
       @close="chooserFor = null"
       @choose="(slug) => chooseArticle(chooserFor as number, slug)"
     />

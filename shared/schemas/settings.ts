@@ -24,10 +24,21 @@ const section = z.object({
   entries: z.array(entry).max(50).default([]),
 })
 
+/**
+ * `byline` is gone, and on purpose.
+ *
+ * It held a short signature — « Max » — beside `author`, « Maximilien
+ * Huet », and both were printed under articles depending on the screen. Two
+ * fields for one name is two chances of disagreeing, and nobody could say
+ * which one a reader was supposed to see.
+ *
+ * Zod strips unknown keys, so a setting already stored with a `byline`
+ * still parses: the field simply stops being read, and disappears on the
+ * next save. Nothing to migrate.
+ */
 export const identitySchema = z.object({
   name: z.string().trim().min(1).max(120),
   author: z.string().trim().min(1).max(120),
-  byline: z.string().trim().max(120),
   tagline: z.string().trim().max(400),
   pitch: z.string().trim().max(1200),
 })
@@ -162,7 +173,6 @@ export const SETTING_DEFAULTS: { [K in SettingKey]: SettingValue<K> } = {
   identity: {
     name: "Un Max d'info",
     author: 'Maximilien Huet',
-    byline: 'Max',
     tagline: '',
     pitch: '',
   },

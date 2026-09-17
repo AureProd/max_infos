@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { useSite } from '~/composables/useSite'
 
 const handler = vi.fn(() => ({
-  identity: { name: 'Site de test', author: 'Autrice', byline: 'AT' },
+  identity: { name: 'Site de test', author: 'Autrice' },
 }))
 registerEndpoint('/api/site', handler)
 

@@ -103,9 +103,13 @@ describe('the back-office templates', () => {
     expect(guilty).toEqual([])
   })
 
-  it('wraps every PrimeVue table in something that scrolls', () => {
+  it('wraps every PrimeVue table in the container the phone rules target', () => {
     // Counted rather than walked: a real tree walk would need a parser, and
     // the count catches the case that matters — a table added bare.
+    //
+    // `.a-scroll-x` is no longer a horizontal scroller on a phone: it is the
+    // hook the media query uses to unfold the table into stacked cards. A
+    // table added outside it keeps its five columns on a 390px screen.
     const guilty: string[] = []
     for (const file of TEMPLATES) {
       const source = read(file)
@@ -113,6 +117,22 @@ describe('the back-office templates', () => {
       const scrollers = (source.match(/a-scroll-x/g) ?? []).length
       if (tables > scrollers)
         guilty.push(`${file} — ${tables} tableau(x), ${scrollers} conteneur(s)`)
+    }
+    expect(guilty).toEqual([])
+  })
+
+  it('labels every PrimeVue column, so a stacked cell still says what it is', () => {
+    /*
+     * A `<Column>` writes no `data-label` of its own — that is why the
+     * library's tables were the only ones still scrolling sideways. `cell()`
+     * adds one through `pt`, and a column added without it becomes, on a
+     * phone, a value with nothing naming it.
+     */
+    const guilty: string[] = []
+    for (const file of TEMPLATES) {
+      for (const tag of read(file).match(/<Column\b[^>]*>/g) ?? []) {
+        if (!/:pt="cell\(/.test(tag)) guilty.push(`${file} — ${tag.slice(0, 70)}…`)
+      }
     }
     expect(guilty).toEqual([])
   })

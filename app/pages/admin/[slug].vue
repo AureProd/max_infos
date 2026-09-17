@@ -18,6 +18,21 @@ await load()
  * created one more tag. Reusing an existing one is now a click.
  */
 const { data: known } = await useFetch('/api/admin/tags', { key: 'tags-connus' })
+const { ok, fail } = useNotify()
+const confirmDialog = useConfirm()
+
+/**
+ * Les publications rattachées à cet article.
+ *
+ * Le panneau « Décliner » a disparu — il proposait de recopier un gabarit
+ * dans LinkedIn, ce que Max ne fait pas. Ce qu'il portait d'utile, le
+ * rattachement d'une publication, est repris ici par le formulaire de
+ * l'écran Publications, déjà pointé sur l'article courant.
+ */
+const { data: attached, refresh: refreshAttached } = await useFetch('/api/social-posts', {
+  key: () => `article-publications-${slug.value}`,
+  query: { article: slug },
+})
 
 const knownLabels = computed(() => (known.value ?? []).map((t) => t.label))
 
@@ -64,8 +79,6 @@ function flipTag(label: string): void {
  * refusal: a subject still in use answers 409 rather than being stripped
  * off the articles carrying it.
  */
-const tagError = ref('')
-
 const orphan = computed(() => {
   const byLabel = new Map((known.value ?? []).map((t) => [t.label, t]))
   return (label: string) => {
@@ -74,15 +87,25 @@ const orphan = computed(() => {
   }
 })
 
-async function dropTag(slug: string, label: string): Promise<void> {
-  if (!confirm(`Supprimer définitivement le sujet « ${label} » ?`)) return
-  tagError.value = ''
-  try {
-    await $fetch<unknown>(`/api/admin/tags/${slug}`, { method: 'DELETE' })
-    known.value = (known.value ?? []).filter((t) => t.slug !== slug)
-  } catch (e) {
-    tagError.value = (e as { statusMessage?: string }).statusMessage ?? 'Suppression refusée'
-  }
+function dropTag(tagSlug: string, label: string): void {
+  confirmDialog.require({
+    header: 'Supprimer ce tag',
+    message: `« ${label} » sera supprimé définitivement. Aucun article ne le porte.`,
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: 'Supprimer',
+    acceptProps: { severity: 'danger' },
+    rejectLabel: 'Annuler',
+    rejectProps: { severity: 'secondary', outlined: true },
+    accept: async () => {
+      try {
+        await $fetch<unknown>(`/api/admin/tags/${tagSlug}`, { method: 'DELETE' })
+        known.value = (known.value ?? []).filter((t) => t.slug !== tagSlug)
+        ok('Tag supprimé')
+      } catch (e) {
+        fail(e, 'Suppression refusée')
+      }
+    },
+  })
 }
 
 function removeTag(label: string): void {
@@ -139,26 +162,43 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
           <span :class="['a-tag', status === 'published' ? 'is-ok' : 'is-draft']">
             {{ status === 'published' ? 'publié' : 'brouillon' }}
           </span>
-          <span v-if="record === 'en cours'"> · enregistrement…</span>
-          <span v-else-if="record === 'échec'" class="a-err"> · échec de l'enregistrement</span>
-          <span v-else-if="modified"> · modifications non enregistrées</span>
-          <span v-else-if="record === 'enregistré'"> · enregistré</span>
+          ·
+          <!--
+            L'enregistrement est automatique : il n'y a plus de bouton, donc
+            il faut un état. Trois mots et une icône, toujours au même
+            endroit — un indicateur qui apparaît et disparaît se remarque
+            moins qu'un indicateur qui change.
+          -->
+          <SaveState
+            :modified="modified"
+            :saving="record === 'en cours'"
+            :failed="record === 'échec'"
+            :saved="record === 'enregistré'"
+          />
         </p>
       </div>
       <div class="admin-actions">
-        <button class="a-btn" type="button" @click="previewOpen = true">Aperçu</button>
-        <button class="a-btn" type="button" @click="save">Enregistrer</button>
-        <button
+        <Button
+          severity="secondary"
+          outlined
+          icon="pi pi-eye"
+          label="Aperçu"
+          @click="previewOpen = true"
+        />
+        <Button
           v-if="status === 'draft'"
-          class="a-btn a-btn-primary"
-          type="button"
+          icon="pi pi-send"
+          label="Publier"
           @click="changeStatus('published')"
-        >
-          Publier
-        </button>
-        <button v-else class="a-btn" type="button" @click="changeStatus('draft')">
-          Dépublier
-        </button>
+        />
+        <Button
+          v-else
+          severity="secondary"
+          outlined
+          icon="pi pi-eye-slash"
+          label="Dépublier"
+          @click="changeStatus('draft')"
+        />
       </div>
     </div>
 
@@ -169,11 +209,22 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
             <input id="a-title" v-model="draft.title" type="text" />
           </div>
           <div class="field">
-            <label for="a-dek">Chapô</label>
+            <label for="a-dek">Sous-titre</label>
             <input id="a-dek" v-model="draft.dek" type="text" />
           </div>
           <div class="field">
-            <span class="a-label">Sujets</span>
+            <div class="a-label-row">
+              <span class="a-label">Tags</span>
+              <Button
+                v-tooltip.top="'Ajouter un tag'"
+                severity="secondary"
+                outlined
+                size="small"
+                icon="pi pi-plus"
+                aria-label="Ajouter un tag"
+                @click="picking = true"
+              />
+            </div>
             <div class="a-chosen">
               <button
                 v-for="t in draft.tags"
@@ -183,33 +234,27 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
                 :title="`Retirer « ${t} »`"
                 @click="removeTag(t)"
               >
-                {{ t }} ×
+                {{ t }} <i class="pi pi-times" aria-hidden="true" />
               </button>
-              <Button
-                severity="secondary"
-                outlined
-                size="small"
-                :label="draft.tags.length ? 'Modifier' : 'Choisir les sujets'"
-                @click="picking = true"
-              />
+              <span v-if="!draft.tags.length" class="a-nil">Aucun tag pour l'instant.</span>
             </div>
           </div>
 
           <Dialog
             v-model:visible="picking"
             modal
-            header="Sujets de l'article"
+            header="Tags de l'article"
             :style="{ width: '32rem', maxWidth: 'calc(100vw - 2rem)' }"
           >
             <p class="hint">
-              Coche ceux qui existent déjà. Un sujet ne se crée que s'il ne ressemble à aucun
+              Coche ceux qui existent déjà. Un tag ne se crée que s'il ne ressemble à aucun
               autre — c'est ce qui empêche « Histoire » et « histoire » de cohabiter.
             </p>
 
             <InputText
               v-model="search"
               class="a-tagsearch"
-              placeholder="Chercher ou créer un sujet"
+              placeholder="Chercher ou créer un tag"
               autofocus
               @keydown.enter.prevent="isNew && createTag()"
             />
@@ -222,8 +267,6 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
               @click="createTag"
             />
 
-            <p v-if="tagError" class="a-err">{{ tagError }}</p>
-
             <ul class="a-taglist">
               <li v-for="label in choices" :key="label">
                 <Checkbox
@@ -234,29 +277,30 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
                 />
                 <label :for="`tag-${label}`">{{ label }}</label>
                 <!--
-                  Le bouton ne paraît que sur un sujet qu'aucun article ne
+                  Le bouton ne paraît que sur un tag qu'aucun article ne
                   porte : ailleurs, supprimer voudrait dire le retirer des
                   articles, ce que personne ne demande depuis cet écran.
                 -->
                 <Button
                   v-if="orphan(label)"
+                  v-tooltip.top="`Aucun article ne porte « ${label} »`"
                   class="a-tagdrop"
                   severity="danger"
                   text
                   size="small"
-                  label="Supprimer"
-                  :title="`Aucun article ne porte « ${label} »`"
+                  icon="pi pi-trash"
+                  aria-label="Supprimer ce tag"
                   @click="dropTag(orphan(label) as string, label)"
                 />
               </li>
-              <li v-if="!choices.length && !isNew" class="a-nil">Aucun sujet pour l'instant.</li>
+              <li v-if="!choices.length && !isNew" class="a-nil">Aucun tag pour l'instant.</li>
             </ul>
 
             <template #footer>
               <Button label="Fermer" @click="picking = false" />
             </template>
           </Dialog>
-        <MediaPicker v-model="draft.coverMediaId" label="Image de couverture" />
+        <MediaField v-model="draft.coverMediaId" label="Image de couverture" />
       </div>
 
       <div class="admin-card">
@@ -272,7 +316,25 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
       </div>
     </div>
 
-    <VariantsPanel :slug="slug ?? ''" :publie="status === 'published'" />
+    <section class="admin-card a-attached">
+      <h2>Publications liées</h2>
+      <p class="admin-lede">
+        Elles s'affichent sous l'article, au bas de la page publique.
+      </p>
+
+      <ul v-if="(attached ?? []).length" class="a-lines">
+        <li v-for="p in attached ?? []" :key="p.id">
+          <a v-if="p.permalink" class="a-title" :href="p.permalink" target="_blank" rel="noopener">
+            {{ p.caption?.slice(0, 80) || 'Publication' }} ↗
+          </a>
+          <span v-else class="a-title">{{ p.caption?.slice(0, 80) || 'Publication' }}</span>
+          <span class="a-tag is-info">{{ p.network }}</span>
+        </li>
+      </ul>
+      <p v-else class="a-empty">Aucune publication liée à cet article.</p>
+
+      <PostImportForm :article-slug="slug" @added="refreshAttached" />
+    </section>
 
     <ArticlePreview
       v-if="previewOpen"
@@ -282,7 +344,7 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
       :cover-url="coverUrl"
       :cover-alt="draft.title"
       :tags="draft.tags"
-      :byline="site?.identity.byline"
+      :byline="site?.identity.author"
       :published-at="null"
       :reading-minutes="preview.readingMinutes"
       @close="previewOpen = false"

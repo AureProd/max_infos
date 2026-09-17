@@ -20,7 +20,6 @@ export interface SiteSkillGroup {
 export interface Site {
   name: string
   author: string
-  byline: string
   tagline: string
   pitch: string
   instagram: { handle: string; url: string; posts: number; followers: number | null }
@@ -33,7 +32,6 @@ export interface Site {
 export const SITE: Site = {
   name: "Un Max d'info",
   author: 'Maximilien Huet',
-  byline: 'Max',
   tagline: "Comprendre ce que l'actualité ne prend pas le temps d'expliquer.",
   pitch:
     "Enquêtes et analyses au long cours sur le pouvoir, la mémoire et les identités. Publié d'abord en newsletter, décliné en formats courts.",

@@ -232,7 +232,7 @@ export async function seedTestData(db: TestDatabase): Promise<void> {
       value: {
         name: 'Site de test',
         author: 'Autrice de test',
-        byline: 'AT',
+
         tagline: '',
         pitch: '',
       },

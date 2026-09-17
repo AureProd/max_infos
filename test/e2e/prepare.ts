@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { writeFileSync } from 'node:fs'
-import { appUser } from '../../server/database/schema'
+import { appUser, article, articleView } from '../../server/database/schema'
 import { connection, database, migrate } from '../setup/db'
 import { ACCOUNTS_FILE, E2E_DATABASE_URL } from './helpers'
 
@@ -37,6 +37,8 @@ export default async function prepare(): Promise<void> {
       ])
       .returning({ id: appUser.id, role: appUser.role })
 
+    await seedReadings(database(sql))
+
     writeFileSync(
       ACCOUNTS_FILE,
       JSON.stringify(Object.fromEntries(accounts.map((a) => [a.role, a.id])), null, 2),
@@ -44,4 +46,32 @@ export default async function prepare(): Promise<void> {
   } finally {
     await sql.end()
   }
+}
+
+/**
+ * Des lectures, pour que les graphiques aient quelque chose à tracer.
+ *
+ * Le semis de développement ne remplit pas `article_view` : le tableau de
+ * bord s'ouvrait donc sur trois cadres vides, et aucun test ne pouvait dire
+ * si une courbe se dessine. Les chiffres sont déterministes — un test qui
+ * compare des hauteurs de barres ne peut pas dépendre d'un tirage.
+ */
+async function seedReadings(db: ReturnType<typeof database>): Promise<void> {
+  const articles = await db.select({ id: article.id }).from(article)
+  if (!articles.length) return
+
+  const rows: { articleId: number; day: string; count: number }[] = []
+  for (const [rank, a] of articles.entries()) {
+    // Un article sur trois reste sans lecture : c'est le cas qui fait
+    // apparaître les jours creux, et c'est celui qui se dessine mal.
+    if (rank % 3 === 2) continue
+    for (let back = 0; back < 30; back += 2) {
+      rows.push({
+        articleId: a.id,
+        day: new Date(Date.now() - back * 86_400_000).toISOString().slice(0, 10),
+        count: 3 + ((rank * 7 + back) % 11),
+      })
+    }
+  }
+  await db.insert(articleView).values(rows)
 }

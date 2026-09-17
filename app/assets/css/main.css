@@ -59,9 +59,21 @@
   --color-line: #c3c3c3; /* le filet du Substack */
   --color-line-soft: #e6e6e6;
 
-  --color-page: #f2f2f2; /* le fond de page */
+  /*
+   * Le fond est BLANC, là où le Substack met du #d9d9d9.
+   *
+   * C'est l'écart assumé. Un portfolio de journaliste se lit en entier :
+   * le contraste sous le texte compte plus que la ressemblance avec la
+   * plateforme, qui pose d'ailleurs son corps d'article sur du blanc pour
+   * la même raison. Les sections se séparent ici par des filets, pas par
+   * des aplats.
+   */
+  --color-page: #ffffff; /* le fond de page */
   --color-surface: #ffffff; /* ce qui porte du texte */
-  --color-raised: #fafafa;
+  --color-raised: #fafafa; /* ce qui doit ressortir du fond */
+  /* Le seul ton que le back-office ne partage pas avec le site : une carte
+     blanche sur un fond blanc n'est plus une carte, et un outil en a. */
+  --color-tool: #f4f5f7;
 
   /* États. Le back-office en avait sa propre série ; il n'y en a plus qu'une. */
   --color-ok: #0f7b46;

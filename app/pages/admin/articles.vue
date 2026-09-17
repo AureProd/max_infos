@@ -4,6 +4,8 @@ import { frDate } from '#shared/utils/format'
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const { data: articles, refresh } = await useFetch('/api/admin/articles', { key: 'admin-liste' })
+const { ok, fail } = useNotify()
+const confirm = useConfirm()
 
 /**
  * Search and status filter, in the browser.
@@ -33,11 +35,15 @@ const counts = computed(() => {
 })
 
 async function create(): Promise<void> {
-  const created = await $fetch<{ slug: string }>('/api/admin/articles', {
-    method: 'POST',
-    body: { title: 'Nouvel article', bodyMd: '', tags: [] },
-  })
-  await navigateTo(`/admin/${created.slug}`)
+  try {
+    const created = await $fetch<{ slug: string }>('/api/admin/articles', {
+      method: 'POST',
+      body: { title: 'Nouvel article', bodyMd: '', tags: [] },
+    })
+    await navigateTo(`/admin/${created.slug}`)
+  } catch (e) {
+    fail(e, 'Création impossible')
+  }
 }
 
 /**
@@ -48,14 +54,48 @@ async function create(): Promise<void> {
  */
 async function toggle(slug: string, current: string): Promise<void> {
   const next = current === 'published' ? 'draft' : 'published'
-  await $fetch(`/api/admin/articles/${slug}/status`, { method: 'PUT', body: { status: next } })
-  await refresh()
+  try {
+    await $fetch(`/api/admin/articles/${slug}/status`, { method: 'PUT', body: { status: next } })
+    await refresh()
+    ok(next === 'published' ? 'Article publié' : 'Article dépublié')
+  } catch (e) {
+    fail(e, 'Changement d’état refusé')
+  }
 }
 
-async function remove(slug: string, title: string): Promise<void> {
-  if (!confirm(`Supprimer « ${title} » ? Cette action est définitive.`)) return
-  await $fetch(`/api/admin/articles/${slug}`, { method: 'DELETE' })
-  await refresh()
+function remove(slug: string, title: string): void {
+  confirm.require({
+    header: 'Supprimer cet article',
+    message: `« ${title} » sera supprimé définitivement.`,
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: 'Supprimer',
+    acceptProps: { severity: 'danger' },
+    rejectLabel: 'Annuler',
+    rejectProps: { severity: 'secondary', outlined: true },
+    accept: async () => {
+      try {
+        await $fetch(`/api/admin/articles/${slug}`, { method: 'DELETE' })
+        await refresh()
+        ok('Article supprimé')
+      } catch (e) {
+        fail(e, 'Suppression refusée')
+      }
+    },
+  })
+}
+
+/**
+ * Toute la ligne ouvre l'édition, pas seulement le titre.
+ *
+ * Il fallait viser un lien de quelques mots dans une rangée haute de 56 px,
+ * et rater la cible ne faisait rien du tout. Les actions de la ligne, elles,
+ * ne doivent PAS déclencher l'ouverture : d'où le garde-fou sur la cible du
+ * clic, qui laisse passer un bouton, un lien ou un champ.
+ */
+function openRow(event: MouseEvent, slug: string): void {
+  const target = event.target as HTMLElement
+  if (target.closest('button, a, input, select, label')) return
+  void navigateTo(`/admin/${slug}`)
 }
 
 useSeoMeta({ title: 'Articles', robots: 'noindex, nofollow' })
@@ -71,16 +111,23 @@ useSeoMeta({ title: 'Articles', robots: 'noindex, nofollow' })
           {{ counts.draft }} brouillons
         </p>
       </div>
+      <!--
+        Deux boutons, et l'un compte plus que l'autre : rapatrier est une
+        opération rare, écrire est le geste du quotidien. « Sujets » a quitté
+        cette barre — c'est un onglet à part entière maintenant.
+      -->
       <div class="admin-actions">
-        <TagsPanel />
         <SubstackPanel @imported="refresh" />
-        <button class="a-btn a-btn-primary" type="button" @click="create">Nouvel article</button>
+        <Button icon="pi pi-plus" label="Nouvel article" @click="create" />
       </div>
     </div>
 
     <div class="admin-card">
       <div class="a-toolbar">
-        <input v-model="search" class="a-input" type="search" placeholder="Rechercher un titre…" />
+        <IconField class="a-grow">
+          <InputIcon class="pi pi-search" />
+          <InputText v-model="search" type="search" placeholder="Rechercher un titre…" fluid />
+        </IconField>
         <div class="a-seg" role="group" aria-label="Filtrer par état">
           <button
             v-for="s in (['all', 'published', 'draft'] as const)"
@@ -110,7 +157,14 @@ useSeoMeta({ title: 'Articles', robots: 'noindex, nofollow' })
           </tr>
         </thead>
         <tbody>
-          <tr v-for="a in rows" :key="a.slug">
+          <tr
+            v-for="a in rows"
+            :key="a.slug"
+            class="a-row-open"
+            tabindex="0"
+            @click="openRow($event, a.slug)"
+            @keydown.enter="navigateTo(`/admin/${a.slug}`)"
+          >
             <td data-label="Titre">
               <NuxtLink class="a-title" :to="`/admin/${a.slug}`">{{ a.title }}</NuxtLink>
             </td>
@@ -130,20 +184,35 @@ useSeoMeta({ title: 'Articles', robots: 'noindex, nofollow' })
             <td class="a-date" data-label="Modifié le">{{ frDate(a.updatedAt.slice(0, 10)) }}</td>
             <td data-label="Actions">
               <div class="a-row-act">
-                <button class="a-btn" type="button" @click="toggle(a.slug, a.status)">
-                  {{ a.status === 'published' ? 'Dépublier' : 'Publier' }}
-                </button>
-                <NuxtLink
+                <Button
+                  v-tooltip.top="a.status === 'published' ? 'Dépublier' : 'Publier'"
+                  severity="secondary"
+                  outlined
+                  size="small"
+                  :icon="a.status === 'published' ? 'pi pi-eye-slash' : 'pi pi-send'"
+                  :aria-label="a.status === 'published' ? 'Dépublier' : 'Publier'"
+                  @click="toggle(a.slug, a.status)"
+                />
+                <a
                   v-if="a.status === 'published'"
-                  class="a-btn"
-                  :to="`/article/${a.slug}`"
+                  v-tooltip.top="'Voir sur le site'"
+                  class="a-icon-link"
+                  :href="`/article/${a.slug}`"
                   target="_blank"
+                  rel="noopener"
+                  aria-label="Voir sur le site"
                 >
-                  Voir ↗
-                </NuxtLink>
-                <button class="a-btn a-btn-danger" type="button" @click="remove(a.slug, a.title)">
-                  Supprimer
-                </button>
+                  <i class="pi pi-external-link" aria-hidden="true" />
+                </a>
+                <Button
+                  v-tooltip.top="'Supprimer'"
+                  severity="danger"
+                  outlined
+                  size="small"
+                  icon="pi pi-trash"
+                  aria-label="Supprimer"
+                  @click="remove(a.slug, a.title)"
+                />
               </div>
             </td>
           </tr>
