@@ -1,5 +1,6 @@
 import { inArray } from 'drizzle-orm'
 import { SETTING_KEYS, SETTING_SCOPE } from '#shared/schemas/settings'
+import { publicContact, publicCv } from '#shared/utils/public-profile'
 import { useDatabase } from '~~/server/database/client'
 import { media } from '~~/server/database/schema'
 import { readSetting } from '~~/server/utils/settings'
@@ -41,6 +42,12 @@ export default defineEventHandler(async () => {
 
   const output: Record<string, unknown> = {}
   for (const key of publicOnes) output[key] = await readSetting(key)
+
+  // Public scope is not the whole story: inside `contact` and `cv`, each
+  // field carries its own switch. Applying them here rather than in the
+  // page is what keeps a hidden phone number out of the payload.
+  output.contact = publicContact(output.contact as Parameters<typeof publicContact>[0])
+  output.cv = publicCv(output.cv as Parameters<typeof publicCv>[0])
 
   const ids = [...mediaIds(output)]
   const files = ids.length
