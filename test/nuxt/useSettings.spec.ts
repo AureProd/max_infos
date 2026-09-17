@@ -89,4 +89,29 @@ describe('save', () => {
 
     expect(state.value).toBe('échec')
   })
+
+  it('says WHY it failed, instead of swallowing the reason', async () => {
+    // A refusal from validation used to be caught and dropped: the screen
+    // showed « échec » and Max had no way to learn which field was wrong.
+    writeFails = true
+    const { value, error, load, save } = useSetting('templates')
+    await load()
+    value.value = { linkedin: 'modifié', reel: '' }
+    await save()
+
+    expect(error.value).toBeTruthy()
+  })
+
+  it('clears the previous reason once the save goes through', async () => {
+    const { value, error, load, save } = useSetting('templates')
+    await load()
+    writeFails = true
+    value.value = { linkedin: 'modifié', reel: '' }
+    await save()
+    expect(error.value).toBeTruthy()
+
+    writeFails = false
+    await save()
+    expect(error.value).toBe('')
+  })
 })

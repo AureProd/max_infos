@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { cleanContactFields, newContactField } from '#shared/utils/contact'
+
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const identity = useSetting('identity')
@@ -15,7 +17,15 @@ const state = computed(() =>
       : 'repos',
 )
 
+/** The reason of whichever of the three refused, so « échec » says why. */
+const failure = computed(() => identity.error.value || contact.error.value || cv.error.value || '')
+
 async function saveAll(): Promise<void> {
+  // A blank row and a missing key BOTH had the schema refuse the whole
+  // setting — and the identity and the CV alongside it, saved in the same
+  // breath. Cleaning before sending is what makes the screen usable.
+  if (contact.value.value)
+    contact.value.value.fields = cleanContactFields(contact.value.value.fields)
   await Promise.all([identity.save(), contact.save(), cv.save()])
 }
 
@@ -52,15 +62,11 @@ function isSensitive(field: { key: string; label: string; sensitive?: boolean })
 }
 
 function addContact(): void {
-  contact.value.value?.fields.push({
-    key: '',
-    label: '',
-    value: '',
-    // HIDDEN by default: a field added must not become public by
-    // accident.
-    visible: false,
-    sensitive: false,
-  })
+  const fields = contact.value.value?.fields
+  // The key is an identity, never typed: no input offers it, so leaving it
+  // to Max left it empty and the save was refused. HIDDEN by default too —
+  // a field added must not become public by accident.
+  if (fields) fields.push(newContactField(fields))
 }
 
 useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
@@ -75,7 +81,7 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
       </div>
       <div class="admin-actions">
           <span v-if="state === 'enregistré'" class="a-tag is-ok">enregistré</span>
-          <span v-else-if="state === 'échec'" class="a-err">échec</span>
+          <span v-else-if="state === 'échec'" class="a-err">{{ failure }}</span>
           <button class="a-btn a-btn-primary" type="button" @click="saveAll">Enregistrer</button>
       </div>
     </div>
