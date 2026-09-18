@@ -24,10 +24,18 @@ export function publicCv(cv: Cv): Cv {
       ? { visible: true, entries: s.entries.filter((e) => e.visible) }
       : { visible: false, entries: [] }
 
+  // Les pastilles : la rubrique entière d'abord, puis, pour les
+  // compétences, groupe par groupe. Masqué ici veut dire ABSENT de la
+  // réponse — pas caché par la page, qui ne décide de rien.
+  const shown = cv.listsVisible
   return {
     ...cv,
     education: section(cv.education),
     experience: section(cv.experience),
     engagements: section(cv.engagements),
+    skills: shown.skills ? cv.skills.filter((s) => s.visible) : [],
+    languages: shown.languages ? cv.languages : [],
+    certifications: shown.certifications ? cv.certifications : [],
+    interests: shown.interests ? cv.interests : [],
   }
 }

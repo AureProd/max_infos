@@ -5,12 +5,42 @@ import { CV_LISTS, CV_SECTIONS, type CvSectionKey, cleanCvLists } from '#shared/
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const identity = useSetting('identity')
-const contact = useSetting('contact')
-const cv = useSetting('cv')
+// Le nettoyage porte sur ce qui PART, jamais sur ce qui s'affiche : une
+// ligne vide qu'on vient d'ajouter doit rester à l'écran le temps qu'on la
+// remplisse. Le schéma, lui, refuse tout le réglage pour une seule ligne
+// incomplète — d'où ce filtre à l'envoi.
+const contact = useSetting('contact', (v) => ({ fields: cleanContactFields(v.fields) }))
+const cv = useSetting('cv', (v) => ({ ...v, ...cleanCvLists(v) }))
 
 await Promise.all([identity.load(), contact.load(), cv.load()])
 
 const { fail } = useNotify()
+const confirmDialog = useConfirm()
+
+/**
+ * Une suppression se confirme. Toutes, de la même façon.
+ *
+ * Chaque corbeille de cet écran retirait sa ligne au premier clic, sans un
+ * mot : une entrée de CV, un contact, une compétence — tout part, et
+ * l'enregistrement automatique l'écrit une seconde plus tard. Il n'y avait
+ * rien à annuler.
+ */
+function askRemove(what: string, done: () => void): void {
+  confirmDialog.require({
+    header: 'Supprimer',
+    message: `${what} sera retiré. L'enregistrement est automatique.`,
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: 'Supprimer',
+    acceptProps: { severity: 'danger' },
+    rejectLabel: 'Annuler',
+    rejectProps: { severity: 'secondary', outlined: true },
+    accept: done,
+  })
+}
+
+/** Ce qu'on nomme dans la question, quand la ligne porte déjà un nom. */
+const named = (value: string | null | undefined, fallback: string): string =>
+  value?.trim() ? `« ${value.trim()} »` : fallback
 
 const states = computed(() => [identity.state.value, contact.state.value, cv.state.value])
 const saving = computed(() => states.value.includes('enregistrement'))
@@ -51,15 +81,6 @@ watch(
 )
 
 async function saveAll(): Promise<void> {
-  // A blank row and a missing key BOTH had the schema refuse the whole
-  // setting — and the identity and the CV alongside it, saved in the same
-  // breath. Cleaning before sending is what makes the screen usable.
-  if (contact.value.value)
-    contact.value.value.fields = cleanContactFields(contact.value.value.fields)
-  // Same reason on the CV side: a group left nameless, or a language whose
-  // level was never typed (`''` where the schema wants `null`), refused the
-  // whole key — and the identity and the contacts with it.
-  if (cv.value.value) Object.assign(cv.value.value, cleanCvLists(cv.value.value))
   await Promise.all([identity.save(), contact.save(), cv.save()])
 }
 
@@ -116,6 +137,20 @@ function isSensitive(field: { key: string; label: string; sensitive?: boolean })
   return field.sensitive === true || SENSITIVE.test(`${field.key} ${field.label}`)
 }
 
+/**
+ * L'ordre des contacts est celui de la page publique.
+ *
+ * `publicContact` sert le tableau tel quel : ce qui est en tête ici est en
+ * tête là-bas. Le seul moyen de réordonner était de retaper les champs les
+ * uns par-dessus les autres.
+ */
+function moveContact(from: number, to: number): void {
+  const fields = contact.value.value?.fields
+  if (!fields || to < 0 || to >= fields.length) return
+  const [moved] = fields.splice(from, 1)
+  if (moved) fields.splice(to, 0, moved)
+}
+
 function addContact(): void {
   const fields = contact.value.value?.fields
   // The key is an identity, never typed: no input offers it, so leaving it
@@ -130,7 +165,10 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
 <template>
   <div>
 
-    <div class="admin-title">
+    <!-- `is-inline` : l'état d'enregistrement n'est pas une action, il tient
+         sur la ligne du titre même sur un téléphone, où les barres d'actions
+         passent dessous. -->
+    <div class="admin-title is-inline">
       <div>
         <h1>À propos</h1>
       </div>
@@ -202,6 +240,13 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                     placeholder="Lien (facultatif)"
                   />
 
+                  <OrderArrows
+                    :index="i"
+                    :count="contact.value.value.fields.length"
+                    :what="`« ${field.label || 'ce champ'} »`"
+                    @move="(to) => moveContact(i, to)"
+                  />
+
                   <!-- L'interrupteur SE VOIT : le mot à côté ne disait rien
                        de plus que sa position, et prenait une colonne. -->
                   <ToggleSwitch
@@ -217,7 +262,11 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                     size="small"
                     icon="pi pi-trash"
                     aria-label="Retirer"
-                    @click="contact.value.value?.fields.splice(i, 1)"
+                    @click="
+                      askRemove(named(field.label, 'Ce champ'), () =>
+                        contact.value.value?.fields.splice(i, 1),
+                      )
+                    "
                   />
                 </div>
                 <p v-if="isSensitive(field) && field.visible" class="a-err">
@@ -267,6 +316,14 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
               on tapait. Repliées, elles tiennent à l'écran, et l'en-tête dit
               combien d'entrées se cachent dessous.
             -->
+            <!--
+              UN seul accordéon pour toutes les rubriques du CV.
+
+              Il y en avait deux, l'un pour les rubriques datées et l'autre
+              pour les listes, et le trou entre « Engagements » et
+              « Compétences » racontait cette séparation technique — qui
+              n'existe pas pour celui qui remplit son CV.
+            -->
             <Accordion multiple class="a-cv-sections">
               <AccordionPanel v-for="r in CV_SECTIONS" :key="r.key" :value="r.key">
                 <AccordionHeader>
@@ -301,7 +358,7 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                           size="small"
                           icon="pi pi-trash"
                           aria-label="Retirer"
-                          @click="removeEntry(r.key, i)"
+                          @click="askRemove(named(e.title, 'Cette entrée'), () => removeEntry(r.key, i))"
                         />
                       </div>
                     </li>
@@ -316,23 +373,28 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                   />
                 </AccordionContent>
               </AccordionPanel>
-            </Accordion>
 
-            <Accordion multiple class="a-cv-sections">
               <AccordionPanel value="skills">
                 <AccordionHeader>
                   <span class="a-cv-head">
                     Compétences
                     <span class="a-cv-count">{{ cv.value.value.skills.length }}</span>
+                    <span v-if="!cv.value.value.listsVisible.skills" class="a-tag is-draft">
+                      masquée
+                    </span>
                   </span>
                 </AccordionHeader>
                 <AccordionContent>
+                  <label class="a-switch">
+                    <ToggleSwitch v-model="cv.value.value.listsVisible.skills" />
+                    <span>Montrer cette rubrique sur le site</span>
+                  </label>
                   <p class="hint">
                     Un groupe porte le nom qui s'affichera sur le site — « Journalisme »,
                     « Domaines », « Diffusion » — puis ses éléments. Un groupe sans nom ou sans
                     élément n'est pas enregistré.
                   </p>
-                  <ul class="a-rows">
+                  <ul class="a-rows is-groups">
                     <li v-for="(set, g) in cv.value.value.skills" :key="g">
                       <div class="a-row-add">
                         <input
@@ -341,6 +403,11 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                           type="text"
                           placeholder="Nom du groupe"
                         />
+                        <ToggleSwitch
+                          v-model="set.visible"
+                          v-tooltip.top="set.visible ? 'Visible sur le site' : 'Masqué'"
+                          :aria-label="`Montrer « ${set.group || 'ce groupe'} » sur le site`"
+                        />
                         <Button
                           v-tooltip.top="'Retirer ce groupe'"
                           severity="danger"
@@ -348,7 +415,11 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                           size="small"
                           icon="pi pi-trash"
                           aria-label="Retirer le groupe"
-                          @click="cv.value.value?.skills.splice(g, 1)"
+                          @click="
+                            askRemove(named(set.group, 'Ce groupe'), () =>
+                              cv.value.value?.skills.splice(g, 1),
+                            )
+                          "
                         />
                       </div>
                       <div class="a-chosen">
@@ -380,7 +451,7 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                     size="small"
                     icon="pi pi-plus"
                     label="Ajouter un groupe"
-                    @click="cv.value.value?.skills.push({ group: '', items: [] })"
+                    @click="cv.value.value?.skills.push({ group: '', items: [], visible: true })"
                   />
                 </AccordionContent>
               </AccordionPanel>
@@ -390,9 +461,16 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                   <span class="a-cv-head">
                     {{ listLabel('languages') }}
                     <span class="a-cv-count">{{ cv.value.value.languages.length }}</span>
+                    <span v-if="!cv.value.value.listsVisible.languages" class="a-tag is-draft">
+                      masquée
+                    </span>
                   </span>
                 </AccordionHeader>
                 <AccordionContent>
+                  <label class="a-switch">
+                    <ToggleSwitch v-model="cv.value.value.listsVisible.languages" />
+                    <span>Montrer cette rubrique sur le site</span>
+                  </label>
                   <ul class="a-rows">
                     <li v-for="(lang, i) in cv.value.value.languages" :key="i">
                       <div class="a-row-add">
@@ -412,7 +490,11 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                           size="small"
                           icon="pi pi-trash"
                           aria-label="Retirer"
-                          @click="cv.value.value?.languages.splice(i, 1)"
+                          @click="
+                            askRemove(named(lang.label, 'Cette langue'), () =>
+                              cv.value.value?.languages.splice(i, 1),
+                            )
+                          "
                         />
                       </div>
                     </li>
@@ -437,9 +519,16 @@ useSeoMeta({ title: 'À propos', robots: 'noindex, nofollow' })
                   <span class="a-cv-head">
                     {{ listLabel(l) }}
                     <span class="a-cv-count">{{ cv.value.value[l].length }}</span>
+                    <span v-if="!cv.value.value.listsVisible[l]" class="a-tag is-draft">
+                      masquée
+                    </span>
                   </span>
                 </AccordionHeader>
                 <AccordionContent>
+                  <label class="a-switch">
+                    <ToggleSwitch v-model="cv.value.value.listsVisible[l]" />
+                    <span>Montrer cette rubrique sur le site</span>
+                  </label>
                   <div class="a-chosen">
                     <button
                       v-for="(item, k) in cv.value.value[l]"

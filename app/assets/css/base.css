@@ -268,47 +268,16 @@ button:not(:disabled) {
   font-weight: 300;
 }
 
-/* cluster of images in different formats, as Sphères does */
-.cluster {
-  display: grid;
-  gap: 14px;
-  margin-top: 52px;
-  grid-template-columns: repeat(12, 1fr);
-  align-items: end;
-}
-.cluster a {
-  display: block;
-  text-decoration: none;
-}
-.cluster .frame {
-  transition: opacity 0.2s;
-}
-.cluster a:hover .frame {
-  opacity: 0.78;
-}
-.cluster .c1 {
-  grid-column: span 5;
-}
-.cluster .c2 {
-  grid-column: span 3;
-}
-.cluster .c3 {
-  grid-column: span 4;
-}
-.cluster .cap {
-  font-family: var(--display);
-  font-size: 0.8rem;
-  color: var(--faint);
-  margin: 9px 0 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.cluster a:hover .cap {
-  color: var(--accent);
-}
-
+/*
+ * Le `.cluster` du hero a été retiré.
+ *
+ * Une grappe d'images sur douze colonnes, qu'aucun gabarit public n'utilise
+ * depuis longtemps — et qui peignait le BACK-OFFICE : `.admin-ui .cluster`
+ * ne redéclare pas `margin-top`, si bien que les 52 px écrits ici pour la
+ * page d'accueil séparaient le texte du bloc Sauvegarde de ses boutons.
+ * Troisième collision de ce genre entre les deux feuilles ; le garde-fou de
+ * test/unit/admin-styles.spec.ts la nomme désormais.
+ */
 
 /* ---------- front page: featured article left, rail right ---------- */
 /*
@@ -1625,6 +1594,12 @@ button:not(:disabled) {
   gap: 12px 28px;
   justify-content: space-between;
 }
+.foot-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 16px;
+}
 .foot a {
   color: var(--muted);
   text-decoration: none;
@@ -1653,20 +1628,29 @@ button:not(:disabled) {
     grid-template-columns: 1fr;
     gap: 40px;
   }
-  .cluster .c1 {
-    grid-column: span 6;
-  }
-  .cluster .c2 {
-    grid-column: span 6;
-  }
-  .cluster .c3 {
-    grid-column: span 12;
-  }
 }
 @media (max-width: 640px) {
   body {
     font-size: 16px;
   }
+  /* Le pied de page se replie en colonne : `space-between` ne répartit
+     alors plus rien, et les deux blocs se calaient à gauche sous une
+     page dont tout le reste est centré. */
+  .foot-in,
+  .foot-line {
+    justify-content: center;
+    text-align: center;
+  }
+
+  /* L'adresse et le bouton côte à côte : il restait deux centimètres pour
+     lire un lien, coupé au tiers. Chacun sa ligne. */
+  .share-copy {
+    flex-direction: column;
+  }
+  .share-copy button {
+    justify-content: center;
+  }
+
   .wrap {
     padding-inline: 18px;
   }
@@ -1695,14 +1679,6 @@ button:not(:disabled) {
   .entry .frame {
     order: -1;
     width: 100%;
-  }
-  .cluster {
-    gap: 10px;
-  }
-  .cluster .c1,
-  .cluster .c2,
-  .cluster .c3 {
-    grid-column: span 6;
   }
   .igp-head {
     gap: 16px;

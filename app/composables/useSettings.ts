@@ -7,7 +7,20 @@ import { reason } from '#shared/utils/errors'
  * The server refuses a technical key to an `editor`: this function protects
  * nothing, it merely makes writing convenient and reports the save.
  */
-export function useSetting<K extends SettingKey>(key: K) {
+export function useSetting<K extends SettingKey>(
+  key: K,
+  /**
+   * Ce qui est ENVOYÉ, pas ce qui est affiché.
+   *
+   * Le nettoyage — retirer une ligne vide, un groupe sans nom — était
+   * appliqué à l'état LOCAL avant d'enregistrer. Avec l'enregistrement
+   * automatique, un champ qu'on venait d'ajouter disparaissait sous les
+   * doigts une seconde plus tard, et l'interrupteur qu'on cliquait ensuite
+   * appartenait à une ligne qui n'existait plus. Il s'applique désormais à
+   * une COPIE, au moment de l'envoi.
+   */
+  clean?: (value: SettingValue<K>) => SettingValue<K>,
+) {
   // Capturées ICI, où le contexte Nuxt est garanti : `useRequestHeaders()`
   // appelée depuis `load()` — après un await — tombe sur « Nuxt instance
   // unavailable ». Voir le commentaire de useDraft.ts.
@@ -43,9 +56,20 @@ export function useSetting<K extends SettingKey>(key: K) {
     state.value = 'enregistrement'
     error.value = ''
     try {
-      value.value = await $fetch<SettingValue<K>>(`/api/admin/settings/${key}`, {
+      /*
+       * La réponse n'est PAS réinjectée dans l'état.
+       *
+       * Le serveur renvoie ce qu'il a écrit, et l'écrire par-dessus l'état
+       * local effaçait tout ce qui avait été tapé pendant l'aller-retour —
+       * une lettre, une case cochée. L'enregistrement est automatique : cet
+       * aller-retour a lieu pendant qu'on travaille, pas après.
+       */
+      // `$fetch<unknown>` : la réponse n'est pas lue, et sans annotation
+      // Nitro tente de faire correspondre le gabarit d'URL à ses routes —
+      // le piège que UsersPanel.vue consigne déjà.
+      await $fetch<unknown>(`/api/admin/settings/${key}`, {
         method: 'PUT',
-        body: value.value,
+        body: clean ? clean(value.value) : value.value,
       })
       state.value = 'enregistré'
     } catch (e) {

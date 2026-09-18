@@ -30,12 +30,18 @@ const rows = computed(() => {
 
 const orphans = computed(() => (tags.value ?? []).filter((t) => t.n === 0).length)
 
-/** The tag being renamed, and what it is being renamed to. */
-const editing = ref<string | null>(null)
+/**
+ * Le renommage se fait dans une FENÊTRE.
+ *
+ * Il se faisait dans la ligne : le champ, deux boutons et le reste de la
+ * colonne se disputaient la place, la rangée changeait de hauteur, et
+ * l'action en cours se perdait dès qu'on faisait défiler la liste.
+ */
+const editing = ref<{ slug: string; was: string } | null>(null)
 const draft = ref('')
 
 function start(slug: string, label: string): void {
-  editing.value = slug
+  editing.value = { slug, was: label }
   draft.value = label
 }
 
@@ -52,9 +58,10 @@ async function run(action: () => Promise<unknown>, said: string): Promise<void> 
   }
 }
 
-function rename(slug: string): void {
+function rename(): void {
+  const slug = editing.value?.slug
   const label = draft.value.trim()
-  if (!label) return
+  if (!slug || !label) return
   void run(async () => {
     // `$fetch<unknown>`: the answer is not read, a refresh carries the new
     // state. Written otherwise, Nitro's route inference explodes on
@@ -108,6 +115,7 @@ useSeoMeta({ title: 'Tags', robots: 'noindex, nofollow' })
       <div class="a-scroll-x">
         <DataTable
           :value="rows"
+          class="a-cards-inline"
           data-key="slug"
           size="small"
           striped-rows
@@ -120,28 +128,23 @@ useSeoMeta({ title: 'Tags', robots: 'noindex, nofollow' })
 
           <Column field="label" header="Tag" sortable :pt="cell('Tag')">
             <template #body="{ data }">
-              <div v-if="editing === data.slug" class="a-toolbar">
-                <InputText v-model="draft" autofocus @keydown.enter.prevent="rename(data.slug)" />
+              <!-- Renommer se demande AU TAG, pas au bout de la ligne : à
+                   l'autre extrémité du tableau, le crayon parlait d'un tag
+                   qu'il fallait relire pour savoir lequel. -->
+              <span class="a-named">
+                <span class="a-strong">{{ data.label }}</span>
                 <Button
-                  size="small"
-                  icon="pi pi-check"
-                  label="Renommer"
-                  :disabled="busy"
-                  @click="rename(data.slug)"
-                />
-                <Button
+                  v-tooltip.top="'Renommer'"
                   severity="secondary"
                   text
                   size="small"
-                  icon="pi pi-times"
-                  aria-label="Annuler"
-                  @click="editing = null"
+                  icon="pi pi-pencil"
+                  aria-label="Renommer"
+                  :disabled="busy"
+                  @click="start(data.slug, data.label)"
                 />
-            </div>
-              <template v-else>
-                <span class="a-title">{{ data.label }}</span>
-                <div class="a-sub"><span>/{{ data.slug }}</span></div>
-              </template>
+              </span>
+              <div class="a-sub"><span>/{{ data.slug }}</span></div>
             </template>
           </Column>
 
@@ -153,17 +156,7 @@ useSeoMeta({ title: 'Tags', robots: 'noindex, nofollow' })
 
           <Column class="a-col-fit" :pt="cell('')">
             <template #body="{ data }">
-              <div v-if="editing !== data.slug" class="a-row-act">
-                <Button
-                  v-tooltip.top="'Renommer'"
-                  severity="secondary"
-                  outlined
-                  size="small"
-                  icon="pi pi-pencil"
-                  aria-label="Renommer"
-                  :disabled="busy"
-                  @click="start(data.slug, data.label)"
-                />
+              <div class="a-row-act">
                 <!--
                   Seulement sur un tag orphelin : ailleurs, supprimer voudrait
                   dire le retirer des articles qui le portent.
@@ -185,5 +178,35 @@ useSeoMeta({ title: 'Tags', robots: 'noindex, nofollow' })
           </DataTable>
       </div>
     </div>
+
+    <!--
+      Renommer se fait ici, et non dans la ligne : le champ et ses deux
+      boutons s'y disputaient la place avec le reste de la colonne, la
+      rangée changeait de hauteur, et l'action en cours se perdait dès
+      qu'on faisait défiler la liste.
+    -->
+    <Dialog
+      :visible="editing !== null"
+      modal
+      header="Renommer le tag"
+      :style="{ width: '26rem', maxWidth: 'calc(100vw - 2rem)' }"
+      :pt="{ root: { class: 'admin-ui' } }"
+      @update:visible="editing = null"
+    >
+      <p class="hint">
+        L'adresse du tag change avec son nom : un lien vers l'ancienne cessera de filtrer.
+      </p>
+      <InputText v-model="draft" fluid autofocus @keydown.enter.prevent="rename" />
+
+      <template #footer>
+        <Button severity="secondary" outlined label="Annuler" @click="editing = null" />
+        <Button
+          icon="pi pi-check"
+          label="Renommer"
+          :disabled="busy || !draft.trim()"
+          @click="rename"
+        />
+      </template>
+    </Dialog>
   </div>
 </template>

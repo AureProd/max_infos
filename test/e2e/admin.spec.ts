@@ -95,7 +95,7 @@ test.describe('a table on a phone', () => {
   test.skip(({ viewport }) => (viewport?.width ?? 0) > 640, 'ne concerne que le téléphone')
 
   test('unfolds into stacked cards rather than scrolling sideways', async ({ page }) => {
-    await page.goto('/admin/tags')
+    await page.goto('/admin/tech')
     const firstRow = page.locator('.p-datatable-tbody > tr').first()
     await expect(firstRow).toBeVisible()
 
@@ -109,6 +109,39 @@ test.describe('a table on a phone', () => {
 
     expect(shape.row).toBe('block')
     expect(shape.header).toBe('none')
-    expect(shape.label).toContain('Articles')
+    expect(shape.label).toContain('Rôle')
+  })
+
+  /**
+   * Un tag n'a qu'un nom et un chiffre.
+   *
+   * La carte empilée convient à un compte ou à un article — un titre, puis
+   * ses champs nommés. Ici, « ARTICLES » écrit au-dessus d'un « 2 » prenait
+   * une rangée pour un caractère : le nombre passe en haut à droite, sans
+   * libellé, et le filet sous le nom disparaît.
+   */
+  test('puts a tag’s count beside its name, without naming the column', async ({ page }) => {
+    await page.goto('/admin/tags')
+    const firstRow = page.locator('.p-datatable-tbody > tr').first()
+    await expect(firstRow).toBeVisible()
+
+    const shape = await firstRow.evaluate((tr) => {
+      const cells = [...tr.querySelectorAll('td')]
+      const count = cells.find((td) => td.dataset.label === 'Articles') as Element
+      return {
+        row: getComputedStyle(tr).display,
+        label: getComputedStyle(count, '::before').content,
+        rule: getComputedStyle(cells[0] as Element).borderBottomWidth,
+        sameLine:
+          Math.abs(
+            (cells[0] as Element).getBoundingClientRect().top - count.getBoundingClientRect().top,
+          ) < 4,
+      }
+    })
+
+    expect(shape.row).toBe('grid')
+    expect(shape.label).toBe('none')
+    expect(shape.rule).toBe('0px')
+    expect(shape.sameLine).toBe(true)
   })
 })

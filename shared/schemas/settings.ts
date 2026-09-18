@@ -76,7 +76,13 @@ export const cvSchema = z.object({
   experience: section.default({ visible: true, entries: [] }),
   engagements: section.default({ visible: true, entries: [] }),
   skills: z
-    .array(z.object({ group: z.string(), items: z.array(z.string()) }))
+    .array(
+      z.object({
+        group: z.string(),
+        items: z.array(z.string()),
+        visible: z.boolean().default(true),
+      }),
+    )
     .max(20)
     .default([]),
   interests: z.array(z.string().max(200)).max(40).default([]),
@@ -85,6 +91,25 @@ export const cvSchema = z.object({
     .max(20)
     .default([]),
   certifications: z.array(z.string().max(200)).max(20).default([]),
+  /**
+   * L'interrupteur des rubriques de pastilles.
+   *
+   * Les rubriques datées portent le leur dans leur objet ; les listes, non
+   * — ce sont des tableaux nus. Plutôt que de les envelopper, ce qui aurait
+   * cassé tout ce qui est déjà en base, chacune a ici son booléen. Absent,
+   * il vaut « visible » : un CV enregistré avant ce champ ne disparaît pas.
+   */
+  listsVisible: z
+    .object({
+      skills: z.boolean().default(true),
+      languages: z.boolean().default(true),
+      certifications: z.boolean().default(true),
+      interests: z.boolean().default(true),
+    })
+    // Les valeurs par défaut de Zod ne repassent PAS par le schéma : un
+    // `{}` serait resté un objet vide, dont chaque rubrique se lit
+    // `undefined` — donc masquée. Le défaut est écrit en toutes lettres.
+    .default({ skills: true, languages: true, certifications: true, interests: true }),
 })
 
 export const seoSchema = z.object({

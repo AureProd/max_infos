@@ -76,7 +76,9 @@ function startCaption(id: number, caption: string | null): void {
   captionDraft.value = caption ?? ''
 }
 
-async function saveCaption(id: number): Promise<void> {
+async function saveCaption(): Promise<void> {
+  const id = editing.value
+  if (id === null) return
   try {
     await $fetch<unknown>(`/api/admin/social-posts/${id}/caption`, {
       method: 'PUT',
@@ -189,42 +191,18 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
                   <span v-else class="a-pub-nothumb">{{ mediaLabel(p.mediaType) }}</span>
                 </div>
                 <div class="a-pub-text">
-                  <div v-if="editing === p.id" class="a-toolbar">
-                    <InputText
-                      v-model="captionDraft"
-                      autofocus
-                      fluid
-                      @keydown.enter.prevent="saveCaption(p.id)"
-                    />
-                    <Button
-                      size="small"
-                      icon="pi pi-check"
-                      aria-label="Enregistrer le titre"
-                      @click="saveCaption(p.id)"
-                    />
-                    <Button
-                      severity="secondary"
-                      text
-                      size="small"
-                      icon="pi pi-times"
-                      aria-label="Annuler"
-                      @click="editing = null"
-                    />
-                  </div>
-                  <template v-else>
-                    <a
-                      v-if="p.permalink"
-                      class="a-title"
-                      :href="p.permalink"
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      {{ p.caption?.slice(0, 90) || mediaLabel(p.mediaType) }} ↗
-                    </a>
-                    <span v-else class="a-title">
-                      {{ p.caption?.slice(0, 90) || mediaLabel(p.mediaType) }}
-                    </span>
-                  </template>
+                  <a
+                    v-if="p.permalink"
+                    class="a-title"
+                    :href="p.permalink"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    {{ p.caption?.slice(0, 90) || mediaLabel(p.mediaType) }} ↗
+                  </a>
+                  <span v-else class="a-title">
+                    {{ p.caption?.slice(0, 90) || mediaLabel(p.mediaType) }}
+                  </span>
                   <div class="a-sub">
                     <span v-if="p.accountUsername">@{{ p.accountUsername }}</span>
                     <span>{{ mediaLabel(p.mediaType) }}</span>
@@ -287,6 +265,30 @@ useSeoMeta({ title: 'Publications', robots: 'noindex, nofollow' })
         </tbody>
       </table>
     </div>
+
+    <!--
+      Le titre se corrige dans une FENÊTRE, et non dans la ligne : le champ
+      s'y battait avec la vignette et la légende, et la rangée changeait de
+      hauteur sous le curseur.
+    -->
+    <Dialog
+      :visible="editing !== null"
+      modal
+      header="Titre de la publication"
+      :style="{ width: '32rem', maxWidth: 'calc(100vw - 2rem)' }"
+      :pt="{ root: { class: 'admin-ui' } }"
+      @update:visible="editing = null"
+    >
+      <p class="hint">
+        C'est ce que le site affiche sous la vignette. Vidé, la carte reprend le type de média.
+      </p>
+      <Textarea v-model="captionDraft" rows="3" fluid autofocus />
+
+      <template #footer>
+        <Button severity="secondary" outlined label="Annuler" @click="editing = null" />
+        <Button icon="pi pi-check" label="Enregistrer" @click="saveCaption" />
+      </template>
+    </Dialog>
 
     <ArticleChooser
       v-if="chooserFor !== null"

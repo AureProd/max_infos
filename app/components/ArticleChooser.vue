@@ -111,25 +111,33 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
                 {{ mediaLabel(publication.mediaType ?? null) }}
               </span>
             </div>
-            <div class="ac-source-meta">
-              <span class="a-tag is-info">{{ networkLabel(publication.network) }}</span>
-              <span v-if="publication.accountUsername">@{{ publication.accountUsername }}</span>
-              <time v-if="publication.postedAt" :datetime="publication.postedAt">
-                {{ frDate(publication.postedAt.slice(0, 10)) }}
-              </time>
+            <!--
+              Tout ce qui n'est pas la vignette dans UN bloc : sur un
+              téléphone, la colonne passe en rangée, et sans ce bloc la
+              légende et le bouton se rangeaient à côté de l'image au lieu
+              de dessous. La fenêtre débordait alors de côté.
+            -->
+            <div class="ac-source-side">
+              <div class="ac-source-meta">
+                <span class="a-tag is-info">{{ networkLabel(publication.network) }}</span>
+                <span v-if="publication.accountUsername">@{{ publication.accountUsername }}</span>
+                <time v-if="publication.postedAt" :datetime="publication.postedAt">
+                  {{ frDate(publication.postedAt.slice(0, 10)) }}
+                </time>
+              </div>
+              <p v-if="publication.caption" class="ac-source-caption">
+                {{ publication.caption.slice(0, 220) }}
+              </p>
+              <a
+                v-if="publication.permalink"
+                class="a-btn"
+                :href="publication.permalink"
+                target="_blank"
+                rel="noopener"
+              >
+                <i class="pi pi-external-link" aria-hidden="true" /> Voir la publication
+              </a>
             </div>
-            <p v-if="publication.caption" class="ac-source-caption">
-              {{ publication.caption.slice(0, 220) }}
-            </p>
-            <a
-              v-if="publication.permalink"
-              class="a-btn"
-              :href="publication.permalink"
-              target="_blank"
-              rel="noopener"
-            >
-              <i class="pi pi-external-link" aria-hidden="true" /> Voir la publication
-            </a>
           </aside>
 
           <div class="ac-body">
@@ -272,6 +280,15 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
   color: var(--a-faint);
   font-size: 0.82rem;
 }
+.ac-source-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.ac-source-side .a-btn {
+  align-self: flex-start;
+}
 .ac-source-meta {
   display: flex;
   flex-wrap: wrap;
@@ -395,6 +412,12 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
     width: 92px;
     flex: none;
     aspect-ratio: 1;
+  }
+  /* Un mot plus long que l'écran — une adresse, un mot-dièse — étirait la
+     rangée : rien ne l'autorisait à se couper. */
+  .ac-source-side {
+    flex: 1;
+    overflow-wrap: anywhere;
   }
 }
 </style>

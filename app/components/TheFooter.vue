@@ -8,22 +8,22 @@ const links = computed(() => site.value?.contact.fields.filter((f) => f.visible)
 <template>
   <footer class="foot">
     <div class="wrap foot-in">
-      <span>
-        {{ site?.identity.name }} — {{ site?.identity.author }}. Sans publicité ni suivi.
-        <NuxtLink to="/privacy" style="margin-left: 16px">Confidentialité</NuxtLink>
-        <NuxtLink to="/legal" style="margin-left: 16px">Mentions légales</NuxtLink>
-        <NuxtLink to="/terms" style="margin-left: 16px">Conditions</NuxtLink>
+      <!--
+        Les écarts se faisaient par un `margin-left` posé sur chaque lien.
+        Sur un téléphone, où tout se replie et se centre, cette marge
+        s'ajoutait à gauche du premier lien de chaque ligne : le bloc
+        paraissait décalé d'un cran. Un `gap` n'a pas de côté.
+      -->
+      <span class="foot-line">
+        <span>{{ site?.identity.name }} — {{ site?.identity.author }}. Sans publicité ni suivi.</span>
+        <NuxtLink to="/privacy">Confidentialité</NuxtLink>
+        <NuxtLink to="/legal">Mentions légales</NuxtLink>
+        <NuxtLink to="/terms">Conditions</NuxtLink>
       </span>
-      <span>
-        <a
-          v-for="link in links"
-          :key="link.key"
-          :href="link.href"
-          target="_blank"
-          rel="noopener"
-          style="margin-left: 16px"
-          >{{ link.label }}</a
-        >
+      <span v-if="links.length" class="foot-line">
+        <a v-for="link in links" :key="link.key" :href="link.href" target="_blank" rel="noopener">
+          {{ link.label }}
+        </a>
       </span>
     </div>
   </footer>

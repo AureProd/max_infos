@@ -232,4 +232,15 @@ onMounted(() => {
 .article-pubs .pubs {
   grid-template-columns: repeat(auto-fill, minmax(190px, 220px));
 }
+/* Sur un téléphone, une piste de 220 px laissait une colonne calée à
+   gauche sous un texte qui, lui, prend toute la largeur. Deux par rangée,
+   qui remplissent la mesure. La règle vit ici, et non dans la feuille
+   commune : le style de composant porte un attribut de portée, donc il
+   gagne toujours contre elle. */
+@media (max-width: 640px) {
+  .article-pubs .pubs {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    justify-content: center;
+  }
+}
 </style>

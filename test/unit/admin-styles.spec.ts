@@ -52,7 +52,7 @@ describe('the sheet of the public site', () => {
    * « Présentation » field of the About screen stood 460px tall because of
    * a `min-height` written there for the body of an article.
    */
-  const ADMIN_ONLY = ['.editor', '.field', '.preview', '.cnav', '.pill']
+  const ADMIN_ONLY = ['.editor', '.field', '.preview', '.cnav', '.pill', '.cluster']
 
   it('carries no rule for a back-office-only class', () => {
     const guilty = rules(CSS)

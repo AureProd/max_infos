@@ -123,7 +123,7 @@
  *
  * Tenu par test/unit/admin-responsive.spec.ts et test/nuxt/admin-layout.spec.ts.
  */
-.admin-menu-select {
+.admin-ui .admin-menu-select {
   display: none;
   width: auto;
   min-width: 0;
@@ -131,11 +131,32 @@
   padding: 7px 10px;
   border: 1px solid var(--a-line-strong);
   border-radius: 8px;
-  background: var(--a-panel);
   color: var(--a-text);
   font: inherit;
   font-size: 0.93rem;
   font-weight: 600;
+
+  /*
+   * Le chevron est DESSINÉ, pas laissé au navigateur.
+   *
+   * Celui de Chrome se pose contre le bord intérieur du cadre et ignore le
+   * rembourrage droit : il touchait le trait. Deux dégradés en
+   * `currentColor` donnent le même signe, à la place qu'on leur donne, et
+   * suivent la couleur du texte sans figer une teinte de plus.
+   */
+  appearance: none;
+  padding-right: 32px;
+  background-color: var(--a-panel);
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    right 15px center,
+    right 11px center;
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
 }
 
 @media (max-width: 900px) {
@@ -145,7 +166,7 @@
   .admin-menu {
     display: none;
   }
-  .admin-menu-select {
+  .admin-ui .admin-menu-select {
     display: block;
     flex: 1;
     max-width: none;
@@ -232,7 +253,9 @@
   gap: 6px;
   padding: 7px 13px;
   border: 1px solid var(--a-line-strong);
-  border-radius: 8px;
+  /* 6 px : celui de la bibliothèque. À 8, nos boutons maison s'arrondissaient
+     un cran de plus que ceux posés à côté. */
+  border-radius: 6px;
   background: var(--a-panel);
   color: var(--a-text);
   font: inherit;
@@ -324,6 +347,13 @@ a.a-btn-primary,
 }
 .a-seg button + button {
   border-left: 1px solid var(--a-line);
+}
+/* Rien ne disait que ces trois-là se cliquaient : ni curseur changé, ni
+   fond qui bouge. Le survol ne touche pas celui qui est déjà choisi, dont
+   le fond bleu pâle dit l'état. */
+.a-seg button:not([aria-pressed='true']):hover {
+  background: var(--a-bg);
+  color: var(--a-text);
 }
 .a-seg button[aria-pressed='true'] {
   background: var(--a-accent-soft);
@@ -777,7 +807,19 @@ a.a-figure:hover {
   outline: 2px solid var(--a-accent-soft);
   border-color: var(--a-accent);
 }
-.admin-ui input[type='checkbox'] {
+/*
+ * `:not([class])` — et c'est tout sauf cosmétique.
+ *
+ * Une case ou un interrupteur de PrimeVue est un `<input type="checkbox">`
+ * TRANSPARENT, étiré en absolu par-dessus la boîte dessinée : c'est lui qui
+ * reçoit le clic. `width: auto` le ramenait à sa taille par défaut, treize
+ * pixels au coin d'une boîte de vingt — cliquer la case ne faisait rien, et
+ * seul le libellé à côté fonctionnait. C'est ce qu'on voyait sur les
+ * interrupteurs de Contact et du CV, et sur les cases de la Sauvegarde.
+ *
+ * La règle ne vise donc plus que les cases écrites à la main.
+ */
+.admin-ui input[type='checkbox']:not([class]) {
   width: auto;
   accent-color: var(--a-accent);
 }
@@ -1055,7 +1097,8 @@ a.a-figure:hover {
  */
 .a-row-grid {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(140px, 1.4fr) minmax(140px, 1.4fr) auto auto;
+  grid-template-columns:
+    minmax(120px, 1fr) minmax(140px, 1.4fr) minmax(140px, 1.4fr) auto auto auto;
   gap: 10px;
   align-items: center;
 }
@@ -1071,6 +1114,11 @@ a.a-figure:hover {
 }
 .a-short {
   max-width: 100%;
+}
+/* Dans une rangée, `.a-row-add .a-input` prend `flex: 1` : « Niveau »
+   s'élargissait autant que « Langue », alors qu'il porte « C1 ». */
+.a-row-add .a-short {
+  flex: 0 1 130px;
 }
 
 /*
@@ -1578,7 +1626,10 @@ a.a-figure:hover {
   gap: 10px;
   color: var(--a-muted);
 }
-.a-media-empty i {
+/* L'icône de l'état vide, et elle seule : le sélecteur prenait aussi celle
+   du bouton « Téléverser » posé dans le même bloc, qui se peignait en gris
+   sur son fond bleu. */
+.a-media-empty > i {
   font-size: 1.4rem;
   color: var(--a-faint);
 }
@@ -1704,6 +1755,18 @@ a.a-figure:hover {
   .a-import-pair {
     grid-template-columns: 1fr;
   }
+  /* Sur une colonne de 390 px, « Ajouter et rattacher » se serrait dans le
+     tiers gauche, sous un bouton qui prend toute la largeur. Les deux
+     s'empilent, chacun sur sa ligne entière. */
+  .a-import-actions {
+    flex-direction: column;
+  }
+  .a-import-actions > * {
+    width: 100%;
+    /* `.a-btn-block` porte `flex: 1 1 260px` : en colonne, cette base est
+       une HAUTEUR, et le bouton faisait 260 px de haut. */
+    flex: 0 0 auto;
+  }
 }
 
 /* ---------- l'état de l'enregistrement ----------
@@ -1807,7 +1870,9 @@ a.a-figure:hover {
   flex-wrap: wrap;
   align-items: stretch;
   gap: 10px;
-  margin-bottom: 18px;
+  /* La ligne d'ajout et la liste des comptes se touchaient : on ne voyait
+     plus où finissait le formulaire et où commençait le tableau. */
+  margin-bottom: 28px;
 }
 .a-invite > :first-child {
   flex: 1 1 280px;
@@ -1934,7 +1999,12 @@ a.a-figure:hover {
   gap: 10px;
   padding: 7px 2px;
 }
-.a-taglist label {
+/* `.admin-ui label:not([class])` pèse deux classes : écrite avec une seule,
+   la correction passait dessous sans rien changer. Une étiquette sans
+   classe porte 6 px de marge basse, et centrée sur sa case elle remontait
+   d'autant. */
+.admin-ui .a-taglist label {
+  margin-bottom: 0;
   cursor: pointer;
 }
 .a-tagdrop {
@@ -1987,14 +2057,10 @@ a.a-figure:hover {
  *
  * Toutes grises, elles demandaient de lire l'infobulle pour distinguer
  * « publier » de « supprimer » — sur la même rangée, à trente pixels l'une
- * de l'autre. Le contour prend la teinte de ce que le bouton fait, et le
- * survol la remplit : l'intention se lit avant le geste.
+ * de l'autre. Le contour prend la teinte de ce que le bouton fait.
  */
 .admin-ui .a-row-act .p-button-outlined:not(:disabled) {
   background: var(--a-panel);
-}
-.admin-ui .a-row-act .p-button-outlined:not(:disabled):hover {
-  color: #fff;
 }
 /*
  * Le survol d'un bouton secondaire, PARTOUT.
@@ -2007,22 +2073,18 @@ a.a-figure:hover {
   border-color: var(--a-line-strong);
   color: var(--a-muted);
 }
+/*
+ * Le survol d'un bouton à contour TEINTE, il ne remplit pas.
+ *
+ * Il se remplissait de couleur pleine : sur une rangée de trois actions,
+ * survoler « dépublier » allumait un pavé rouge au milieu d'une liste
+ * blanche, et le geste suivant se faisait à côté. Le fond reste blanc, le
+ * trait et le texte prennent la teinte — c'est assez pour dire « ici ».
+ */
 .admin-ui .p-button-secondary.p-button-outlined:not(:disabled):hover {
   border-color: var(--a-accent);
-  background: var(--a-accent);
-  color: #fff;
-}
-.admin-ui .a-row-act .p-button-danger.p-button-outlined:not(:disabled):hover {
-  background: var(--a-danger);
-  border-color: var(--a-danger);
-}
-.admin-ui .a-row-act .p-button-warn.p-button-outlined:not(:disabled):hover {
-  background: var(--a-warn);
-  border-color: var(--a-warn);
-}
-.admin-ui .a-row-act .p-button-success.p-button-outlined:not(:disabled):hover {
-  background: var(--a-ok);
-  border-color: var(--a-ok);
+  background: var(--a-panel);
+  color: var(--a-accent);
 }
 .admin-ui .a-row-act {
   display: flex;
@@ -2107,9 +2169,6 @@ a.a-figure:hover {
   align-items: center;
   gap: 10px;
   margin-bottom: 16px;
-}
-.admin-ui .a-rows > li + li {
-  margin-top: 12px;
 }
 .admin-ui .field-group + .field-group {
   margin-top: 28px;
@@ -2451,16 +2510,41 @@ a.a-figure:hover {
    * Elles s'empilaient l'une sous l'autre, alignées à droite : deux boutons
    * prenaient trois rangées avec le titre, avant le premier mot du contenu.
    */
+  /* Un état n'est pas une action : il reste à droite du titre. */
+  .admin-title.is-inline {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .admin-title.is-inline .admin-actions {
+    margin-top: 0;
+  }
   .admin-title {
     display: block;
   }
+  /*
+   * Les actions se rangent À DROITE, dans l'ordre où elles se lisent.
+   *
+   * L'action principale s'étirait sur toute la largeur restante, ce qui
+   * poussait la secondaire contre le bord gauche : les deux boutons
+   * bordaient l'écran au lieu de former un groupe.
+   */
+  /* Le chapeau d'un écran porte 24 px sous son état ; sur un téléphone,
+     où les actions passent dessous, ces 24 px devenaient un trou. */
+  .admin-title .admin-lede {
+    margin-bottom: 0;
+  }
   .admin-actions {
-    justify-content: flex-start;
+    justify-content: flex-end;
     flex-wrap: nowrap;
-    margin-top: 14px;
+    /* Le bouton à icône seule se dimensionnait sur son contenu et faisait
+       cinq pixels de moins que le bouton principal à côté. Étiré, son
+       `aspect-ratio` lui redonne une largeur carrée. */
+    align-items: stretch;
+    margin-top: 10px;
   }
   .admin-actions > * {
-    flex: 1 1 0;
+    flex: 0 1 auto;
     min-width: 0;
   }
   /*
@@ -2480,6 +2564,15 @@ a.a-figure:hover {
   }
   .admin-actions .p-button-outlined .p-button-icon {
     margin: 0;
+  }
+  /* Un bouton posé dans un composant garde son enveloppe : celle-ci
+     s'étirait, le bouton qu'elle contient non, et « Importer » faisait
+     quatre pixels de moins que « Nouvel article » à côté. */
+  .admin-actions > div {
+    display: flex;
+  }
+  .admin-actions > div > .p-button {
+    height: auto;
   }
 
   /*
@@ -2526,6 +2619,49 @@ a.a-figure:hover {
     display: flex;
     justify-content: flex-start;
   }
+
+  /*
+   * Une carte de publication, sur le même patron.
+   *
+   * « RÉSEAU », « PUBLIÉE LE », « ARTICLE RATTACHÉ » : trois libellés en
+   * majuscules pour une pastille qui dit déjà « LinkedIn », une date et un
+   * titre. Ce qu'une icône ou une pastille nomme n'a pas besoin d'être
+   * écrit deux fois, et le titre de l'article prend la ligne entière —
+   * serré à droite, il se composait à un mot par ligne.
+   */
+  .a-table td[data-label='Réseau']::before,
+  .a-table td[data-label='Publiée le']::before,
+  .a-table td[data-label='Article rattaché']::before {
+    content: none;
+  }
+  .a-table td[data-label='Réseau'],
+  .a-table td[data-label='Publiée le'],
+  .a-table td[data-label='Article rattaché'] {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .a-table td[data-label='Publiée le']::after,
+  .a-table td[data-label='Article rattaché']::after {
+    font-family: 'primeicons';
+    color: var(--a-faint);
+    font-size: 0.8rem;
+    order: -1;
+    margin-right: 8px;
+  }
+  /* \e927 : pi-calendar. \e97b : pi-paperclip — ce à quoi le billet tient. */
+  .a-table td[data-label='Publiée le']::after {
+    content: '\e927';
+  }
+  .a-table td[data-label='Article rattaché']::after {
+    content: '\e97b';
+  }
+  .a-table td[data-label='Article rattaché'] .a-link-btn {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+  }
 }
 
 /*
@@ -2551,8 +2687,11 @@ a.a-figure:hover {
   font-size: 0.8rem;
   margin: 0;
 }
-.admin-menu-select {
+/* La même hauteur que les deux sorties à sa droite, qui mesurent 34 px :
+   il en faisait 38, et l'en-tête portait deux alignements. */
+.admin-ui .admin-menu-select {
   min-height: 34px;
+  height: 34px;
   padding-block: 0;
   line-height: 1.2;
 }
@@ -2580,22 +2719,30 @@ a.a-figure:hover {
  * `small` de 32 px, il en faisait 38, et le bleu de son survol était un hex
  * figé de l'ancienne rampe.
  */
+/*
+ * Le label-bouton prend EXACTEMENT la mesure d'un bouton `small` de la
+ * bibliothèque — 35 px, 6 px de rayon, 14 px de texte, relevés sur un
+ * `.p-button` voisin. Il s'en écartait de deux pixels de rayon et de trois
+ * de hauteur : posé à côté, il avait l'air d'un autre objet.
+ */
 .a-media label.a-btn,
 .p-dialog-footer label.a-btn {
-  min-height: var(--a-control-sm);
-  padding: 0 13px;
-  font-size: 0.87rem;
+  min-height: 35px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 .a-media label.a-btn i,
 .p-dialog-footer label.a-btn i {
   font-size: 0.8rem;
 }
 
-/* Un bouton d'avertissement se remplit au survol, comme ceux des lignes. */
+/* Chaque teinte, au survol, sur fond blanc. */
 .admin-ui .p-button-warn.p-button-outlined:not(:disabled):hover {
-  background: var(--a-warn);
+  background: var(--a-panel);
   border-color: var(--a-warn);
-  color: #fff;
+  color: var(--a-warn);
 }
 
 /* Une explication n'est pas l'étiquette du champ qui la suit : sans marge,
@@ -2606,4 +2753,180 @@ a.a-figure:hover {
 }
 .admin-ui .admin-card > .hint + .a-toolbar {
   margin-top: 0;
+}
+
+/*
+ * Les rangées répétables : même rythme, mêmes hauteurs.
+ *
+ * Les langues respiraient plus que les autres listes — leur rangée porte un
+ * `.a-row-add`, dont la marge haute s'ajoutait au rembourrage de la ligne.
+ * Et la corbeille, en `small`, mesurait 32 px à côté d'un champ de 38 : les
+ * deux ne s'alignaient sur rien.
+ */
+.admin-ui .a-rows > li > .a-row-add:first-child {
+  margin-top: 0;
+}
+.admin-ui .a-row-add .p-button,
+.admin-ui .a-row-grid .p-button {
+  min-height: var(--a-control);
+  height: var(--a-control);
+}
+.admin-ui .a-row-add .p-button-icon-only,
+.admin-ui .a-row-grid .p-button-icon-only {
+  width: var(--a-control);
+}
+
+/*
+ * Le survol d'un bouton à contour, quelle que soit sa place.
+ *
+ * Il n'existait que dans une ligne de tableau : toutes les corbeilles de
+ * l'écran À propos restaient inertes sous le curseur, et rien ne disait
+ * qu'elles se cliquaient.
+ */
+.admin-ui .p-button-danger.p-button-outlined:not(:disabled):hover {
+  background: var(--a-panel);
+  border-color: var(--a-danger);
+  color: var(--a-danger);
+}
+.admin-ui .p-button-success.p-button-outlined:not(:disabled):hover {
+  background: var(--a-panel);
+  border-color: var(--a-ok);
+  color: var(--a-ok);
+}
+
+/* Le texte d'un bloc et ses boutons ne se touchent pas. Les 52 px venaient
+   d'une règle morte du site public ; il en fallait quand même quelques-uns. */
+.admin-ui .field-group > .hint + .cluster,
+.admin-ui .admin-card > .hint + .cluster {
+  margin-top: 18px;
+}
+
+/* Dans une fenêtre, l'explication de tête ne colle pas au champ qu'elle
+   annonce : le paragraphe et le cadre de saisie se lisaient d'un bloc. */
+.admin-ui.p-dialog .p-dialog-content > .hint {
+  margin: 0 0 12px;
+}
+
+/* Un groupe de compétences tient sur trois rangs — son nom, ses pastilles,
+   son champ d'ajout. Au rythme commun des listes, deux groupes se lisaient
+   comme un seul bloc : le filet ne suffisait pas à les séparer. */
+.admin-ui .a-rows.is-groups > li {
+  padding: 16px 0;
+}
+.admin-ui .a-rows.is-groups > li:first-child {
+  padding-top: 4px;
+}
+
+/* L'interrupteur d'une rubrique n'est pas collé à ce qu'il commande. */
+.admin-ui .p-accordioncontent-content > .a-switch {
+  margin-bottom: 14px;
+}
+
+/* Le bouton de copie appartient à l'adresse qu'il copie : l'écart de la
+   rangée s'ajoutait au rembourrage du bouton et le posait au loin. */
+.admin-ui .a-sub > .p-button-text.p-button-icon-only {
+  margin-left: -8px;
+}
+
+/* Un nom et l'action qui le renomme, sur la même ligne. */
+.admin-ui .a-named {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Les deux flèches d'ordre : serrées l'une contre l'autre, elles se lisent
+   comme un seul contrôle. */
+.admin-ui .a-order {
+  display: inline-flex;
+  gap: 0;
+}
+
+@media (max-width: 640px) {
+  /*
+   * Une carte à DEUX colonnes, pour une ligne qui n'a qu'un chiffre à dire.
+   *
+   * Le repli en carte convient à un article — un titre, puis ses quatre
+   * champs nommés. Un tag n'a que son nom et son nombre d'articles : le
+   * libellé « ARTICLES » et le filet sous le nom prenaient deux rangées
+   * pour porter un chiffre à un caractère.
+   */
+  .a-cards-inline .p-datatable-tbody > tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+  }
+  .a-cards-inline .p-datatable-tbody > tr > td:first-child {
+    border-bottom: 0;
+  }
+  .a-cards-inline .p-datatable-tbody > tr > td[data-label='Articles'] {
+    justify-content: flex-end;
+  }
+  .a-cards-inline .p-datatable-tbody > tr > td[data-label='Articles']::before {
+    content: none;
+  }
+  .a-cards-inline .p-datatable-tbody > tr > td:last-child {
+    grid-column: 1 / -1;
+  }
+  /* Une carte qui ne porte qu'un nom et un chiffre n'a pas besoin du
+     rembourrage d'une carte d'article. */
+  .a-cards-inline .p-datatable-tbody > tr {
+    padding: 2px 2px;
+    margin-bottom: 8px;
+  }
+  .a-cards-inline .p-datatable-tbody > tr > td {
+    padding: 6px 10px;
+  }
+  /* La colonne des actions est vide sur un tag qu'aucun article ne peut
+     libérer : sans contenu, elle ajoutait quand même une rangée. */
+  .a-cards-inline .p-datatable-tbody > tr > td:last-child:not(:has(.p-button)) {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  /*
+   * « À propos » se lit en CARTES, comme les articles et les tags.
+   *
+   * Les rangées passaient en grille de deux colonnes : un libellé à côté
+   * d'une valeur, un lien à côté d'un interrupteur, et une corbeille seule
+   * sur la dernière ligne. Rien ne disait où une entrée finissait et où la
+   * suivante commençait — seul un filet gris les séparait.
+   *
+   * Une carte par entrée, ses champs l'un sous l'autre sur toute la
+   * largeur, et ce qui agit sur elle réuni en bas à droite.
+   */
+  .a-rows > li {
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 1px solid var(--a-line);
+    border-radius: 10px;
+    background: var(--a-panel);
+  }
+  .a-rows > li:last-child {
+    border-bottom: 1px solid var(--a-line);
+    margin-bottom: 0;
+  }
+  .a-rows.is-groups > li,
+  .a-rows.is-groups > li:first-child {
+    padding: 16px 14px;
+    margin-bottom: 16px;
+  }
+
+  /*
+   * Une rangée en FLEX, et non en grille : une piste `auto` se dimensionne
+   * sur son contenu, et le champ qui la traversait restait à la largeur de
+   * ce qu'on y avait tapé, au milieu de la carte. En flex, il déclare la
+   * ligne entière et ce qui agit sur lui se replie dessous, à droite.
+   */
+  .a-row-grid,
+  .a-row-grid.is-cv {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .a-row-grid > input,
+  .a-row-grid > .a-input {
+    flex: 0 0 100%;
+  }
 }

@@ -208,12 +208,17 @@ describe('ce qui peut pousser la page hors de l’écran', () => {
 describe('le menu de l’en-tête', () => {
   const narrow = mediaBlock(ADMIN_CSS, '(max-width: 900px)') ?? ''
 
+  // Le sélecteur porte `.admin-ui` devant : la règle générique
+  // `.admin-ui select` pèse une classe de plus et lui reprenait sinon son
+  // rembourrage et son chevron.
+  const SELECT = '.admin-ui .admin-menu-select'
+
   it('cache le select tant que la fenêtre est large', () => {
-    expect(declarationsOf(ADMIN_CSS, '.admin-menu-select')).toMatch(/display:\s*none/)
+    expect(declarationsOf(ADMIN_CSS, SELECT)).toMatch(/display:\s*none/)
   })
 
   it('échange les deux sous 900px', () => {
     expect(declarationsOf(narrow, '.admin-menu')).toMatch(/display:\s*none/)
-    expect(declarationsOf(narrow, '.admin-menu-select')).toMatch(/display:\s*block/)
+    expect(declarationsOf(narrow, SELECT)).toMatch(/display:\s*block/)
   })
 })
