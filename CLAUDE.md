@@ -78,6 +78,13 @@ migration appliquant un jeu périmé tout en répondant « applied successfully 
 | Un clic Playwright envoyé **avant l'hydratation** tombe sur du HTML sans gestionnaire et ne fait rien — sans erreur | `await page.waitForLoadState('networkidle')` après un `goto` sur un écran qui charge ses données côté client |
 | Une barre d'outils d'éditeur **vole le focus** au clic, et la sélection se perd avant la commande | `@mousedown.prevent` sur chaque bouton |
 | `editor.isActive()` lit l'état de ProseMirror, qui vit **hors de Vue** : rien ne prévient le composant | Un compteur touché à chaque transaction, relu par la fonction — sans quoi les boutons ne se rallument qu'au prochain rendu |
+| La valeur d'un `.default()` de Zod **ne repasse pas par le schéma** | `.default({})` sur un objet dont chaque champ vaut `true` par défaut rend `{}` tel quel : toutes les rubriques se lisaient `undefined`, donc masquées. Écrire le défaut en toutes lettres |
+| Une règle écrite sans `.admin-ui` pèse **une classe de moins** que sa consœur générique | Elle passe dessous sans rien changer, et sans erreur. C'est ce qui annulait le rembourrage des cartes de compétences, et ce qui faisait reprendre au menu de l'en-tête le chevron et le rembourrage de `.admin-ui select` |
+| Le chevron natif d'un `<select>` **ignore `padding-right`** sous Chrome | Il touchait le trait du cadre. Dessiné par deux dégradés en `currentColor`, il suit la couleur du texte sans figer une teinte de plus |
+| Une adresse écrite en toutes lettres est **UN mot** : sa largeur min-content remonte jusqu'à la page | Elle se met à défiler de côté, et une fenêtre modale centrée part avec elle — le dialogue coupé au bord droit n'est que le symptôme. `overflow-wrap: anywhere` sur les liens du corps. Tenu par `test/e2e/public.spec.ts` |
+| Un `<style scoped>` de composant porte un **attribut de portée** : il bat toujours la feuille commune | Une règle écrite dans `base.css`, même sous media query, ne peut pas corriger ce qu'un composant a posé. Elle doit vivre dans le composant |
+| `flex-basis` dans un conteneur **en colonne** est une HAUTEUR | `.a-btn-block` porte `flex: 1 1 260px` : replié en colonne sur un téléphone, le bouton faisait 260 px de haut |
+| Un sélecteur d'icône trop large (`.bloc i`) attrape aussi **l'icône du bouton posé dans le bloc** | L'icône de « Téléverser » se peignait en gris sur son fond bleu. `> i` pour ne viser que l'état vide |
 
 ## Décisions arrêtées
 

@@ -200,6 +200,29 @@ test.describe('an article', () => {
     await page.keyboard.press('Escape')
     await expect(dialog).toBeHidden()
   })
+
+  /**
+   * Instagram est là, et il COPIE.
+   *
+   * C'est le réseau de Max, et il n'a aucune adresse de partage web : rien
+   * ne permet d'y pousser un lien depuis un navigateur. Une tuile rendue
+   * en `<a href>` n'aurait mené nulle part sans le dire — d'où le bouton.
+   */
+  test('offers Instagram as a copy, having no web address to share to', async ({ page }) => {
+    const dialog = page.locator('dialog.share-box').first()
+    await page.locator('.share-open').first().click()
+    await expect(dialog).toBeVisible()
+
+    const tile = dialog.locator('.share-grid li', { hasText: 'Instagram' })
+    await expect(tile).toHaveCount(1)
+    // Un bouton, pas un lien : la distinction EST le correctif.
+    await expect(tile.locator('button')).toBeVisible()
+    await expect(tile.locator('a')).toHaveCount(0)
+
+    // Et Telegram a laissé la place : six tuiles, pas sept.
+    await expect(dialog.locator('.share-grid li')).toHaveCount(6)
+    await expect(dialog.locator('.share-grid li', { hasText: 'Telegram' })).toHaveCount(0)
+  })
 })
 
 /**

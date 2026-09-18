@@ -89,6 +89,19 @@ existant ne regardait pas. Elle ne servait plus le site et peignait toujours
 l'administration : le champ « Présentation » de l'écran À propos faisait
 460 px de haut à cause d'un `min-height` écrit là pour le corps d'un article.
 
+### Ce que Max peut montrer ou cacher
+
+Les interrupteurs s'arrêtaient aux rubriques datées du CV. Les compétences,
+les langues, les certifications et les centres d'intérêt partaient sur le
+site quoi qu'il arrive. Chacune porte maintenant le sien, chaque groupe de
+compétences aussi, et la coupe se fait dans `publicCv` avec celle des
+rubriques datées : **ce qui est masqué ne voyage pas** dans `/api/site`.
+Les contacts se réordonnent — leur ordre ici est celui de la page publique.
+
+Aucune migration : `listsVisible` et le `visible` d'un groupe sont des
+champs de réglage, absents ils valent « visible ». Un CV enregistré avant
+ce champ ne disparaît pas.
+
 ### Plusieurs comptes Instagram
 
 Le compte Instagram était un jeton unique dans `secret` et un profil figé dans
@@ -173,6 +186,11 @@ Chaque ligne a coûté du temps. Elles sont aussi dans `CLAUDE.md`.
 | `$fetch<T>` écrit à la main | Annule l'inférence de Nitro et **accepte n'importe quel champ**. Laisser Nitro déduire |
 | `onConflictDoUpdate` | Exige une contrainte d'unicité **réelle** sur la cible ; sinon, échec à l'exécution seulement |
 | Jeton Instagram | Le code d'OAuth donne un jeton d'**une heure**. Sans le second échange, l'intégration meurt au bout d'une heure |
+| Zod | La valeur d'un `.default()` **ne repasse pas par le schéma** : `.default({})` laisse chaque champ `undefined` |
+| Spécificité CSS | Une règle écrite sans son préfixe pèse **une classe de moins** que sa consœur générique et passe dessous, sans erreur |
+| `<select>` natif | Son chevron **ignore `padding-right`** sous Chrome |
+| Une adresse écrite en toutes lettres | Est **UN mot** : sa largeur min-content fait défiler la page, et une fenêtre modale centrée part avec elle |
+| `<style scoped>` | Porte un attribut de portée : il **bat toujours** la feuille commune, même sous media query |
 
 ## Les frontières à ne jamais franchir
 

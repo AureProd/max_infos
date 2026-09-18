@@ -32,8 +32,13 @@ onMounted(() => {
 const encoded = computed(() => encodeURIComponent(href.value))
 const subject = computed(() => encodeURIComponent(props.title))
 
-/** Ce que le web sait adresser par une simple URL. */
-const targets = computed(() => [
+/**
+ * Les cibles du partage.
+ *
+ * `to: null` désigne celles que le web ne sait pas adresser : la tuile
+ * copie l'adresse au lieu d'ouvrir un lien mort.
+ */
+const targets = computed<{ key: string; label: string; icon: string; to: string | null }[]>(() => [
   {
     key: 'x',
     label: 'X',
@@ -58,11 +63,19 @@ const targets = computed(() => [
     icon: 'pi-whatsapp',
     to: `https://wa.me/?text=${subject.value}%20${encoded.value}`,
   },
+  /*
+   * Instagram n'a PAS d'adresse de partage web.
+   *
+   * Rien ne permet d'y pousser un lien depuis un navigateur — ni story, ni
+   * message. La tuile est donc là pour ce qu'on peut vraiment faire :
+   * copier l'adresse, à coller dans l'application. C'est le réseau de Max,
+   * il a sa place avant un Telegram que personne n'utilise ici.
+   */
   {
-    key: 'telegram',
-    label: 'Telegram',
-    icon: 'pi-telegram',
-    to: `https://t.me/share/url?url=${encoded.value}&text=${subject.value}`,
+    key: 'instagram',
+    label: 'Instagram',
+    icon: 'pi-instagram',
+    to: null,
   },
   {
     key: 'email',
@@ -121,17 +134,22 @@ async function copy(): Promise<void> {
 
       <ul class="share-grid">
         <li v-for="t in targets" :key="t.key">
-          <a :href="t.to" target="_blank" rel="noopener">
+          <a v-if="t.to" :href="t.to" target="_blank" rel="noopener">
             <i :class="['pi', t.icon]" aria-hidden="true" />
             <span>{{ t.label }}</span>
           </a>
+          <!-- Sans adresse de partage, la tuile copie : un lien mort
+               n'aurait rien fait, sans rien dire. -->
+          <button v-else type="button" :title="`Copier l'adresse pour ${t.label}`" @click="copy">
+            <i :class="['pi', copied ? 'pi-check' : t.icon]" aria-hidden="true" />
+            <span>{{ copied ? 'Copié' : t.label }}</span>
+          </button>
         </li>
       </ul>
 
       <!--
-        Instagram et YouTube n'ont pas d'adresse de partage web : rien ne
-        permet d'y pousser un lien depuis un navigateur. Copier l'adresse
-        est ce qu'on peut vraiment faire, et le libellé le dit.
+        Le champ reste : l'adresse doit être LISIBLE, et sélectionnable là
+        où le presse-papiers est refusé — hors contexte sécurisé, il l'est.
       -->
       <div class="share-copy">
         <input :value="href" readonly aria-label="Adresse de l'article" @focus="($event.target as HTMLInputElement).select()" />
@@ -141,7 +159,8 @@ async function copy(): Promise<void> {
         </button>
       </div>
       <p class="share-note">
-        Pour Instagram, YouTube ou une story : copiez l'adresse, puis collez-la dans l'application.
+        Pour Instagram, YouTube ou une story : copiez l'adresse, puis collez-la dans
+        l'application — aucune ne sait recevoir un lien depuis un navigateur.
       </p>
     </dialog>
   </div>

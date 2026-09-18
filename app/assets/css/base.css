@@ -1979,7 +1979,11 @@ button:not(:disabled) {
   grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: 8px;
 }
-.share-grid a {
+.share-grid a,
+.share-grid button {
+  /* La tuile sans adresse de partage est un `<button>` : il lui faut la
+     largeur de sa cellule, que le reset d'élément ne lui donne pas. */
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1994,7 +1998,8 @@ button:not(:disabled) {
     border-color 0.15s,
     color 0.15s;
 }
-.share-grid a:hover {
+.share-grid a:hover,
+.share-grid button:hover {
   border-color: var(--accent);
   color: var(--accent);
 }
