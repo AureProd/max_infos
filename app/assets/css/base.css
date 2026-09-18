@@ -1261,6 +1261,18 @@ button:not(:disabled) {
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
+  /*
+   * Une adresse écrite en toutes lettres n'a pas de point de césure.
+   *
+   * `https://link.deezer.com/s/34hVkvnpK5OUb8t6dbuX3` est un seul mot :
+   * sa largeur min-content remontait jusqu'à la page, qui se mettait à
+   * défiler de côté — et la fenêtre de partage, centrée sur une page plus
+   * large que l'écran, partait avec elle. Coupée n'importe où, elle tient.
+   */
+  overflow-wrap: anywhere;
+}
+.prose {
+  overflow-wrap: break-word;
 }
 .prose strong {
   font-weight: 600;
@@ -1655,7 +1667,9 @@ button:not(:disabled) {
     padding-inline: 18px;
   }
   .hero {
-    padding-block: 54px 0;
+    /* Zéro en bas : le filet de la section suivante venait se coller sous
+       l'accroche, et les deux se lisaient d'un bloc. */
+    padding-block: 54px 36px;
   }
   .nav a {
     padding: 8px 9px;
@@ -1809,12 +1823,14 @@ button:not(:disabled) {
  */
 .pub-legende {
   margin: 0;
-  padding: 10px 12px 14px;
+  /* Le bas était au ras de la seconde ligne : sur une légende qui va au
+     bout de son cadrage, le texte touchait le bord de la carte. */
+  padding: 10px 12px 18px;
   font-family: var(--display);
   font-size: 0.85rem;
   line-height: 1.45;
   color: var(--muted);
-  min-height: calc(2 * 1.45em + 24px);
+  min-height: calc(2 * 1.45em + 28px);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

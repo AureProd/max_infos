@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { expectNoSideScroll, SESSION_FILE } from './helpers'
 
 /**
  * What the public pages must SHOW.
@@ -119,6 +120,10 @@ test.describe('an article', () => {
 
     await page.goto(`/article/${complete?.slug}`)
     await expect(page.locator('.article h1')).toBeVisible()
+    // Le titre est là dès le HTML du serveur : sa visibilité ne dit rien de
+    // l'hydratation. Un clic envoyé avant tombe sur un bouton sans
+    // gestionnaire, et la fenêtre de partage ne s'ouvre pas — sans erreur.
+    await page.waitForLoadState('networkidle')
   })
 
   test('opens the reading column at the width of the Substack', async ({ page }) => {
@@ -194,6 +199,59 @@ test.describe('an article', () => {
 
     await page.keyboard.press('Escape')
     await expect(dialog).toBeHidden()
+  })
+})
+
+/**
+ * Une adresse écrite en toutes lettres ne fait pas défiler la page.
+ *
+ * `https://link.deezer.com/s/34hVkvnpK5OUb8t6dbuX3` est UN mot : sans
+ * point de césure, sa largeur min-content remonte du paragraphe à la
+ * colonne de lecture, puis à la page, qui se met à défiler de côté sur un
+ * téléphone. La fenêtre de partage, centrée sur une page plus large que
+ * l'écran, partait avec elle — d'où un dialogue coupé au bord droit.
+ *
+ * Le test crée son propre article : ceux du semis n'en portent pas.
+ */
+test.describe('an article carrying a bare address', () => {
+  // La page éprouvée est PUBLIQUE ; c'est sa préparation qui demande la
+  // session — créer puis publier l'article par l'API du back-office.
+  test.use({ storageState: SESSION_FILE })
+
+  const LONG = 'https://link.deezer.com/s/34hVkvnpK5OUb8t6dbuX3aZq9LmNo0PqRsTuVwXy'
+
+  test('neither scrolls sideways nor pushes the share dialog off screen', async ({ page }) => {
+    const created = await page.request.post('/api/admin/articles', {
+      data: {
+        title: `Adresse nue ${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        bodyHtml: `<p>À écouter : <a href="${LONG}">${LONG}</a></p>`,
+        tags: [],
+      },
+    })
+    expect(created.ok(), 'la création de l’article de test a échoué').toBe(true)
+    const { slug } = (await created.json()) as { slug: string }
+
+    const published = await page.request.put(`/api/admin/articles/${slug}/status`, {
+      data: { status: 'published' },
+    })
+    expect(published.ok(), 'la publication de l’article de test a échoué').toBe(true)
+
+    await page.goto(`/article/${slug}`)
+    await expectNoSideScroll(page)
+
+    // Et la fenêtre de partage tient dans l'écran, des deux côtés. Le clic
+    // attend l'hydratation : envoyé avant, il tombe sur du HTML sans
+    // gestionnaire et n'ouvre rien — sans erreur.
+    await page.waitForLoadState('networkidle')
+    await page.locator('.share-open').first().click()
+    const box = page.locator('dialog.share-box').first()
+    await expect(box).toBeVisible()
+    const fits = await box.evaluate((el) => {
+      const r = el.getBoundingClientRect()
+      return { left: r.left, right: r.right, width: window.innerWidth }
+    })
+    expect(fits.left).toBeGreaterThanOrEqual(-1)
+    expect(fits.right).toBeLessThanOrEqual(fits.width + 1)
   })
 })
 

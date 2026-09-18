@@ -96,6 +96,10 @@ test.describe('a table on a phone', () => {
 
   test('unfolds into stacked cards rather than scrolling sideways', async ({ page }) => {
     await page.goto('/admin/tech')
+    // La table est remplie côté client : sans cette attente, la première
+    // rangée mesurée est celle du message « aucun compte », qui ne porte
+    // pas de `data-label` — et l'échec n'arrive que sous charge.
+    await page.waitForLoadState('networkidle')
     const firstRow = page.locator('.p-datatable-tbody > tr').first()
     await expect(firstRow).toBeVisible()
 
@@ -122,6 +126,7 @@ test.describe('a table on a phone', () => {
    */
   test('puts a tag’s count beside its name, without naming the column', async ({ page }) => {
     await page.goto('/admin/tags')
+    await page.waitForLoadState('networkidle')
     const firstRow = page.locator('.p-datatable-tbody > tr').first()
     await expect(firstRow).toBeVisible()
 
