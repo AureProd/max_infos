@@ -1115,12 +1115,6 @@ a.a-figure:hover {
 .a-short {
   max-width: 100%;
 }
-/* Dans une rangée, `.a-row-add .a-input` prend `flex: 1` : « Niveau »
-   s'élargissait autant que « Langue », alors qu'il porte « C1 ». */
-.a-row-add .a-short {
-  flex: 0 1 130px;
-}
-
 /*
  * Une rangée qui se lit de gauche à droite : un champ qui prend la place,
  * puis le bouton qui agit dessus. Employée là où la grille n'a rien à
@@ -1435,11 +1429,25 @@ a.a-figure:hover {
   .a-row-grid.is-cv {
     grid-template-columns: 1fr;
   }
+  /*
+   * Ce qui compte prend la ligne : la LANGUE, pas son niveau.
+   *
+   * Les deux champs grandissaient à égalité, et « Anglais » se serrait
+   * dans la même moitié que « C1 ». Le premier déclare la ligne entière,
+   * le second garde la mesure de ce qu'il porte.
+   */
   .a-row-add {
     flex-wrap: wrap;
+    /* Ce qui agit sur la rangée se replie à droite, comme dans les cartes
+       de contact : sinon l'interrupteur et la corbeille d'un groupe
+       pendaient sous le début de son nom. */
+    justify-content: flex-end;
+  }
+  .a-row-add > .a-input:not(.a-short) {
+    flex: 1 0 100%;
   }
   .a-row-add .a-short {
-    flex: 1 0 120px;
+    flex: 1 1 120px;
   }
 
   /* ---------- tableaux PrimeVue ---------- */
@@ -2907,10 +2915,13 @@ a.a-figure:hover {
     border-bottom: 1px solid var(--a-line);
     margin-bottom: 0;
   }
-  .a-rows.is-groups > li,
-  .a-rows.is-groups > li:first-child {
-    padding: 16px 14px;
-    margin-bottom: 16px;
+  /* `.admin-ui` devant, sinon la règle de rythme écrite plus haut — qui le
+     porte, elle — reprend son `padding: 16px 0` et la carte n'a aucun
+     rembourrage sur les côtés. */
+  .admin-ui .a-rows.is-groups > li,
+  .admin-ui .a-rows.is-groups > li:first-child {
+    padding: 18px 16px;
+    margin-bottom: 20px;
   }
 
   /*
