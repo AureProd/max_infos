@@ -77,6 +77,14 @@ export function useFilters() {
 
   return {
     state,
+    /*
+     * Exposée pour être ÉPROUVÉE.
+     *
+     * C'est elle qui porte le filtre jusqu'au serveur. Un tag qui se coche
+     * sans entrer ici, c'est une pastille qui s'allume et une liste qui ne
+     * bouge pas — le défaut que `test/nuxt/useFilters.spec.ts` interdit.
+     */
+    query,
     tags: computed(() => tags.value ?? []),
     articles: computed(() => data.value?.items ?? []),
     total: computed(() => data.value?.total ?? 0),

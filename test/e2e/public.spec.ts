@@ -48,6 +48,44 @@ test.describe('the home page', () => {
     expect(new Set(tops).size).toBe(1)
   })
 
+  /**
+   * Un tag FILTRE.
+   *
+   * Le test ci-dessus disait qu'ils tiennent sur une ligne, aucun ne disait
+   * qu'ils servent à quelque chose. Or tout ce qui est en amont peut casser
+   * en silence : `/api/tags` qui répond 500 rend un rail vide, et
+   * `/api/articles` qui répond 500 rend une liste qui ne bouge jamais — dans
+   * les deux cas, « les tags ne filtrent pas », et rien à l'écran ne dit
+   * pourquoi.
+   */
+  test('narrows the list when a tag is chosen, and widens it again', async ({ page }) => {
+    await page.goto('/')
+
+    const cards = page.locator('.cards > li')
+    const all = await cards.count()
+    expect(all, 'aucun article à filtrer').toBeGreaterThan(1)
+
+    const tag = page.locator('.tags .tag').first()
+    await expect(tag).toBeVisible()
+    const label = (await tag.innerText()).trim()
+
+    await tag.click()
+    await expect(tag).toHaveAttribute('aria-pressed', 'true')
+    // Moins d'articles, et pas zéro : le rail ne montre que des tags portés.
+    await expect.poll(() => cards.count()).toBeLessThan(all)
+    expect(await cards.count()).toBeGreaterThan(0)
+
+    // Chaque carte restante porte bien ce tag.
+    const labels = await page.locator('.cards > li .card-tags span').allInnerTexts()
+    expect(labels.map((t) => t.trim())).toContain(label)
+
+    // Le même clic défait le filtre : c'est un interrupteur, pas un choix
+    // définitif qu'il faudrait aller annuler ailleurs.
+    await tag.click()
+    await expect(tag).toHaveAttribute('aria-pressed', 'false')
+    await expect.poll(() => cards.count()).toBe(all)
+  })
+
   test('scrolls the tag rail without scrolling the page', async ({ page }) => {
     await page.goto('/')
     const page_ = await page.evaluate(() => ({

@@ -78,3 +78,56 @@ describe('what useFilters hands the page', () => {
     expect(total.value).toBe(7)
   })
 })
+
+/**
+ * Ce que le tag doit ARRIVER À FAIRE : entrer dans la requête.
+ *
+ * Les tests ci-dessus décrivent l'état ; aucun ne disait que cet état
+ * atteint le serveur. Un tag qui se coche sans changer la requête est
+ * exactement ce que l'on voit quand « les tags ne filtrent pas » : la
+ * pastille s'allume, et la liste ne bouge pas.
+ */
+describe('la requête envoyée au serveur', () => {
+  it('porte le tag choisi, et le retire au second clic', async () => {
+    const { toggleTag, reset, query } = useFilters()
+    reset()
+    expect(query.value.tag).toBeUndefined()
+
+    toggleTag('geopolitique')
+    await nextTick()
+    expect(query.value.tag).toBe('geopolitique')
+
+    toggleTag('geopolitique')
+    await nextTick()
+    expect(query.value.tag).toBeUndefined()
+    reset()
+  })
+
+  it('revient à la première page quand le tag change', async () => {
+    // Autrement, un filtre posé depuis la page 3 répondait par la troisième
+    // page de SES résultats — le plus souvent vide, lue comme « rien ne
+    // correspond ».
+    const { toggleTag, goTo, state, reset, query } = useFilters()
+    reset()
+    goTo(3)
+    expect(state.value.page).toBe(3)
+
+    toggleTag('europe')
+    await nextTick()
+    expect(state.value.page).toBe(1)
+    expect(query.value.page).toBe(1)
+    reset()
+  })
+
+  it('cumule le tag et la recherche plutôt que de les remplacer', async () => {
+    const { toggleTag, state, reset, query } = useFilters()
+    reset()
+    toggleTag('europe')
+    state.value.q = 'souveraineté'
+    // Le texte est temporisé de 300 ms ; le tag, lui, part tout de suite.
+    await new Promise((r) => setTimeout(r, 400))
+    expect(query.value.tag).toBe('europe')
+    expect(query.value.q).toBe('souveraineté')
+    reset()
+  })
+})

@@ -105,6 +105,17 @@ button:not([class]) {
   color: inherit;
   background: none;
   border: none;
+}
+/*
+ * Le curseur, lui, vaut pour TOUS les boutons du site — y compris ceux qui
+ * portent une classe, et que le reset ci-dessus ne touche plus. Un filtre
+ * de tag qui ne dit pas qu'il se clique ne se clique pas.
+ *
+ * `:not(:disabled)` : un bouton hors service garde la flèche, sans quoi il
+ * promettrait une action qu'il ne rendra pas — c'est le cas des deux
+ * boutons de pagination aux extrémités.
+ */
+button:not(:disabled) {
   cursor: pointer;
 }
 
@@ -234,7 +245,9 @@ button:not([class]) {
 
 /* ---------- hero carried by the type ---------- */
 .hero {
-  padding-block: 72px 0;
+  /* L'air du bas était porté par le repère « Défiler », qui a été retiré :
+     le filet de la section suivante est venu se coller sous l'accroche. */
+  padding-block: 72px 56px;
 }
 .hero h1 {
   font-family: var(--display);
@@ -1063,20 +1076,35 @@ button:not([class]) {
   max-width: var(--read);
   margin: 0 auto 30px;
 }
+/*
+ * Le retour est un BOUTON, comme le partage à côté de lui.
+ *
+ * Il était un lien nu : deux actions sur la même ligne, l'une encadrée et
+ * l'autre pas, et rien ne disait qu'elles étaient de même nature.
+ */
 .back {
   font-family: var(--body);
-  font-size: 0.87rem;
-  color: var(--faint);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--muted);
   text-decoration: none;
   display: inline-flex;
   gap: 8px;
   align-items: center;
-}
-.back i {
-  font-size: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 15px;
+  background: var(--surface);
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 .back:hover {
   color: var(--accent);
+  border-color: var(--accent);
+}
+.back i {
+  font-size: 0.75rem;
 }
 .article header {
   max-width: var(--read);
@@ -1169,7 +1197,10 @@ button:not([class]) {
   align-items: center;
   gap: 12px 18px;
 }
+/* Poussé à droite : le partage est le geste courant, la newsletter est
+   l'issue de secours pour qui préfère la lire là-bas. */
 .article-foot-link {
+  margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1906,7 +1937,14 @@ button:not([class]) {
   font-size: 0.85rem;
 }
 
+/*
+ * Le centrage d'un `<dialog>` natif vient de son `margin: auto`, posé par
+ * le navigateur. La remise à zéro de Tailwind l'efface — `*, ::before,
+ * ::after, ::backdrop { margin: 0 }` — et la fenêtre partait se coller en
+ * haut à gauche de l'écran. Il faut donc le redire.
+ */
 .share-box {
+  margin: auto;
   width: min(460px, calc(100vw - 32px));
   border: 1px solid var(--line);
   border-radius: 14px;

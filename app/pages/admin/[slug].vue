@@ -229,11 +229,12 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
           label="Publier"
           @click="changeStatus('published')"
         />
+        <!-- Retirer du site est un avertissement, pas une action neutre. -->
         <Button
           v-else
-          severity="secondary"
+          severity="warn"
           outlined
-          icon="pi pi-eye-slash"
+          icon="pi pi-inbox"
           label="Dépublier"
           @click="changeStatus('draft')"
         />
@@ -254,7 +255,7 @@ useSeoMeta({ title: () => `${draft.value.title} — Rédaction`, robots: 'noinde
               on écrivait à l'aveugle la phrase qui tient la tête de
               l'article.
             -->
-            <textarea id="a-dek" v-model="draft.dek" class="a-dek" rows="2" />
+            <textarea id="a-dek" v-model="draft.dek" class="a-dek" rows="4" />
           </div>
           <div class="field">
             <div class="a-label-row">

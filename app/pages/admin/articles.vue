@@ -184,13 +184,28 @@ useSeoMeta({ title: 'Articles', robots: 'noindex, nofollow' })
             <td class="a-date" data-label="Modifié le">{{ frDate(a.updatedAt.slice(0, 10)) }}</td>
             <td data-label="Actions">
               <div class="a-row-act">
+                <!--
+                  La couleur suit ce que l'action FAIT, et son remplissage
+                  dit laquelle est la bonne : publier est le geste qu'on
+                  vient faire, donc plein et bleu ; retirer du site est un
+                  avertissement, donc contour orange.
+                -->
                 <Button
-                  v-tooltip.top="a.status === 'published' ? 'Dépublier' : 'Publier'"
-                  severity="secondary"
+                  v-if="a.status === 'published'"
+                  v-tooltip.top="'Dépublier'"
+                  severity="warn"
                   outlined
                   size="small"
-                  :icon="a.status === 'published' ? 'pi pi-eye-slash' : 'pi pi-send'"
-                  :aria-label="a.status === 'published' ? 'Dépublier' : 'Publier'"
+                  icon="pi pi-inbox"
+                  aria-label="Dépublier"
+                  @click="toggle(a.slug, a.status)"
+                />
+                <Button
+                  v-else
+                  v-tooltip.top="'Publier'"
+                  size="small"
+                  icon="pi pi-send"
+                  aria-label="Publier"
                   @click="toggle(a.slug, a.status)"
                 />
                 <a

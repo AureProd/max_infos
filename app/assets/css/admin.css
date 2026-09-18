@@ -256,8 +256,8 @@ a.a-btn-primary,
   font-weight: 600;
 }
 .a-btn-primary:hover {
-  background: #1d51c4;
-  border-color: #1d51c4;
+  background: var(--color-accent-strong);
+  border-color: var(--color-accent-strong);
   color: #fff;
 }
 .a-btn-danger:hover {
@@ -823,7 +823,7 @@ a.a-figure:hover {
   font-weight: 600;
 }
 .admin-ui .btn-primary:hover {
-  background: #1d51c4;
+  background: var(--color-accent-strong);
   color: #fff;
 }
 
@@ -1441,6 +1441,9 @@ a.a-figure:hover {
 
 /* Un lien habillé comme un bouton icône, pour les cibles qui doivent
    rester des <a> — « voir sur le site » s'ouvre dans un onglet. */
+/* Un lien habillé en bouton secondaire : contour ET fond blanc. Sans fond,
+   il laissait passer le gris de la page et ne ressemblait pas aux boutons
+   posés à côté de lui. */
 .a-icon-link {
   display: inline-flex;
   align-items: center;
@@ -1449,6 +1452,7 @@ a.a-figure:hover {
   height: 32px;
   border: 1px solid var(--a-line-strong);
   border-radius: 6px;
+  background: var(--a-panel);
   color: var(--a-muted);
   text-decoration: none;
   transition:
@@ -1992,11 +1996,18 @@ a.a-figure:hover {
 .admin-ui .a-row-act .p-button-outlined:not(:disabled):hover {
   color: #fff;
 }
-.admin-ui .a-row-act .p-button-secondary.p-button-outlined:not(:disabled) {
+/*
+ * Le survol d'un bouton secondaire, PARTOUT.
+ *
+ * Il ne valait que dans une ligne de tableau : « Aperçu », « Importer »,
+ * « Tout synchroniser » — les actions d'en-tête — ne réagissaient pas au
+ * survol, et rien ne disait qu'elles se cliquaient.
+ */
+.admin-ui .p-button-secondary.p-button-outlined:not(:disabled) {
   border-color: var(--a-line-strong);
   color: var(--a-muted);
 }
-.admin-ui .a-row-act .p-button-secondary.p-button-outlined:not(:disabled):hover {
+.admin-ui .p-button-secondary.p-button-outlined:not(:disabled):hover {
   border-color: var(--a-accent);
   background: var(--a-accent);
   color: #fff;
@@ -2330,12 +2341,13 @@ a.a-figure:hover {
 
 /* Le sous-titre fait souvent deux lignes sur le site : un champ d'une seule
    en cachait la moitié, et on écrivait à l'aveugle la phrase qui tient la
-   tête de l'article. */
+   tête de l'article. La colonne de gauche a de la place — autant la lui
+   donner, quitte à ce qu'il reste à moitié vide. */
 .admin-ui textarea.a-dek {
   font-family: var(--body);
   font-size: 0.95rem;
-  line-height: 1.5;
-  min-height: 0;
+  line-height: 1.55;
+  min-height: 6.5em;
   resize: vertical;
 }
 
@@ -2558,4 +2570,40 @@ a.a-figure:hover {
 }
 .admin-ui .p-button-outlined:disabled {
   background: var(--a-panel);
+}
+
+/*
+ * Le bouton de téléversement est un `<label>`, pas un `<Button>`.
+ *
+ * C'est ainsi qu'on habille un `<input type="file">` — mais il ne reçoit
+ * donc aucune des tailles de la bibliothèque : posé à côté d'un bouton
+ * `small` de 32 px, il en faisait 38, et le bleu de son survol était un hex
+ * figé de l'ancienne rampe.
+ */
+.a-media label.a-btn,
+.p-dialog-footer label.a-btn {
+  min-height: var(--a-control-sm);
+  padding: 0 13px;
+  font-size: 0.87rem;
+}
+.a-media label.a-btn i,
+.p-dialog-footer label.a-btn i {
+  font-size: 0.8rem;
+}
+
+/* Un bouton d'avertissement se remplit au survol, comme ceux des lignes. */
+.admin-ui .p-button-warn.p-button-outlined:not(:disabled):hover {
+  background: var(--a-warn);
+  border-color: var(--a-warn);
+  color: #fff;
+}
+
+/* Une explication n'est pas l'étiquette du champ qui la suit : sans marge,
+   le paragraphe de tête touchait la barre de recherche et les deux se
+   lisaient comme un seul bloc. */
+.admin-ui .admin-card > .hint {
+  margin: 0 0 18px;
+}
+.admin-ui .admin-card > .hint + .a-toolbar {
+  margin-top: 0;
 }
