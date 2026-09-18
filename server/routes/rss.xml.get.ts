@@ -1,6 +1,7 @@
 import { desc, eq } from 'drizzle-orm'
 import { useDatabase } from '~~/server/database/client'
 import { article, media } from '~~/server/database/schema'
+import { cdata } from '~~/server/utils/serialize'
 import { readSetting } from '~~/server/utils/settings'
 
 /** XML escaping. A title containing « & » would break the feed without it. */
@@ -43,7 +44,7 @@ export default defineEventHandler(async (event) => {
       <guid isPermaLink="true">${x(link)}</guid>
       <pubDate>${a.publishedAt?.toUTCString() ?? ''}</pubDate>
       <description>${x(a.dek ?? '')}</description>
-      <content:encoded><![CDATA[${a.bodyHtml}]]></content:encoded>${
+      <content:encoded>${cdata(a.bodyHtml)}</content:encoded>${
         a.coverUrl ? `\n      <enclosure url="${x(a.coverUrl)}" type="image/jpeg" />` : ''
       }
     </item>`

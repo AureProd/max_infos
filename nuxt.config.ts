@@ -182,6 +182,32 @@ export default defineNuxtConfig({
    * state.
    */
   routeRules: {
+    /*
+     * Les en-têtes de sécurité, sur TOUTE la réponse.
+     *
+     * Ils vivaient chez Cloudflare, dont le proxy ne s'exécute plus depuis
+     * le passage de `@` et `www` en *DNS only* — décision consignée dans
+     * `CLAUDE.md`, prise parce que le défi ACME TLS-ALPN-01 ne traverse pas
+     * un proxy. Personne ne les a repris : la réponse n'en portait plus
+     * aucun, mesuré.
+     *
+     * Ici et non dans les labels Traefik : ils valent aussi en
+     * développement, où il n'y a pas de proxy. Et sur `/**` plutôt qu'écran
+     * par écran, parce qu'une règle par écran est une règle qu'on oublie
+     * sur le suivant.
+     *
+     * `frame-ancestors` est la seule directive de CSP posée : une politique
+     * complète demanderait des nonces sur les scripts que Nuxt inline, et
+     * une CSP à moitié écrite ne protège de rien tout en cassant des pages.
+     */
+    '/**': {
+      headers: {
+        'content-security-policy': "frame-ancestors 'none'",
+        'x-frame-options': 'DENY',
+        'x-content-type-options': 'nosniff',
+        'referrer-policy': 'strict-origin-when-cross-origin',
+      },
+    },
     '/': { swr: 300 },
     '/article/**': { swr: 600 },
     '/about': { swr: 3600 },

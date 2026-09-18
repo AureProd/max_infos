@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { slugParam } from '#shared/schemas/api'
 import { useDatabase } from '~~/server/database/client'
@@ -20,10 +20,20 @@ export default defineEventHandler(async (event) => {
   const { slug } = await getValidatedRouterParams(event, z.object({ slug: slugParam }).parse)
   const db = useDatabase()
 
+  /*
+   * PUBLIÉ, et pas seulement « trouvé ».
+   *
+   * Sans ce filtre, la route répondait 202 sur un brouillon et 404 sur un
+   * slug inconnu : la différence se mesure d'une requête, et suffit à
+   * confirmer qu'un article existe à cette adresse. C'est l'oracle que la
+   * règle du dépôt interdit — un brouillon répond 404. Accessoirement, un
+   * compteur de lecture n'a rien à compter sur ce que personne ne peut
+   * lire.
+   */
   const [trouve] = await db
     .select({ id: article.id })
     .from(article)
-    .where(eq(article.slug, slug))
+    .where(and(eq(article.slug, slug), eq(article.status, 'published')))
     .limit(1)
 
   if (!trouve) {

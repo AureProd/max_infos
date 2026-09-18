@@ -119,6 +119,38 @@ describe('RSS feed', () => {
   })
 })
 
+/**
+ * Les en-têtes de sécurité, sur la réponse RÉELLE.
+ *
+ * Le test unitaire lit `nuxt.config.ts` ; celui-ci lit ce qui sort. Les
+ * deux sont utiles : une règle `routeRules` peut être écrite correctement
+ * et perdre contre une autre, et le site a déjà servi pendant des mois
+ * sans aucun de ces en-têtes — ils vivaient chez Cloudflare, dont le proxy
+ * ne s'exécute plus depuis le passage en *DNS only*.
+ */
+describe('les en-têtes de sécurité', () => {
+  const routes = ['/', '/rss.xml', '/api/articles']
+
+  for (const route of routes) {
+    it(`les pose sur ${route}`, async () => {
+      const r = await fetch(route)
+      expect(r.status).toBe(200)
+      expect(r.headers.get('x-frame-options')).toBe('DENY')
+      expect(r.headers.get('content-security-policy')).toContain("frame-ancestors 'none'")
+      expect(r.headers.get('x-content-type-options')).toBe('nosniff')
+      expect(r.headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin')
+    })
+  }
+
+  it('garde en plus le noindex du back-office', async () => {
+    // Les deux règles se cumulent : celle de `/**` ne doit pas écraser la
+    // règle plus précise, qui est la seule à tenir l'indexation à distance.
+    const r = await fetch('/admin')
+    expect(r.headers.get('x-robots-tag')).toContain('noindex')
+    expect(r.headers.get('x-frame-options')).toBe('DENY')
+  })
+})
+
 describe('sitemap', () => {
   it('lists the published articles and not the drafts', async () => {
     const xml = await (await fetch('/sitemap.xml')).text()

@@ -191,6 +191,11 @@ Chaque ligne a coûté du temps. Elles sont aussi dans `CLAUDE.md`.
 | `<select>` natif | Son chevron **ignore `padding-right`** sous Chrome |
 | Une adresse écrite en toutes lettres | Est **UN mot** : sa largeur min-content fait défiler la page, et une fenêtre modale centrée part avec elle |
 | `<style scoped>` | Porte un attribut de portée : il **bat toujours** la feuille commune, même sous media query |
+| Routes publiques | Un brouillon ne répond 404 que là où le **statut** est regardé : le compteur de lecture et les billets liés ne le regardaient pas |
+| Requête partie du serveur | Une adresse écrite par l'utilisateur atteint le réseau interne — et les **redirections** contournent le garde |
+| Import d'archive | C'est une ENTRÉE, pas une source de vérité : le corps d'article y est réassaini |
+| `<![CDATA[…]]>` | Se ferme au **premier** `]]>` rencontré |
+| En-têtes de sécurité | Ils vivaient chez Cloudflare, dont le proxy ne s'exécute plus. Ils sont dans `routeRules` |
 
 ## Les frontières à ne jamais franchir
 

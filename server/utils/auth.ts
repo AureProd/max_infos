@@ -38,7 +38,7 @@ export async function currentUser(event: H3Event): Promise<SignedInUser | null> 
     .where(eq(appUser.id, id))
     .limit(1)
 
-  if (!row || !row.active) return null
+  if (!row?.active) return null
   return {
     id: row.id,
     email: row.email,

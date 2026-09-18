@@ -13,6 +13,7 @@ import {
   socialPost,
   tag,
 } from '~~/server/database/schema'
+import { derivedFields, sanitizeArticleHtml } from '~~/server/utils/markdown'
 
 /**
  * Full site export, as data.
@@ -326,12 +327,39 @@ export async function applyImport(
      */
     const PROVENANCE = new Set(['updatedBy', 'uploadedBy'])
 
+    /*
+     * Le corps d'un article est RÉASSAINI en entrant.
+     *
+     * Une archive est un fichier venu d'ailleurs, pas une source de
+     * vérité : c'est le seul chemin d'écriture du projet qui n'en soit
+     * pas une. Or le corps est rendu par `v-html` sur la page publique, et
+     * la liste blanche de `scripts/hooks/check-v-html.sh` s'en justifie
+     * par une invariante — « rien de non assaini ne peut entrer en base ».
+     * Elle était fausse ici. Elle ne l'est plus.
+     *
+     * Les compteurs sont recalculés du même geste : ils décrivent le corps,
+     * et un corps qui change de contenu change de longueur.
+     */
     const replay = <T>(lines: T[]): T[] =>
       (lines ?? []).map((row) => {
         const copied = { ...(row as Record<string, unknown>) }
         for (const [key, value] of Object.entries(copied)) {
           if (DATE_FIELDS.has(key) && typeof value === 'string') copied[key] = new Date(value)
           if (PROVENANCE.has(key)) copied[key] = null
+        }
+        /*
+         * Réassaini SEULEMENT si l'assainissement change quelque chose.
+         *
+         * Recalculer les champs dérivés à chaque ligne réécrivait aussi
+         * les compteurs d'une archive saine, et l'aller-retour n'était
+         * plus fidèle — ce que `test/api/export.spec.ts` a dit aussitôt.
+         * Une archive bien formée ressort donc identique ; une archive
+         * trafiquée est réparée en entier, compteurs compris, parce qu'ils
+         * décrivent un corps qui vient de changer.
+         */
+        if (typeof copied.bodyHtml === 'string') {
+          const propre = sanitizeArticleHtml(copied.bodyHtml)
+          if (propre !== copied.bodyHtml) Object.assign(copied, derivedFields(copied.bodyHtml))
         }
         return copied as T
       })

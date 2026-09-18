@@ -106,7 +106,7 @@ async function upload(file: File): Promise<string | null> {
 }
 
 async function insertImage(file: File | undefined | null): Promise<void> {
-  if (!file || !file.type.startsWith('image/')) return
+  if (!file?.type.startsWith('image/')) return
   const url = await upload(file)
   if (url) editor.value?.chain().focus().setImage({ src: url }).run()
 }

@@ -82,10 +82,7 @@ test.describe('the writing sheet', () => {
     expect(text).not.toMatch(/\[[^\]]+\]\(https?:/)
   })
 
-  test('applies a format to the selection, and says so in the toolbar', async ({
-    page,
-    viewport,
-  }) => {
+  test('applies a format to the selection, and says so in the toolbar', async ({ page }) => {
     const sheet = await openEditor(page)
     const bold = page.getByRole('button', { name: 'Gras', exact: true })
 

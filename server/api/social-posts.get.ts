@@ -44,7 +44,11 @@ export default defineEventHandler(async (event) => {
     ? await base
         .innerJoin(articleSocialPost, eq(articleSocialPost.socialPostId, socialPost.id))
         .innerJoin(article, eq(article.id, articleSocialPost.articleId))
-        .where(and(...conditions, eq(article.slug, slug)))
+        // `status` AUTANT que le slug : la jointure passait par l'article
+        // sans jamais regarder son état, et les publications rattachées à
+        // un brouillon sortaient dans une réponse publique — en disant au
+        // passage qu'un article existait à ce slug.
+        .where(and(...conditions, eq(article.slug, slug), eq(article.status, 'published')))
         .orderBy(desc(socialPost.postedAt))
     : await base.where(and(...conditions)).orderBy(desc(socialPost.postedAt))
 

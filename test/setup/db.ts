@@ -120,11 +120,14 @@ export async function seedTestData(db: TestDatabase): Promise<void> {
     })
     .returning()
 
-  await db.insert(s.article).values({
-    slug: 'article-brouillon',
-    title: 'Un brouillon',
-    status: 'draft',
-  })
+  const [brouillon] = await db
+    .insert(s.article)
+    .values({
+      slug: 'article-brouillon',
+      title: 'Un brouillon',
+      status: 'draft',
+    })
+    .returning()
 
   if (published && tagGeo)
     await db.insert(s.articleTag).values({ articleId: published.id, tagId: tagGeo.id })
@@ -229,6 +232,16 @@ export async function seedTestData(db: TestDatabase): Promise<void> {
 
   if (published && post)
     await db.insert(s.articleSocialPost).values({ articleId: published.id, socialPostId: post.id })
+
+  /*
+   * Une publication rattachée au BROUILLON.
+   *
+   * Sans elle, « les billets d'un brouillon ne sortent pas » se vérifiait
+   * sur un article qui n'en portait aucun : le test passait quoi qu'il
+   * arrive. C'est ce qui a laissé la fuite en place.
+   */
+  if (brouillon && post)
+    await db.insert(s.articleSocialPost).values({ articleId: brouillon.id, socialPostId: post.id })
 
   await db.insert(s.setting).values([
     {

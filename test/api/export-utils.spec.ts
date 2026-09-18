@@ -131,6 +131,39 @@ describe('applyImport', () => {
     ])
   })
 
+  /**
+   * Une archive est une ENTRÉE, pas une source de vérité.
+   *
+   * Le corps d'un article est rendu par `v-html` sur la page publique, et
+   * la liste blanche de `scripts/hooks/check-v-html.sh` s'en justifie par
+   * une invariante : « rien d'assaini ne peut entrer en base, donc rien
+   * d'assaini n'en sort ». L'import écrivait les lignes telles quelles —
+   * l'invariante était fausse sur ce chemin-là, et c'est le seul qui
+   * accepte un fichier venu d'ailleurs.
+   */
+  it('sanitises an article body rather than trusting the archive', async () => {
+    const archive = {
+      ...(emptyArchive() as Record<string, unknown>),
+      articles: [
+        {
+          id: 1,
+          slug: 'venu-dailleurs',
+          title: 'Venu d’ailleurs',
+          status: 'draft',
+          bodyHtml: '<p>Bonjour</p><script>alert(1)</script><img src=x onerror=alert(1)>',
+          bodyText: '',
+        },
+      ],
+    }
+
+    await applyImport(archive as never, { wipe: true })
+
+    const [row] = await db.select().from(article)
+    expect(row?.bodyHtml).not.toContain('<script')
+    expect(row?.bodyHtml).not.toContain('onerror')
+    expect(row?.bodyHtml).toContain('Bonjour')
+  })
+
   it('brings the dates back as timestamps, not as strings', async () => {
     await seedTestData(db)
     // Through JSON, which is what an archive really goes through.

@@ -1,4 +1,4 @@
-import { createCipheriv, randomBytes } from 'node:crypto'
+import { randomBytes } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**

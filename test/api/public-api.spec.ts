@@ -203,6 +203,21 @@ describe('GET /api/social-posts', () => {
     ).toBe(0)
   })
 
+  /**
+   * Les billets d'un BROUILLON ne sortent pas.
+   *
+   * La jointure passait par `article` sans jamais regarder son état : les
+   * publications rattachées à un article non publié partaient dans une
+   * réponse publique, et leur présence disait qu'un article existait à ce
+   * slug — le même oracle que le compteur de lecture.
+   */
+  it('returns nothing for a draft, exactly as for an unknown slug', async () => {
+    expect(await $fetch('/api/social-posts', { query: { article: 'article-brouillon' } })).toEqual(
+      [],
+    )
+    expect(await $fetch('/api/social-posts', { query: { article: 'jamais-vu' } })).toEqual([])
+  })
+
   it('refuses an unknown network', async () => {
     expect((await fetch('/api/social-posts?network=mastodon')).status).toBe(400)
   })
@@ -294,5 +309,26 @@ describe('POST /api/articles/[slug]/view', () => {
 
   it('answers 404 on an unknown article', async () => {
     expect((await fetch('/api/articles/jamais-vu/view', { method: 'POST' })).status).toBe(404)
+  })
+
+  /**
+   * Un brouillon répond 404 ICI AUSSI.
+   *
+   * La route ne cherchait l'article que par son slug : elle répondait 202
+   * sur un brouillon et 404 sur un slug inconnu. La différence se mesure
+   * d'une requête, et c'est exactement l'oracle que la règle du dépôt
+   * interdit — « un brouillon répond 404, pas 403 » ne vaut que si TOUTES
+   * les routes publiques répondent pareil. Et le compteur de lecture
+   * n'avait rien à compter sur un article que personne ne peut lire.
+   */
+  it('answers 404 on a draft, exactly as on an unknown one', async () => {
+    expect((await fetch('/api/articles/article-brouillon/view', { method: 'POST' })).status).toBe(
+      404,
+    )
+    const [vue] = await sqlClient<{ count: number }[]>`
+      select v.count from article_view v
+      join article a on a.id = v.article_id
+      where a.slug = 'article-brouillon'`
+    expect(vue).toBeUndefined()
   })
 })

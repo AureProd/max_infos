@@ -1,6 +1,6 @@
 import { unfurlRequest } from '#shared/schemas/api'
 import { requireRole } from '~~/server/utils/auth'
-import { readOpenGraph } from '~~/server/utils/unfurl'
+import { fetchPageHtml, isFetchableUrl, readOpenGraph } from '~~/server/utils/unfurl'
 
 /**
  * Reads what a pasted link says about itself.
@@ -21,20 +21,22 @@ export default defineEventHandler(async (event) => {
 
   const nothing = { title: '', description: '', image: '' }
 
+  /*
+   * Le réseau interne n'est pas dépliable.
+   *
+   * La requête part DU SERVEUR, vers une adresse écrite par
+   * l'utilisateur : sans ce garde, un éditeur pouvait lui faire
+   * interroger la base, le tableau de bord du proxy ou l'API de
+   * métadonnées du VPS, et lire le résultat dans le titre renvoyé.
+   *
+   * Réponse vide et non erreur : c'est déjà ce que répond une page
+   * illisible, et rien ici n'a à confirmer ce qui existe sur le réseau
+   * interne — un refus distinct en serait la carte.
+   */
+  if (!isFetchableUrl(url)) return nothing
+
   try {
-    const html = await $fetch<string>(url, {
-      responseType: 'text',
-      // Ten seconds: past that, Max is better served by typing it himself.
-      timeout: 10_000,
-      redirect: 'follow',
-      headers: {
-        // Announcing a browser is what gets the OpenGraph tags served at
-        // all: several networks answer a bare client with a login page.
-        'user-agent':
-          'Mozilla/5.0 (compatible; unmaxdinfo/1.0; +https://unmaxdinfo.fr) AppleWebKit/537.36',
-        accept: 'text/html,application/xhtml+xml',
-      },
-    })
+    const html = await fetchPageHtml(url, { signal: AbortSignal.timeout(10_000) })
     return typeof html === 'string' ? readOpenGraph(html) : nothing
   } catch {
     return nothing

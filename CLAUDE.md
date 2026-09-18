@@ -85,6 +85,14 @@ migration appliquant un jeu périmé tout en répondant « applied successfully 
 | Un `<style scoped>` de composant porte un **attribut de portée** : il bat toujours la feuille commune | Une règle écrite dans `base.css`, même sous media query, ne peut pas corriger ce qu'un composant a posé. Elle doit vivre dans le composant |
 | `flex-basis` dans un conteneur **en colonne** est une HAUTEUR | `.a-btn-block` porte `flex: 1 1 260px` : replié en colonne sur un téléphone, le bouton faisait 260 px de haut |
 | Un sélecteur d'icône trop large (`.bloc i`) attrape aussi **l'icône du bouton posé dans le bloc** | L'icône de « Téléverser » se peignait en gris sur son fond bleu. `> i` pour ne viser que l'état vide |
+| Un brouillon ne répond 404 que sur les routes qui **regardent son statut** | Le compteur de lecture cherchait par slug seul : 202 sur un brouillon, 404 sur un slug inconnu — l'oracle se lit d'une requête. Même défaut sur `/api/social-posts?article=`. La règle « un brouillon répond 404 » ne vaut que si TOUTES les routes publiques répondent pareil |
+| Un test qui porte sur une donnée **absente du semis** passe quoi qu'il arrive | « Les billets d'un brouillon ne sortent pas » s'éprouvait sur un brouillon qui n'en portait aucun. C'est ce qui a laissé la fuite en place |
+| Une requête partie **du serveur** vers une adresse écrite par l'utilisateur atteint le réseau interne | `file://`, `http://db:5432`, `http://169.254.169.254/latest/meta-data/`. Liste blanche de schémas, refus de la boucle locale, du privé et du lien-local — et les **redirections** contournent le garde si on ne revérifie pas chaque saut |
+| `$fetch` en `responseType: 'text'` met **toute** la réponse en mémoire | Une page de plusieurs gigaoctets avant qu'on n'y cherche une balise `<meta>`. Lecture bornée, 512 Ko |
+| L'import d'archive écrivait les lignes **telles quelles** | Le corps d'article est rendu par `v-html`, et la liste blanche s'en justifie par « rien de non assaini n'entre en base » : c'était faux sur le seul chemin qui accepte un fichier venu d'ailleurs. Réassaini — mais **seulement si l'assainissement change quelque chose**, sinon l'aller-retour n'est plus fidèle |
+| Une section `<![CDATA[…]]>` se ferme au **premier `]]>`** | Le flux RSS s'en remettait à une invariante tenue dans un autre fichier. La section se ferme et se rouvre autour de la séquence |
+| Les en-têtes de sécurité vivaient **chez Cloudflare**, dont le proxy ne s'exécute plus | Mesuré : la réponse n'en portait aucun. `frame-ancestors`, `X-Frame-Options`, `nosniff`, `Referrer-Policy` sur `/**` dans `routeRules` — ils valent aussi en développement, où il n'y a pas de proxy |
+| `twitter.com/intent/tweet` **redirige** vers X, et la redirection perd les paramètres | Le rédacteur s'ouvrait vide. `x.com/intent/post`. Facebook et LinkedIn, eux, n'acceptent plus de texte préparé : ils lisent la page — donc rien à voir depuis `localhost` |
 
 ## Décisions arrêtées
 

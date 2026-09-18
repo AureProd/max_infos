@@ -82,3 +82,148 @@ export function readOpenGraph(html: string): OpenGraph {
     image: /^https?:\/\//i.test(image) ? image : '',
   }
 }
+
+/**
+ * Ce que le serveur accepte d'aller chercher.
+ *
+ * Le dépliage fait faire une requête AU SERVEUR depuis une adresse que
+ * l'utilisateur écrit. Sans garde, un éditeur pouvait lui faire interroger
+ * le réseau interne du déploiement — la base sur `db:5432`, le tableau de
+ * bord de Traefik, l'API de métadonnées d'un fournisseur de VPS sur
+ * 169.254.169.254 — et lire dans la réponse ce qu'un `<title>` en dit.
+ *
+ * Liste BLANCHE de schémas, liste noire d'hôtes. Le filtre porte sur ce que
+ * l'adresse déclare : il ne résout pas le nom, donc un domaine public qui
+ * pointe vers une adresse privée passe encore. Ce qu'il arrête, c'est
+ * l'adresse interne écrite en clair — le cas réel, et le seul qu'un
+ * contrôle synchrone puisse arrêter sans course entre la vérification et
+ * la requête.
+ */
+export function isFetchableUrl(raw: string): boolean {
+  let url: URL
+  try {
+    url = new URL(raw)
+  } catch {
+    return false
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false
+
+  // `new URL` garde les crochets d'une adresse IPv6 : on les retire pour
+  // comparer, sans quoi `[::1]` ne ressemble à rien de connu.
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '')
+  if (!host) return false
+
+  if (host === 'localhost' || host.endsWith('.localhost')) return false
+
+  // Un nom de SERVICE n'a pas de point : `db`, `app`, `traefik`. Tout nom
+  // du web public en a au moins un.
+  // Une IPv6 porte des deux-points, une IPv4 n'a que des chiffres et des
+  // points. La classe hexadécimale attrapait « db » — `d` et `b` en sont —
+  // et le nom du conteneur de base passait pour une adresse.
+  const looksLikeIp = host.includes(':') || /^[0-9.]+$/.test(host)
+  if (!looksLikeIp && !host.includes('.')) return false
+
+  if (host.includes(':')) {
+    // IPv6 : boucle locale, lien-local (fe80::/10) et unique-local (fc00::/7).
+    if (host === '::' || host === '::1') return false
+    if (/^f[cd][0-9a-f]{2}:/i.test(host)) return false
+    if (/^fe[89ab][0-9a-f]:/i.test(host)) return false
+    return true
+  }
+
+  if (/^[0-9.]+$/.test(host)) {
+    /*
+     * `http://127.1` est une adresse VALIDE pour le résolveur : les formes
+     * courtes complètent les octets manquants. Une comparaison textuelle
+     * sur « 127.0.0.1 » passait à côté.
+     */
+    const parts = host.split('.').map(Number)
+    if (parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false
+    const [a = 0, b = 0] = parts.length === 4 ? parts : [parts[0] ?? 0, 0]
+    if (a === 0 || a === 127) return false
+    if (a === 10) return false
+    if (a === 172 && b >= 16 && b <= 31) return false
+    if (a === 192 && b === 168) return false
+    // Lien-local, dont l'API de métadonnées des fournisseurs de VPS.
+    if (a === 169 && b === 254) return false
+  }
+
+  return true
+}
+
+/** Ce qu'on accepte de lire d'une page : au-delà, ce n'est plus une page. */
+const MAX_BYTES = 512 * 1024
+
+/**
+ * Va chercher le HTML d'une page, en tenant le garde à CHAQUE saut.
+ *
+ * Suivre les redirections automatiquement contournait `isFetchableUrl` :
+ * une page publique qui renvoie vers `http://169.254.169.254/` fait
+ * repartir la requête sans repasser par lui. Les refuser toutes aurait
+ * cassé le dépliage — LinkedIn et Substack redirigent tous les deux. Elles
+ * sont donc suivies à la main, trois au plus, chacune vérifiée.
+ *
+ * La lecture est BORNÉE : une réponse de plusieurs gigaoctets aurait été
+ * mise en mémoire en entier avant qu'on n'y cherche une balise `<meta>`.
+ *
+ * `allow` est injectable pour que le test puisse exercer les sauts et la
+ * borne contre un serveur local — que le garde refuse, à raison.
+ */
+export async function fetchPageHtml(
+  start: string,
+  options: { allow?: (url: string) => boolean; hops?: number; signal?: AbortSignal } = {},
+): Promise<string | null> {
+  const allow = options.allow ?? isFetchableUrl
+  let url = start
+
+  for (let hop = 0; hop <= (options.hops ?? 3); hop++) {
+    if (!allow(url)) return null
+
+    const response = await fetch(url, {
+      redirect: 'manual',
+      signal: options.signal,
+      headers: {
+        // Announcing a browser is what gets the OpenGraph tags served at
+        // all: several networks answer a bare client with a login page.
+        'user-agent':
+          'Mozilla/5.0 (compatible; unmaxdinfo/1.0; +https://unmaxdinfo.fr) AppleWebKit/537.36',
+        accept: 'text/html,application/xhtml+xml',
+      },
+    })
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location')
+      if (!location) return null
+      // Une redirection relative est légale : elle se résout sur l'adresse
+      // courante, et repasse par le garde comme les autres.
+      url = new URL(location, url).toString()
+      continue
+    }
+
+    if (!response.ok || !response.body) return null
+
+    const reader = response.body.getReader()
+    const chunks: Uint8Array[] = []
+    let read = 0
+    while (read < MAX_BYTES) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+      read += value.length
+    }
+    await reader.cancel().catch(() => {})
+
+    return new TextDecoder().decode(
+      chunks.reduce((all, chunk) => {
+        const next = new Uint8Array(all.length + chunk.length)
+        next.set(all)
+        next.set(chunk, all.length)
+        return next
+      }, new Uint8Array()),
+    )
+  }
+
+  // Trop de sauts : une page qui redirige quatre fois ne dit rien d'elle.
+  return null
+}

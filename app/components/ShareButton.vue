@@ -35,22 +35,46 @@ const subject = computed(() => encodeURIComponent(props.title))
 /**
  * Les cibles du partage.
  *
- * `to: null` désigne celles que le web ne sait pas adresser : la tuile
- * copie l'adresse au lieu d'ouvrir un lien mort.
+ * `copyFirst` désigne celles que le web ne sait pas adresser : le lien est
+ * copié avant l'ouverture, faute de pouvoir le leur passer.
  */
-const targets = computed<{ key: string; label: string; icon: string; to: string | null }[]>(() => [
+const targets = computed<
+  { key: string; label: string; icon: string; to: string; copyFirst?: boolean }[]
+>(() => [
+  /*
+   * `x.com/intent/post`, et non plus `twitter.com/intent/tweet`.
+   *
+   * L'ancienne adresse redirige vers la nouvelle, et la redirection perd
+   * les paramètres : le rédacteur s'ouvrait vide. C'est le seul des trois
+   * réseaux qui accepte encore un texte préparé.
+   */
   {
     key: 'x',
     label: 'X',
     icon: 'pi-twitter',
-    to: `https://twitter.com/intent/tweet?url=${encoded.value}&text=${subject.value}`,
+    to: `https://x.com/intent/post?url=${encoded.value}&text=${subject.value}`,
   },
+  /*
+   * Le rédacteur de LinkedIn, et non son ancien point de partage.
+   *
+   * `sharing/share-offsite` ouvre une fenêtre qui ne montre que ce que
+   * LinkedIn arrive à lire de la page. `shareActive=true&shareUrl=` ouvre
+   * le rédacteur avec le lien déjà attaché, ce qui est ce qu'on veut.
+   */
   {
     key: 'linkedin',
     label: 'LinkedIn',
     icon: 'pi-linkedin',
-    to: `https://www.linkedin.com/sharing/share-offsite/?url=${encoded.value}`,
+    to: `https://www.linkedin.com/feed/?shareActive=true&shareUrl=${encoded.value}`,
   },
+  /*
+   * Facebook ne prend QUE l'adresse.
+   *
+   * Le paramètre `quote` a été retiré de `sharer.php` : aucun texte
+   * préparé n'est possible, et l'aperçu vient des balises OpenGraph que
+   * Facebook va lire à cette adresse. En développement il n'y a donc rien
+   * à voir — `localhost` n'est lisible que depuis cette machine.
+   */
   {
     key: 'facebook',
     label: 'Facebook',
@@ -66,16 +90,23 @@ const targets = computed<{ key: string; label: string; icon: string; to: string 
   /*
    * Instagram n'a PAS d'adresse de partage web.
    *
-   * Rien ne permet d'y pousser un lien depuis un navigateur — ni story, ni
-   * message. La tuile est donc là pour ce qu'on peut vraiment faire :
-   * copier l'adresse, à coller dans l'application. C'est le réseau de Max,
-   * il a sa place avant un Telegram que personne n'utilise ici.
+   * Aucune URL ne lui passe un lien, contrairement à X ou Facebook : ni
+   * story, ni message, ni publication. La tuile fait donc les DEUX gestes
+   * qui, ensemble, valent un partage — elle copie l'adresse, puis ouvre
+   * Instagram. Il ne reste qu'à coller.
+   *
+   * Ouvrir sans copier enverrait sur Instagram sans le lien ; copier sans
+   * ouvrir demanderait d'y aller soi-même. C'est le réseau de Max, il a sa
+   * place avant un Telegram que personne n'utilise ici.
    */
   {
     key: 'instagram',
     label: 'Instagram',
     icon: 'pi-instagram',
-    to: null,
+    // Le rédacteur de story plutôt que le fil : on arrive là où on voulait
+    // aller, l'adresse dans le presse-papiers, prête à coller.
+    to: 'https://www.instagram.com/create/story/',
+    copyFirst: true,
   },
   {
     key: 'email',
@@ -134,16 +165,21 @@ async function copy(): Promise<void> {
 
       <ul class="share-grid">
         <li v-for="t in targets" :key="t.key">
-          <a v-if="t.to" :href="t.to" target="_blank" rel="noopener">
+          <!--
+            Le lien reste un lien, même quand il faut copier d'abord :
+            clic milieu, « ouvrir dans un onglet » et le menu contextuel
+            marchent, ce qu'un `<button>` ne sait pas faire.
+          -->
+          <a
+            :href="t.to"
+            target="_blank"
+            rel="noopener"
+            :title="t.copyFirst ? `Copie l'adresse, puis ouvre ${t.label}` : undefined"
+            @click="t.copyFirst && copy()"
+          >
             <i :class="['pi', t.icon]" aria-hidden="true" />
             <span>{{ t.label }}</span>
           </a>
-          <!-- Sans adresse de partage, la tuile copie : un lien mort
-               n'aurait rien fait, sans rien dire. -->
-          <button v-else type="button" :title="`Copier l'adresse pour ${t.label}`" @click="copy">
-            <i :class="['pi', copied ? 'pi-check' : t.icon]" aria-hidden="true" />
-            <span>{{ copied ? 'Copié' : t.label }}</span>
-          </button>
         </li>
       </ul>
 
@@ -159,8 +195,9 @@ async function copy(): Promise<void> {
         </button>
       </div>
       <p class="share-note">
-        Pour Instagram, YouTube ou une story : copiez l'adresse, puis collez-la dans
-        l'application — aucune ne sait recevoir un lien depuis un navigateur.
+        Instagram ne reçoit pas de lien depuis un navigateur : la tuile copie l'adresse et
+        ouvre le rédacteur de story, il ne reste qu'à coller. Facebook et LinkedIn n'acceptent
+        pas de texte préparé — ils lisent la page elle-même.
       </p>
     </dialog>
   </div>

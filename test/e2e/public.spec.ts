@@ -202,26 +202,67 @@ test.describe('an article', () => {
   })
 
   /**
-   * Instagram est là, et il COPIE.
+   * Instagram OUVRE, et copie au passage.
    *
-   * C'est le réseau de Max, et il n'a aucune adresse de partage web : rien
-   * ne permet d'y pousser un lien depuis un navigateur. Une tuile rendue
-   * en `<a href>` n'aurait mené nulle part sans le dire — d'où le bouton.
+   * C'est le réseau de Max, mais aucune URL ne lui passe un lien —
+   * contrairement à X ou Facebook, il n'a pas d'adresse de partage. La
+   * tuile fait donc les deux gestes qui ensemble valent un partage : elle
+   * copie l'adresse, puis ouvre Instagram, où il ne reste qu'à coller.
    */
-  test('offers Instagram as a copy, having no web address to share to', async ({ page }) => {
+  test('opens Instagram, having copied the address on the way', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
     const dialog = page.locator('dialog.share-box').first()
     await page.locator('.share-open').first().click()
     await expect(dialog).toBeVisible()
 
     const tile = dialog.locator('.share-grid li', { hasText: 'Instagram' })
-    await expect(tile).toHaveCount(1)
-    // Un bouton, pas un lien : la distinction EST le correctif.
-    await expect(tile.locator('button')).toBeVisible()
-    await expect(tile.locator('a')).toHaveCount(0)
+    await expect(tile.locator('a')).toHaveAttribute(
+      'href',
+      'https://www.instagram.com/create/story/',
+    )
+
+    // Le clic copie AVANT d'ouvrir : sans cela on arrive sur Instagram
+    // sans le lien qu'on venait y mettre.
+    const onglet = context.waitForEvent('page')
+    await tile.locator('a').click()
+    await (await onglet).close()
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('/article/')
 
     // Et Telegram a laissé la place : six tuiles, pas sept.
     await expect(dialog.locator('.share-grid li')).toHaveCount(6)
     await expect(dialog.locator('.share-grid li', { hasText: 'Telegram' })).toHaveCount(0)
+  })
+
+  /**
+   * Chaque réseau reçoit l'adresse qu'il sait lire AUJOURD'HUI.
+   *
+   * `twitter.com/intent/tweet` redirige vers X, et la redirection perd les
+   * paramètres : le rédacteur s'ouvrait vide. L'ancien point de partage de
+   * LinkedIn n'ouvrait pas son rédacteur. Ce test tient les adresses,
+   * qu'aucune assertion ne regardait.
+   */
+  test('points each network at the address it still honours', async ({ page }) => {
+    const dialog = page.locator('dialog.share-box').first()
+    await page.locator('.share-open').first().click()
+    await expect(dialog).toBeVisible()
+
+    const href = (name: string) => dialog.locator('.share-grid li', { hasText: name }).locator('a')
+
+    // Le seul des trois qui accepte encore un texte préparé.
+    await expect(href('X')).toHaveAttribute(
+      'href',
+      /^https:\/\/x\.com\/intent\/post\?url=.+&text=.+/,
+    )
+    await expect(href('LinkedIn')).toHaveAttribute(
+      'href',
+      /linkedin\.com\/feed\/\?shareActive=true&shareUrl=/,
+    )
+    await expect(href('Facebook')).toHaveAttribute('href', /facebook\.com\/sharer\/sharer\.php\?u=/)
+
+    // L'adresse de l'article voyage encodée dans chacune.
+    for (const name of ['X', 'LinkedIn', 'Facebook']) {
+      await expect(href(name)).toHaveAttribute('href', /%2Farticle%2F/)
+    }
   })
 })
 

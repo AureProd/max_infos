@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
 
   // A draft must be not found, not « forbidden »: answering 403 would
   // reveal its existence.
-  if (!trouve || !trouve.publishedAt) {
+  if (!trouve?.publishedAt) {
     throw createError({ statusCode: 404, statusMessage: 'Article introuvable' })
   }
 
